@@ -1,0 +1,84 @@
+@page "/PolicyListEditor"
+@using MatrixRoomUtils.Authentication
+@using MatrixRoomUtils.Web.Classes
+@using Blazored.LocalStorage
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using MatrixRoomUtils.Extensions
+@using MatrixRoomUtils.StateEventTypes
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+<h3>Policy list editor</h3>
+
+<h5>Room list</h5>
+<hr/>
+@if (PolicyRoomList.Count == 0)
+{
+    <p>No policy rooms found.</p>
+}
+else
+{
+    foreach (var s in PolicyRoomList)
+    {
+        <a href="@(NavigationManager.Uri + "/" + s.Replace('.', '~'))">@s</a>
+        <br/>
+    }
+    <div style="margin-bottom: 4em;"></div>
+}
+
+<LogView></LogView>
+
+@code {
+    //get room list
+    // - sync withroom list filter
+    // type = support.feline.msc3784
+    //support.feline.policy.lists.msc.v1
+
+    public List<string> PolicyRoomList { get; set; } = new();
+    public List<StateEvent<PolicyRuleStateEventData>> PolicyEvents { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeStorage.WasLoaded) await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+        await base.OnInitializedAsync();
+        if(RuntimeStorage.AccessToken == null || RuntimeStorage.CurrentHomeserver == null)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+        await EnumeratePolicyRooms();
+        Console.WriteLine("Policy list editor initialized!");
+    }
+
+    private async Task EnumeratePolicyRooms()
+    {
+        using HttpClient wc = new();
+        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeStorage.AccessToken);
+
+    //get room list
+    //temporary hack until rooms get enumerated...
+        string[] rooms = { "!fTjMjIzNKEsFlUIiru:neko.dev" };
+
+        foreach (string room in rooms)
+        {
+            Console.WriteLine($"Checking if {room} is a policy room...");
+            var sk = await wc.GetAsync($"{RuntimeStorage.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
+            if (sk.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Got success...");
+                var sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
+                if (sko.TryGetProperty("shortcode", out JsonElement shortcode))
+                {
+                    Console.WriteLine($"Room {room} has a shortcode: {shortcode.GetString()}!");
+                    PolicyRoomList.Add(room);
+                    StateHasChanged();
+                }
+                else Console.WriteLine("No record found...");
+            }
+            else Console.WriteLine($"Got failure {sk.StatusCode}...");
+        }
+
+    //print to console
+        Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
+    }
+    } 

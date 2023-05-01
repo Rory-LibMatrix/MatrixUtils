@@ -1,0 +1,31 @@
+@using System.Text
+<u>Logs</u><br/>
+<pre>
+    @sb
+</pre>
+
+@code {
+    StringBuilder sb = new();
+    protected override void OnInitialized()
+    {
+        //intecept stdout with textwriter to get logs
+        var sw = new StringWriter(sb);
+        Console.SetOut(sw);
+        Console.SetError(sw);
+        //keep updated
+        int length = 0;
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(100);
+                if (sb.Length != length)
+                {
+                    StateHasChanged();
+                    length = sb.Length;
+                }
+            }
+        });
+        base.OnInitialized();
+    }
+}

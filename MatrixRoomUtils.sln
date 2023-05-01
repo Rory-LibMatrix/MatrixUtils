@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils", "MatrixRoomUtils\MatrixRoomUtils.csproj", "{244E90FE-EE26-4F78-86EB-27529AE48905}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Web", "MatrixRoomUtils.Web\MatrixRoomUtils.Web.csproj", "{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Core", "MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj", "{CE777A1E-2CDC-431D-82BF-CC2812E2F3A4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Web.Server", "MatrixRoomUtils.Web.Server\MatrixRoomUtils.Web.Server.csproj", "{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{244E90FE-EE26-4F78-86EB-27529AE48905}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{244E90FE-EE26-4F78-86EB-27529AE48905}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{244E90FE-EE26-4F78-86EB-27529AE48905}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{244E90FE-EE26-4F78-86EB-27529AE48905}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE777A1E-2CDC-431D-82BF-CC2812E2F3A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE777A1E-2CDC-431D-82BF-CC2812E2F3A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE777A1E-2CDC-431D-82BF-CC2812E2F3A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE777A1E-2CDC-431D-82BF-CC2812E2F3A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

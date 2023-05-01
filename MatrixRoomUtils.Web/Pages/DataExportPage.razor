@@ -1,0 +1,83 @@
+﻿@page "/export"
+@using MatrixRoomUtils.Web.Classes
+@using MatrixRoomUtils.Web.Shared.IndexComponents
+@using Blazored.LocalStorage
+@using MatrixRoomUtils.Authentication
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Rendering
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Export</PageTitle>
+
+<h1>Data export</h1>
+
+<br/><br/>
+<h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
+<hr/>
+@if (_isLoaded)
+{
+@foreach (var (token, user) in RuntimeStorage.UsersCache)
+{
+    <IndexUserItem User="@user" Token="@token"/>
+    <pre>
+@user.LoginResponse.UserId[1..].Split(":")[0]\auth\access_token=@token
+@user.LoginResponse.UserId[1..].Split(":")[0]\auth\device_id=@user.LoginResponse.DeviceId
+@user.LoginResponse.UserId[1..].Split(":")[0]\auth\home_server=@(RuntimeStorage.HomeserverResolutionCache.ContainsKey(user.LoginResponse.HomeServer) ? RuntimeStorage.HomeserverResolutionCache[user.LoginResponse.HomeServer].Result : "loading...")
+@user.LoginResponse.UserId[1..].Split(":")[0]\auth\user_id=@@@user.LoginResponse.UserId
+@user.LoginResponse.UserId[1..].Split(":")[0]\user\automatically_share_keys_with_trusted_users=true
+@user.LoginResponse.UserId[1..].Split(":")[0]\user\muted_tags=global
+@user.LoginResponse.UserId[1..].Split(":")[0]\user\online_key_backup=true
+@user.LoginResponse.UserId[1..].Split(":")[0]\user\only_share_keys_with_verified_users=false
+    </pre>
+}
+}
+else
+{
+    <p>Loading...</p>
+    <p>@resolvedHomeservers/@totalHomeservers homeservers resolved...</p>
+}
+
+@code {
+    private bool _isLoaded;
+    private int resolvedHomeservers;
+    private int totalHomeservers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
+        if (!RuntimeStorage.WasLoaded)
+        {
+            Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
+            await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+
+            Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
+
+            var homeservers = RuntimeStorage.UsersCache.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
+            totalHomeservers = homeservers.Count();
+            StateHasChanged();
+            foreach (var hs in homeservers)
+            {
+                if (RuntimeStorage.HomeserverResolutionCache.ContainsKey(hs)) continue;
+                var resolvedHomeserver = await MatrixAccount.ResolveHomeserverFromWellKnown(hs);
+
+                if (RuntimeStorage.HomeserverResolutionCache.ContainsKey(hs))
+                    RuntimeStorage.HomeserverResolutionCache.Remove(hs);
+                RuntimeStorage.HomeserverResolutionCache.Add(hs, new(){Result = resolvedHomeserver, ResolutionTime = DateTime.Now});
+                await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+
+                Console.WriteLine("Saved to local storage:");
+                Console.WriteLine(JsonSerializer.Serialize(RuntimeStorage.HomeserverResolutionCache, new JsonSerializerOptions()
+                {
+                    WriteIndented = true
+                }));
+                resolvedHomeservers++;
+                StateHasChanged();
+            }
+            StateHasChanged();
+        }
+        _isLoaded = true;
+    }
+
+}

@@ -1,0 +1,74 @@
+@page "/ImportUsers"
+@using MatrixRoomUtils.Authentication
+@using MatrixRoomUtils.Web.Classes
+@using Blazored.LocalStorage
+@using System.Text.Json
+@inject ILocalStorageService LocalStorage
+<h3>Login</h3>
+
+<InputFile OnChange="@FileChanged"></InputFile>
+<br/>
+<button @onclick="Login">Login</button>
+<br/><br/>
+<h4>Parsed records</h4>
+<hr/>
+<table border="1">
+    @foreach (var (homeserver, username, password) in records)
+    {
+        <tr style="background-color: @(RuntimeStorage.UsersCache.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
+            <td style="border-width: 1px;">@username</td>
+            <td style="border-width: 1px;">@homeserver</td>
+            <td style="border-width: 1px;">@password.Length chars</td>
+        </tr>
+    }
+</table>
+<br/>
+<br/>
+<LogView></LogView>
+
+@code {
+    List<(string homeserver, string username, string password)> records = new();
+
+    async Task Login()
+    {
+        foreach (var (homeserver, username, password) in records)
+        {
+            if(RuntimeStorage.UsersCache.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
+            var result = await MatrixAccount.Login(homeserver, username, password);
+            Console.WriteLine($"Obtained access token for {result.UserId}!");
+
+            RuntimeStorage.AccessToken = result.AccessToken;
+
+            var userinfo = new UserInfo()
+            {
+                LoginResponse = result
+            };
+            userinfo.Profile = await MatrixAccount.GetProfile(result.HomeServer, result.UserId);
+
+            RuntimeStorage.UsersCache.Add(result.AccessToken, userinfo);
+            StateHasChanged();
+        }
+        
+        await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+    }
+
+    private async Task FileChanged(InputFileChangeEventArgs obj)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions()
+        {
+            WriteIndented = true
+        }));
+        await using var rs = obj.File.OpenReadStream();
+        using var sr = new StreamReader(rs);
+        string TsvData = await sr.ReadToEndAsync();
+        records.Clear();
+        foreach (var line in TsvData.Split('\n'))
+        {
+            var parts = line.Split('\t');
+            if (parts.Length != 3)
+                continue;
+            records.Add((parts[0], parts[1], parts[2]));
+        }
+    }
+
+}

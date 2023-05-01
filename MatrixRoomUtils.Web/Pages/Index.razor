@@ -1,0 +1,33 @@
+﻿@page "/"
+@using MatrixRoomUtils.Web.Classes
+@using MatrixRoomUtils.Web.Shared.IndexComponents
+@using Blazored.LocalStorage
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Index</PageTitle>
+
+<h1>Rory&::MatrixUtils</h1>
+Small collection of tools to do not-so-everyday things.
+
+<br/><br/>
+<h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
+<hr/>
+@{
+    Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
+    if (!RuntimeStorage.WasLoaded)
+    {
+        Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
+        RuntimeStorage.LoadFromLocalStorage(LocalStorage).GetAwaiter().OnCompleted(() =>
+        {
+            Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
+            StateHasChanged();
+        });
+    }
+}
+<form>
+    @foreach (var (token, user) in RuntimeStorage.UsersCache)
+    {
+        <IndexUserItem User="@user" Token="@token"/>
+    }
+</form>

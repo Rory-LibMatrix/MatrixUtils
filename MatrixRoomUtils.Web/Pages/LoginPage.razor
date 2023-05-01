@@ -1,0 +1,46 @@
+@page "/Login"
+@using MatrixRoomUtils.Authentication
+@using MatrixRoomUtils.Web.Classes
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+<h3>Login</h3>
+
+<label>Homeserver:</label>
+<input @bind="homeserver"/>
+<br/>
+<label>Username:</label>
+<input @bind="username"/>
+<br/>
+<label>Password:</label>
+<input @bind="password" type="password"/>
+<br/>
+<button @onclick="Login">Login</button>
+<br/>
+<br/>
+<LogView></LogView>
+
+@code {
+    string homeserver = "";
+    string username = "";
+    string password = "";
+    async Task Login()
+    {
+        var result = await MatrixAccount.Login(homeserver, username, password);
+        Console.WriteLine($"Obtained access token for {result.UserId}!");
+        
+        RuntimeStorage.AccessToken = result.AccessToken;
+
+        var userinfo = new UserInfo()
+        {
+            LoginResponse = result
+        };
+        userinfo.Profile = await MatrixAccount.GetProfile(result.HomeServer, result.UserId);
+
+        RuntimeStorage.UsersCache.Add(result.AccessToken, userinfo);
+        RuntimeStorage.CurrentHomeserver = await MatrixAccount.ResolveHomeserverFromWellKnown(result.HomeServer);
+        
+
+        await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+
+    }
+}

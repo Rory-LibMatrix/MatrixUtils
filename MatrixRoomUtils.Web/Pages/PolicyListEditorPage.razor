@@ -1,0 +1,232 @@
+@page "/PolicyListEditor/{RoomId}"
+@using MatrixRoomUtils.Authentication
+@using MatrixRoomUtils.Web.Classes
+@using Blazored.LocalStorage
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using MatrixRoomUtils.Extensions
+@using MatrixRoomUtils.StateEventTypes
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+<h3>Policy list editor</h3>
+
+<p>
+    This policy list contains @PolicyEvents.Count(x => x.type == "m.policy.rule.server") server bans,
+    @PolicyEvents.Count(x => x.type == "m.policy.rule.room") room bans and
+    @PolicyEvents.Count(x => x.type == "m.policy.rule.user") user bans.
+</p>
+
+
+@if (!PolicyEvents.Any(x => x.type == "m.policy.rule.server"))
+{
+    <p>No server policies</p>
+}
+else
+{
+    <h3>Server policies</h3>
+    <hr/>
+    <table class="table table-striped table-hover" style="width: fit-content;">
+        <thead>
+        <tr>
+            <th scope="col" style="max-width: 50vw;">Server</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Expires</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.server" && x.content.Entity != null))
+        {
+            <tr>
+                <td>Entity: @policyEvent.content.Entity<br/>State: @policyEvent.state_key</td>
+                <td>@policyEvent.content.Reason</td>
+                <td>
+                    @policyEvent.content.ExpiryDateTime
+                </td>
+                <td>
+                    <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <details>
+        <summary>Invalid events</summary>
+        <table class="table table-striped table-hover" style="width: fit-content;">
+            <thead>
+            <tr>
+                <th scope="col" style="max-width: 50vw;">State key</th>
+                <th scope="col">Serialised contents</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.server" && x.content.Entity == null))
+            {
+                <tr>
+                    <td>@policyEvent.state_key</td>
+                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </details>
+}
+@if (!PolicyEvents.Any(x => x.type == "m.policy.rule.room"))
+{
+    <p>No room policies</p>
+}
+else
+{
+    <h3>Room policies</h3>
+    <hr/>
+    <table class="table table-striped table-hover" style="width: fit-content;">
+        <thead>
+        <tr>
+            <th scope="col" style="max-width: 50vw;">Room</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Expires</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.room" && x.content.Entity != null))
+        {
+            <tr>
+                <td>Entity: @policyEvent.content.Entity<br/>State: @policyEvent.state_key</td>
+                <td>@policyEvent.content.Reason</td>
+                <td>
+                    @policyEvent.content.ExpiryDateTime
+                </td>
+                <td>
+                    <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <details>
+        <summary>Invalid events</summary>
+        <table class="table table-striped table-hover" style="width: fit-content;">
+            <thead>
+            <tr>
+                <th scope="col" style="max-width: 50vw;">State key</th>
+                <th scope="col">Serialised contents</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.room" && x.content.Entity == null))
+            {
+                <tr>
+                    <td>@policyEvent.state_key</td>
+                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </details>
+}
+@if (!PolicyEvents.Any(x => x.type == "m.policy.rule.user"))
+{
+    <p>No user policies</p>
+}
+else
+{
+    <h3>User policies</h3>
+    <hr/>
+    <table class="table table-striped table-hover" style="width: fit-content;">
+        <thead>
+        <tr>
+            <th scope="col" style="max-width: 0.2vw; word-wrap: anywhere;">User</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Expires</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.user" && x.content.Entity != null))
+        {
+            <tr>
+                <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.content.Entity.Take(64))<br/>State: @string.Join("",policyEvent.state_key.Take(64))</td>
+                <td>@policyEvent.content.Reason</td>
+                <td>
+                    @policyEvent.content.ExpiryDateTime
+                </td>
+                <td>
+                    <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <details>
+        <summary>Invalid events</summary>
+        <table class="table table-striped table-hover" style="width: fit-content;">
+            <thead>
+            <tr>
+                <th scope="col">State key</th>
+                <th scope="col">Serialised contents</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.user" && x.content.Entity == null))
+            {
+                <tr>
+                    <td>@policyEvent.state_key</td>
+                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </details>
+}
+
+<LogView></LogView>
+
+@code {
+    //get room list
+    // - sync withroom list filter
+    // type = support.feline.msc3784
+    //support.feline.policy.lists.msc.v1
+
+    [Parameter]
+    public string? RoomId { get; set; }
+
+    public List<StateEvent<PolicyRuleStateEventData>> PolicyEvents { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeStorage.WasLoaded) await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+        await base.OnInitializedAsync();
+        if(RuntimeStorage.AccessToken == null || RuntimeStorage.CurrentHomeserver == null)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+        RoomId = RoomId.Replace('~', '.');
+        await LoadStatesAsync();
+        Console.WriteLine("Policy list editor initialized!");
+    }
+
+    private async Task LoadStatesAsync()
+    {
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeStorage.AccessToken);
+        var response = await client.GetAsync($"{RuntimeStorage.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+        var content = await response.Content.ReadAsStringAsync();
+        // Console.WriteLine(JsonSerializer.Deserialize<object>(content).ToJson());
+        var stateEvents = JsonSerializer.Deserialize<List<StateEvent>>(content);
+        PolicyEvents = stateEvents.Where(x => x.type.StartsWith("m.policy.rule"))
+            .Select(x => JsonSerializer.Deserialize<StateEvent<PolicyRuleStateEventData>>(JsonSerializer.Serialize(x))).ToList();
+        StateHasChanged();
+        // foreach (var stateEvent in PolicyEvents.Where(x => x.replaces_state != "" && x.replaces_state != null))
+        // {
+        //     Console.WriteLine($"{stateEvent.replaces_state} -> {PolicyEvents.Any(x => x.state_key == stateEvent.replaces_state)}");
+        // }
+        // foreach (var policyEvent in PolicyEvents)
+        // {
+        //     Console.WriteLine(policyEvent.ToJson());
+        // }
+    }
+
+}
+

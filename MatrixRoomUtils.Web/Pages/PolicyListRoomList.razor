@@ -1,7 +1,8 @@
 @page "/PolicyListEditor"
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Extensions
+@using MatrixRoomUtils.Core
+@using MatrixRoomUtils.Core.Extensions
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Policy list editor</h3>
@@ -44,7 +45,7 @@ else
     {
         if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer != null)
+        if (RuntimeCache.CurrentHomeServer == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -70,7 +71,7 @@ else
 
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
         return;
-        /*
+    /*
         using HttpClient wc = new();
         wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
 
@@ -114,53 +115,28 @@ else
     {
         try
         {
-            //TODO: refactor!!!!!
+    //TODO: refactor!!!!!
             await semaphore.WaitAsync();
             PolicyRoomInfo roomInfo = new()
             {
                 RoomId = room
             };
-            using HttpClient wc = new();
-            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
-            var sk = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
-            if (sk.IsSuccessStatusCode)
+
+
+    // --- //
+            var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
+            roomInfo.Shortcode = (await r.GetStateAsync("org.matrix.mjolnir.shortcode")).Value.GetProperty("shortcode").GetString();
+
+            if (roomInfo.Shortcode != null)
             {
-                var sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
-                if (sko.TryGetProperty("shortcode", out JsonElement shortcode))
-                {
-                    Console.WriteLine($"Room {room} has a shortcode: {shortcode.GetString()}!");
-                    roomInfo.Shortcode = shortcode.GetString();
-                    // sk = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/m.room.name");
-                    // if (sk.IsSuccessStatusCode)
-                    // {
-                    //     Console.WriteLine($"Got content: {await sk.Content.ReadAsStringAsync()}");
-                    //     sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
-                    //     if (sko.TryGetProperty("name", out JsonElement roomname))
-                    //     {
-                    //         Console.WriteLine($"Room {room} has a name: {roomname.GetString()}!");
-                    //         roomInfo.Name = roomname.GetString();
-                    //     }
-                    //     else Console.WriteLine("No record found...");
-                    // }
-                    // else if (sk.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    // {
-                    // }
-                    // else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
-                    var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
-                    roomInfo.Shortcode = (await r.GetStateAsync("org.matrix.mjolnir.shortcode")).Value.GetProperty("shortcode").GetString();
-                    roomInfo.Name = await r.GetNameAsync();
-                    return roomInfo;
-                }
-                else Console.WriteLine("No record found...");
+                roomInfo.Name = await r.GetNameAsync();
+                return roomInfo;
             }
-            else if (sk.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-            }
-            else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
-            
+
             return null;
         }
         finally
+
         {
             checkedRoomCount++;
             StateHasChanged();
@@ -169,9 +145,15 @@ else
     }
 
     public struct PolicyRoomInfo
+
     {
-        public string RoomId { get; set; }
-        public string? Shortcode { get; set; }
-        public string? Name { get; set; }
+        public
+            string RoomId { get; set; }
+
+        public
+            string? Shortcode { get; set; }
+
+        public
+            string? Name { get; set; }
     }
     } 

@@ -1,9 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MatrixRoomUtils.Authentication;
+using MatrixRoomUtils.Core.Authentication;
 
-namespace MatrixRoomUtils.Responses;
+namespace MatrixRoomUtils.Core.Responses;
 
 public class LoginResponse
 {
@@ -26,6 +26,6 @@ public class LoginResponse
     }
     public async Task<string> GetCanonicalHomeserverUrl()
     {
-        return await MatrixAuth.ResolveHomeserverFromWellKnown(HomeServer);
+        return (await new RemoteHomeServer(HomeServer).Configure()).FullHomeServerDomain;
     }
 }

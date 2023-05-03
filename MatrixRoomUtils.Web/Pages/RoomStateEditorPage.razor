@@ -1,6 +1,7 @@
 @page "/RoomStateViewer/{RoomId}/Edit"
 @using System.Net.Http.Headers
 @using System.Text.Json
+@using MatrixRoomUtils.Core
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Room state editor</h3>
@@ -65,8 +66,9 @@
     {
         int StateLoaded = 0;
         using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
-        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+        //TODO: can this be improved?
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
+        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/r0/rooms/{RoomId}/state");
     // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
     //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
         var _data = await response.Content.ReadAsStreamAsync();

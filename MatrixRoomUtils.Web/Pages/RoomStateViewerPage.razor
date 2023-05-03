@@ -1,7 +1,8 @@
 @page "/RoomStateViewer/{RoomId}"
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Extensions
+@using MatrixRoomUtils.Core
+@using MatrixRoomUtils.Core.Extensions
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Room state viewer</h3>
@@ -76,7 +77,7 @@
     {
         if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.AccessToken == null || RuntimeCache.CurrentHomeserver == null)
+        if (RuntimeCache.CurrentHomeServer == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -90,9 +91,10 @@
     private async Task LoadStatesAsync()
     {
         int StateLoaded = 0;
+        //TODO: can we improve this?
         using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
-    var response = await client.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
+    var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/r0/rooms/{RoomId}/state");
         // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
     //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
         var _data = await response.Content.ReadAsStreamAsync();

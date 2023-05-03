@@ -1,44 +1,45 @@
-@using MatrixRoomUtils.Authentication
 @using MatrixRoomUtils.Web.Classes
 @using System.Text.Json
 @using Blazored.LocalStorage
-@using MatrixRoomUtils.Extensions
+@using MatrixRoomUtils.Core
+@using MatrixRoomUtils.Core.Extensions
 @using Index = MatrixRoomUtils.Web.Pages.Index
+@using System.ComponentModel.DataAnnotations
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 
 <div style="margin-bottom: 1em;">
     <img style="border-radius: 50%; height: 3em; width: 3em;" src="@_avatarUrl"/>
-    <span style="margin-left: 1em;"><input type="radio" name="csa" checked="@(RuntimeCache.AccessToken == User.AccessToken)" onclick="@SetCurrent" style="text-decoration-line: unset;"/> <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b></span>
+    <span style="margin-left: 1em;"><input type="radio" name="csa" checked="@(RuntimeCache.LastUsedToken == User.AccessToken)" onclick="@SetCurrent" style="text-decoration-line: unset;"/> <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b></span>
     <a href="#" onclick="@RemoveUser">Remove</a>
 </div>
 
 @code {
+
     [Parameter]
-    public UserInfo User { get; set; }
+    public UserInfo User { get; set; } = null!;
     
     private string _avatarUrl { get; set; }
-    private bool _removed { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
-        if(User.Profile.AvatarUrl != null && User.Profile.AvatarUrl != "")
-            _avatarUrl = await User.Profile.AvatarUrl.GetMediaUrl();
+        if (User.Profile.AvatarUrl != null && User.Profile.AvatarUrl != "")
+            _avatarUrl = await (await new AuthenticatedHomeServer(User.LoginResponse.UserId, User.AccessToken, User.LoginResponse.HomeServer).Configure()).ResolveMediaUri(User.Profile.AvatarUrl);
         else _avatarUrl = "https://api.dicebear.com/6.x/identicon/svg?seed=" + User.LoginResponse.UserId;
         await base.OnInitializedAsync();
     }
 
     private async Task RemoveUser()
     {
+        Console.WriteLine(User.ToJson());
         RuntimeCache.LoginSessions.Remove(User.AccessToken);
         await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
-        _removed = true;
         
         StateHasChanged();
     }
     private async Task SetCurrent()
     {
-        RuntimeCache.AccessToken = User.AccessToken;
+        RuntimeCache.LastUsedToken = User.AccessToken;
         //RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(LocalStorageWrapper.LoginSessions[Token].LoginResponse.HomeServer);
         await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
         

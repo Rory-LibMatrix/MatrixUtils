@@ -1,6 +1,7 @@
 @page "/RoomStateViewer"
 @using System.Net.Http.Headers
 @using System.Text.Json
+@using MatrixRoomUtils.Core
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Room state viewer</h3>
@@ -50,26 +51,9 @@ else
 
     private async Task EnumeratePolicyRooms()
     {
-        using HttpClient wc = new();
-        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
+        var rooms = (await RuntimeCache.CurrentHomeServer.GetJoinedRooms()).Select(x=>x.RoomId).ToList();
 
-    //get room list
-    //temporary hack until rooms get enumerated...
-        string[] rooms = { "!fTjMjIzNKEsFlUIiru:neko.dev" };
-        var _rooms = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
-        Console.WriteLine($"Got {_rooms.StatusCode}...");
-        if (!_rooms.IsSuccessStatusCode)
-        {
-            Console.WriteLine($"Failed to get rooms: {await _rooms.Content.ReadAsStringAsync()}");
-            return;
-        }
-        var _rooms_o = await _rooms.Content.ReadFromJsonAsync<JsonElement>();
-        if (_rooms_o.TryGetProperty("joined_rooms", out JsonElement _rooms_j))
-        {
-            rooms = _rooms_j.EnumerateArray().Select(x => x.GetString()).ToArray();
-        }
-
-        totalRoomCount = rooms.Length;
+        totalRoomCount = rooms.Count;
         StateHasChanged();
 
         var semaphore = new SemaphoreSlim(128);
@@ -89,29 +73,11 @@ else
         try
         {
             await semaphore.WaitAsync();
-            var roomInfo = new PolicyRoomInfo()
+            return new PolicyRoomInfo()
             {
-                RoomId = room
+                RoomId = room,
+                Name = await (await RuntimeCache.CurrentHomeServer.GetRoom(room)).GetNameAsync()
             };
-            using HttpClient wc = new();
-            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
-            var sk = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/m.room.name");
-            if (sk.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Got content: {await sk.Content.ReadAsStringAsync()}");
-                var sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
-                if (sko.TryGetProperty("name", out JsonElement shortcode))
-                {
-                    Console.WriteLine($"Room {room} has a name: {shortcode.GetString()}!");
-                    roomInfo.Name = shortcode.GetString();
-                }
-                else Console.WriteLine("No record found...");
-            }
-            else if (sk.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-            }
-            else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
-            return roomInfo;
         }
         finally
         {

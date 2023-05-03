@@ -1,15 +1,15 @@
 @using System.Text
 <u>Logs</u><br/>
 <pre>
-    @sb
+    @_stringBuilder
 </pre>
 
 @code {
-    StringBuilder sb = new();
+    StringBuilder _stringBuilder = new();
     protected override void OnInitialized()
     {
         //intecept stdout with textwriter to get logs
-        var sw = new StringWriter(sb);
+        var sw = new StringWriter(_stringBuilder);
         Console.SetOut(sw);
         Console.SetError(sw);
         //keep updated
@@ -19,12 +19,13 @@
             while (true)
             {
                 await Task.Delay(100);
-                if (sb.Length != length)
+                if (_stringBuilder.Length != length)
                 {
                     StateHasChanged();
-                    length = sb.Length;
+                    length = _stringBuilder.Length;
                 }
             }
+    // ReSharper disable once FunctionNeverReturns - This is intentional behavior
         });
         base.OnInitialized();
     }

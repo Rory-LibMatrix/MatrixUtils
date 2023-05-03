@@ -1,4 +1,4 @@
-namespace MatrixRoomUtils;
+namespace MatrixRoomUtils.Core;
 
 public struct StateEventStruct
 {

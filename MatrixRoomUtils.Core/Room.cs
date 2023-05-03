@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace MatrixRoomUtils;
+namespace MatrixRoomUtils.Core;
 
 public class Room
 {

@@ -1,15 +1,15 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using MatrixRoomUtils.Responses;
+using MatrixRoomUtils.Core.Responses;
 
-namespace MatrixRoomUtils.Authentication;
+namespace MatrixRoomUtils.Core.Authentication;
 
 public class MatrixAuth
 {
     public static async Task<LoginResponse> Login(string homeserver, string username, string password)
     {
         Console.WriteLine($"Logging in to {homeserver} as {username}...");
-        homeserver = await ResolveHomeserverFromWellKnown(homeserver);
+        homeserver = (await new RemoteHomeServer(homeserver).Configure()).FullHomeServerDomain;
         var hc = new HttpClient();
         var payload = new
         {
@@ -39,42 +39,8 @@ public class MatrixAuth
         //return token;
     }
 
-    public static async Task<ProfileResponse> GetProfile(string homeserver, string mxid)
-    {
-        Console.WriteLine($"Fetching profile for {mxid} on {homeserver}...");
-        homeserver = await ResolveHomeserverFromWellKnown(homeserver);
-        using var hc = new HttpClient();
-        var resp = await hc.GetAsync($"{homeserver}/_matrix/client/r0/profile/{mxid}");
-        var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data.ToString());
-        return data.Deserialize<ProfileResponse>();
-    }
-
-    [Obsolete("Use IHomeServer")]
-    public static async Task<string> ResolveHomeserverFromWellKnown(string homeserver)
-    {
-        using var hc = new HttpClient();
-        Console.WriteLine($"Resolving homeserver: {homeserver}");
-        if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
-
-        if (await CheckSuccessStatus($"{homeserver}/.well-known/matrix/client"))
-        {
-            var resp = await hc.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/client");
-            var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
-            return hs;
-        }
-        Console.WriteLine($"No client well-known...");
-        if (await CheckSuccessStatus($"{homeserver}/.well-known/matrix/server"))
-        {
-            var resp = await hc.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
-            var hs = resp.GetProperty("m.server").GetString();
-            return hs;
-        }
-        Console.WriteLine($"No server well-known...");
-        if (await CheckSuccessStatus($"{homeserver}/_matrix/client/versions")) return homeserver;
-        Console.WriteLine($"Failed to resolve homeserver, not on {homeserver}, nor do client or server well-knowns exist!");
-        throw new InvalidDataException($"Failed to resolve homeserver, not on {homeserver}, nor do client or server well-knowns exist!");
-    }
+    public static async Task<ProfileResponse> GetProfile(string homeserver, string mxid) => 
+        await (await new RemoteHomeServer(homeserver).Configure()).GetProfile(mxid);
 
     private static async Task<bool> CheckSuccessStatus(string url)
     {

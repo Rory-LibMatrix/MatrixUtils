@@ -3,34 +3,34 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
+using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core;
 
-public class AuthenticatedHomeServer : IHomeServer
+public class RemoteHomeServer : IHomeServer
 {
-    public string UserId { get; set; }
-    public string AccessToken { get; set; }
-
-    public AuthenticatedHomeServer(string userId, string accessToken, string canonicalHomeServerDomain)
+    public RemoteHomeServer(string canonicalHomeServerDomain)
     {
-        UserId = userId;
-        AccessToken = accessToken;
         HomeServerDomain = canonicalHomeServerDomain;
         _httpClient = new HttpClient();
     }
-
-    public async Task<AuthenticatedHomeServer> Configure()
+    public async Task<RemoteHomeServer> Configure()
     {
         FullHomeServerDomain = await ResolveHomeserverFromWellKnown(HomeServerDomain);
         _httpClient.Dispose();
         _httpClient = new HttpClient { BaseAddress = new Uri(FullHomeServerDomain) };
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
-        Console.WriteLine("[AHS] Finished setting up http client");
+        Console.WriteLine("[RHS] Finished setting up http client");
 
         return this;
     }
+    public async Task<ProfileResponse> GetProfile(string mxid)
+    {
+        var resp = await _httpClient.GetAsync($"/_matrix/client/r0/profile/{mxid}");
+        var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        if(!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data.ToString());
+        return data.Deserialize<ProfileResponse>();
+    }
     
-
     public async Task<Room> GetRoom(string roomId)
     {
         return new Room(_httpClient, roomId);
@@ -45,21 +45,13 @@ public class AuthenticatedHomeServer : IHomeServer
             Console.WriteLine($"Failed to get rooms: {await roomQuery.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to get rooms: {await roomQuery.Content.ReadAsStringAsync()}");
         }
-        
 
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
         foreach (var room in roomsJson.GetProperty("joined_rooms").EnumerateArray())
         {
             rooms.Add(new Room(_httpClient, room.GetString()));
         }
-        
-        Console.WriteLine($"Fetched {rooms.Count} rooms");
 
         return rooms;
-    }
-
-    public async Task<string> ResolveMediaUri(string mxc)
-    {
-        return mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/r0/download/");
     }
 }

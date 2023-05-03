@@ -1,10 +1,11 @@
 @page "/ImportUsers"
-@using MatrixRoomUtils.Authentication
 @using System.Text.Json
+@using MatrixRoomUtils.Core
+@using MatrixRoomUtils.Core.Authentication
 @inject ILocalStorageService LocalStorage
 <h3>Login</h3>
 
-<InputFile OnChange="@FileChanged"></InputFile>
+<InputFile OnChange="@FileChanged" accept=".tsv"></InputFile>
 <br/>
 <button @onclick="Login">Login</button>
 <br/><br/>
@@ -13,7 +14,7 @@
 <table border="1">
     @foreach (var (homeserver, username, password) in records)
     {
-        <tr style="background-color: @(LocalStorageWrapper.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
+        <tr style="background-color: @(RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
             <td style="border-width: 1px;">@username</td>
             <td style="border-width: 1px;">@homeserver</td>
             <td style="border-width: 1px;">@password.Length chars</td>
@@ -31,7 +32,7 @@
     {
         foreach (var (homeserver, username, password) in records)
         {
-            if(LocalStorageWrapper.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
+            if(RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
             var result = await MatrixAuth.Login(homeserver, username, password);
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
@@ -40,8 +41,9 @@
                 LoginResponse = result
             };
             userinfo.Profile = await MatrixAuth.GetProfile(result.HomeServer, result.UserId);
+            RuntimeCache.LastUsedToken = result.AccessToken;
 
-            LocalStorageWrapper.LoginSessions.Add(result.AccessToken, userinfo);
+            RuntimeCache.LoginSessions.Add(result.AccessToken, userinfo);
             StateHasChanged();
         }
         

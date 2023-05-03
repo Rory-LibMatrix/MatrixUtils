@@ -1,6 +1,7 @@
-﻿    @page "/"
-    @using MatrixRoomUtils.Web.Shared.IndexComponents
-    @inject NavigationManager NavigationManager
+﻿@page "/"
+@using MatrixRoomUtils.Web.Shared.IndexComponents
+@using MatrixRoomUtils.Core
+@inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
 
 <PageTitle>Index</PageTitle>
@@ -11,20 +12,23 @@ Small collection of tools to do not-so-everyday things.
 <br/><br/>
 <h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
 <hr/>
-@{
-    if (!RuntimeCache.WasLoaded)
-    {
-        Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
-        LocalStorageWrapper.LoadFromLocalStorage(LocalStorage).GetAwaiter().OnCompleted(() =>
-        {
-            Console.WriteLine("Users in cache: " + RuntimeCache .LoginSessions.Count);
-            StateHasChanged();
-        });
-    }
-}
 <form>
     @foreach (var (token, user) in RuntimeCache.LoginSessions)
     {
         <IndexUserItem User="@user"/>
     }
 </form>
+
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeCache.WasLoaded)
+        {
+            Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
+            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        }
+        await base.OnInitializedAsync();
+        await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
+    }
+}

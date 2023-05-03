@@ -1,4 +1,4 @@
-namespace MatrixRoomUtils.Extensions;
+namespace MatrixRoomUtils.Core.Extensions;
 
 public static class HttpClientExtensions
 {

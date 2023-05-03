@@ -1,5 +1,6 @@
 @page "/Login"
-@using MatrixRoomUtils.Authentication
+@using MatrixRoomUtils.Core
+@using MatrixRoomUtils.Core.Authentication
 @inject ILocalStorageService LocalStorage
 <h3>Login</h3>
 
@@ -27,17 +28,14 @@
         var result = await MatrixAuth.Login(homeserver, username, password);
         Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-        RuntimeCache.AccessToken = result.AccessToken;
+        RuntimeCache.LastUsedToken = result.AccessToken;
 
         var userinfo = new UserInfo()
         {
             LoginResponse = result,
-            AccessToken = result.AccessToken,
-            Profile = await MatrixAuth.GetProfile(result.HomeServer, result.UserId)
+            Profile = await (await new RemoteHomeServer(result.HomeServer).Configure()).GetProfile(result.UserId)
         };
-    //TODO: refactor
         RuntimeCache.LoginSessions.Add(userinfo.AccessToken, userinfo);
-        RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(result.HomeServer);
 
         await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
     }

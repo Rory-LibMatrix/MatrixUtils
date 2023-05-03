@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MatrixRoomUtils.StateEventTypes;
+namespace MatrixRoomUtils.Core.StateEventTypes;
 
 public class PolicyRuleStateEventData
 {

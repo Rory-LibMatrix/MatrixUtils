@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MatrixRoomUtils.Authentication;
+namespace MatrixRoomUtils.Core.Responses;
 
 public class ProfileResponse
 {

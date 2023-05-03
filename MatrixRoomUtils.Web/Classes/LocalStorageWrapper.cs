@@ -9,8 +9,8 @@ public partial class LocalStorageWrapper
     //some basic logic
     public static async Task ReloadLocalStorage(ILocalStorageService localStorage)
     {
-        await LoadFromLocalStorage(localStorage);
         await SaveToLocalStorage(localStorage);
+        await LoadFromLocalStorage(localStorage);
     }
     public static async Task LoadFromLocalStorage(ILocalStorageService localStorage)
     {

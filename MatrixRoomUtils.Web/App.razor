@@ -10,3 +10,16 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeCache.WasLoaded)
+        {
+            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+            Console.WriteLine("Loaded from local storage");
+            StateHasChanged();
+        }
+    }
+
+}

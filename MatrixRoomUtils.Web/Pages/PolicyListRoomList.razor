@@ -1,12 +1,7 @@
 @page "/PolicyListEditor"
-@using MatrixRoomUtils.Authentication
-@using MatrixRoomUtils.Web.Classes
-@using Blazored.LocalStorage
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using System.Xml.Schema
 @using MatrixRoomUtils.Extensions
-@using MatrixRoomUtils.StateEventTypes
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Policy list editor</h3>
@@ -47,9 +42,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!LocalStorageWrapper.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (LocalStorageWrapper.AccessToken == null || LocalStorageWrapper.CurrentHomeserver == null)
+        if (RuntimeCache.CurrentHomeServer != null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -60,7 +55,7 @@ else
 
     private async Task EnumeratePolicyRooms()
     {
-        var xxxrooms = await LocalStorageWrapper.CurrentHomeServer.GetJoinedRooms();
+        var xxxrooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
         totalRoomCount = xxxrooms.Count;
         StateHasChanged();
 
@@ -75,7 +70,7 @@ else
 
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
         return;
-        
+        /*
         using HttpClient wc = new();
         wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
 
@@ -112,20 +107,22 @@ else
 
     //print to console
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
+        */
     }
 
     private async Task<PolicyRoomInfo?> GetPolicyRoomInfo(string room, SemaphoreSlim semaphore)
     {
         try
         {
+            //TODO: refactor!!!!!
             await semaphore.WaitAsync();
             PolicyRoomInfo roomInfo = new()
             {
                 RoomId = room
             };
             using HttpClient wc = new();
-            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-            var sk = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
+            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
+            var sk = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
             if (sk.IsSuccessStatusCode)
             {
                 var sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
@@ -149,7 +146,7 @@ else
                     // {
                     // }
                     // else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
-                    var r = await LocalStorageWrapper.CurrentHomeServer.GetRoom(room);
+                    var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
                     roomInfo.Shortcode = (await r.GetStateAsync("org.matrix.mjolnir.shortcode")).Value.GetProperty("shortcode").GetString();
                     roomInfo.Name = await r.GetNameAsync();
                     return roomInfo;

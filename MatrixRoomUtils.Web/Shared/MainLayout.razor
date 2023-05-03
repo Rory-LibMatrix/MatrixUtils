@@ -1,7 +1,4 @@
 ﻿@inherits LayoutComponentBase
-
-@using Blazored.LocalStorage
-@using MatrixRoomUtils.Web.Classes
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 
@@ -23,14 +20,5 @@
 
 @code {
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (!LocalStorageWrapper.WasLoaded)
-        {
-            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-            Console.WriteLine("Loaded from local storage");
-            StateHasChanged();
-        }
-    }
 
 }

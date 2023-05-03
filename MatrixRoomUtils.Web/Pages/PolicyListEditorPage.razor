@@ -1,7 +1,4 @@
 @page "/PolicyListEditor/{RoomId}"
-@using MatrixRoomUtils.Authentication
-@using MatrixRoomUtils.Web.Classes
-@using Blazored.LocalStorage
 @using System.Net.Http.Headers
 @using System.Text.Json
 @using MatrixRoomUtils.Extensions
@@ -146,7 +143,7 @@ else
         @foreach (var policyEvent in PolicyEvents.Where(x => x.type == "m.policy.rule.user" && x.content.Entity != null))
         {
             <tr>
-                <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.content.Entity.Take(64))<br/>State: @string.Join("",policyEvent.state_key.Take(64))</td>
+                <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.content.Entity.Take(64))<br/>State: @string.Join("", policyEvent.state_key.Take(64))</td>
                 <td>@policyEvent.content.Reason</td>
                 <td>
                     @policyEvent.content.ExpiryDateTime
@@ -195,9 +192,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!LocalStorageWrapper.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if(LocalStorageWrapper.AccessToken == null || LocalStorageWrapper.CurrentHomeserver == null)
+    // if(RuntimeCache.AccessToken == null || RuntimeCache.CurrentHomeserver == null)
+        if (RuntimeCache.CurrentHomeServer == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -209,24 +207,17 @@ else
 
     private async Task LoadStatesAsync()
     {
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-        var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
-        var content = await response.Content.ReadAsStringAsync();
-        // Console.WriteLine(JsonSerializer.Deserialize<object>(content).ToJson());
-        var stateEvents = JsonSerializer.Deserialize<List<StateEvent>>(content);
+    // using var client = new HttpClient();
+    // client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+    // var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+    // var content = await response.Content.ReadAsStringAsync();
+    // Console.WriteLine(JsonSerializer.Deserialize<object>(content).ToJson());
+    // var stateEvents = JsonSerializer.Deserialize<List<StateEvent>>(content);
+        var room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
+        var stateEvents = (await room.GetStateAsync(""))!.Value.Deserialize<List<StateEvent>>();
         PolicyEvents = stateEvents.Where(x => x.type.StartsWith("m.policy.rule"))
             .Select(x => JsonSerializer.Deserialize<StateEvent<PolicyRuleStateEventData>>(JsonSerializer.Serialize(x))).ToList();
         StateHasChanged();
-        // foreach (var stateEvent in PolicyEvents.Where(x => x.replaces_state != "" && x.replaces_state != null))
-        // {
-        //     Console.WriteLine($"{stateEvent.replaces_state} -> {PolicyEvents.Any(x => x.state_key == stateEvent.replaces_state)}");
-        // }
-        // foreach (var policyEvent in PolicyEvents)
-        // {
-        //     Console.WriteLine(policyEvent.ToJson());
-        // }
     }
 
 }
-

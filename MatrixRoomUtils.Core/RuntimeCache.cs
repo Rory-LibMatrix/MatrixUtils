@@ -20,6 +20,7 @@ public class UserInfo
 {
     public ProfileResponse Profile { get; set; } = new();
     public LoginResponse LoginResponse { get; set; }
+    public string AccessToken { get; set; }
 }
 
 public class HomeServerResolutionResult

@@ -1,8 +1,6 @@
-﻿@page "/"
-@using MatrixRoomUtils.Web.Classes
-@using MatrixRoomUtils.Web.Shared.IndexComponents
-@using Blazored.LocalStorage
-@inject NavigationManager NavigationManager
+﻿    @page "/"
+    @using MatrixRoomUtils.Web.Shared.IndexComponents
+    @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
 
 <PageTitle>Index</PageTitle>
@@ -14,20 +12,19 @@ Small collection of tools to do not-so-everyday things.
 <h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
 <hr/>
 @{
-    Console.WriteLine("Users in cache: " + LocalStorageWrapper.LoginSessions.Count);
-    if (!LocalStorageWrapper.WasLoaded)
+    if (!RuntimeCache.WasLoaded)
     {
         Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
         LocalStorageWrapper.LoadFromLocalStorage(LocalStorage).GetAwaiter().OnCompleted(() =>
         {
-            Console.WriteLine("Users in cache: " + LocalStorageWrapper.LoginSessions.Count);
+            Console.WriteLine("Users in cache: " + RuntimeCache .LoginSessions.Count);
             StateHasChanged();
         });
     }
 }
 <form>
-    @foreach (var (token, user) in LocalStorageWrapper.LoginSessions)
+    @foreach (var (token, user) in RuntimeCache.LoginSessions)
     {
-        <IndexUserItem User="@user" Token="@token"/>
+        <IndexUserItem User="@user"/>
     }
 </form>

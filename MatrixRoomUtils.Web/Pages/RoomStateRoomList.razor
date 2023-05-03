@@ -1,12 +1,6 @@
 @page "/RoomStateViewer"
-@using MatrixRoomUtils.Authentication
-@using MatrixRoomUtils.Web.Classes
-@using Blazored.LocalStorage
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using System.Xml.Schema
-@using MatrixRoomUtils.Extensions
-@using MatrixRoomUtils.StateEventTypes
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Room state viewer</h3>
@@ -43,9 +37,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!LocalStorageWrapper.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (LocalStorageWrapper.AccessToken == null || LocalStorageWrapper.CurrentHomeserver == null)
+        if (RuntimeCache.CurrentHomeServer == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -57,12 +51,12 @@ else
     private async Task EnumeratePolicyRooms()
     {
         using HttpClient wc = new();
-        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
 
     //get room list
     //temporary hack until rooms get enumerated...
         string[] rooms = { "!fTjMjIzNKEsFlUIiru:neko.dev" };
-        var _rooms = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
+        var _rooms = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
         Console.WriteLine($"Got {_rooms.StatusCode}...");
         if (!_rooms.IsSuccessStatusCode)
         {
@@ -100,8 +94,8 @@ else
                 RoomId = room
             };
             using HttpClient wc = new();
-            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-            var sk = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/m.room.name");
+            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.AccessToken);
+            var sk = await wc.GetAsync($"{RuntimeCache.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/m.room.name");
             if (sk.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Got content: {await sk.Content.ReadAsStringAsync()}");

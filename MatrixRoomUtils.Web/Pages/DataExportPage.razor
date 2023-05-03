@@ -1,10 +1,7 @@
 ﻿@page "/export"
-@using MatrixRoomUtils.Web.Classes
 @using MatrixRoomUtils.Web.Shared.IndexComponents
-@using Blazored.LocalStorage
 @using MatrixRoomUtils.Authentication
 @using System.Text.Json
-@using Microsoft.AspNetCore.Components.Rendering
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
 
@@ -19,7 +16,7 @@
 {
 @foreach (var (token, user) in RuntimeCache.LoginSessions)
 {
-    <IndexUserItem User="@user" Token="@token"/>
+    <IndexUserItem User="@user"/>
     <pre>
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\access_token=@token
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\device_id=@user.LoginResponse.DeviceId
@@ -55,16 +52,18 @@ else
             StateHasChanged();
             foreach (var hs in homeservers)
             {
-                if (LocalStorageWrapper.HomeserverResolutionCache.ContainsKey(hs)) continue;
+                if (RuntimeCache.HomeserverResolutionCache.ContainsKey(hs))
+                {
+                    resolvedHomeservers++;
+                    continue;
+                }
                 var resolvedHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(hs);
 
-                if (LocalStorageWrapper.HomeserverResolutionCache.ContainsKey(hs))
-                    LocalStorageWrapper.HomeserverResolutionCache.Remove(hs);
-                LocalStorageWrapper.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
+                RuntimeCache.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
                 await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
 
                 Console.WriteLine("Saved to local storage:");
-                Console.WriteLine(JsonSerializer.Serialize(LocalStorageWrapper.HomeserverResolutionCache, new JsonSerializerOptions()
+                Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions()
                 {
                     WriteIndented = true
                 }));

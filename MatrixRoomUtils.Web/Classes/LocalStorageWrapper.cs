@@ -1,12 +1,15 @@
 using Blazored.LocalStorage;
-using MatrixRoomUtils.Authentication;
-using MatrixRoomUtils.Responses;
 
 namespace MatrixRoomUtils.Web.Classes;
 
 public partial class LocalStorageWrapper
 {
     //some basic logic
+    public static async Task ReloadLocalStorage(ILocalStorageService localStorage)
+    {
+        await LoadFromLocalStorage(localStorage);
+        await SaveToLocalStorage(localStorage);
+    }
     public static async Task LoadFromLocalStorage(ILocalStorageService localStorage)
     {
         RuntimeCache.AccessToken = await localStorage.GetItemAsync<string>("rory.matrixroomutils.token");

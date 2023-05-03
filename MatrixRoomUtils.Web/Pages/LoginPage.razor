@@ -1,7 +1,5 @@
 @page "/Login"
 @using MatrixRoomUtils.Authentication
-@using MatrixRoomUtils.Web.Classes
-@using Blazored.LocalStorage
 @inject ILocalStorageService LocalStorage
 <h3>Login</h3>
 
@@ -23,24 +21,25 @@
     string homeserver = "";
     string username = "";
     string password = "";
+
     async Task Login()
     {
         var result = await MatrixAuth.Login(homeserver, username, password);
         Console.WriteLine($"Obtained access token for {result.UserId}!");
-        
-        LocalStorageWrapper.AccessToken = result.AccessToken;
+
+        RuntimeCache.AccessToken = result.AccessToken;
 
         var userinfo = new UserInfo()
         {
-            LoginResponse = result
+            LoginResponse = result,
+            AccessToken = result.AccessToken,
+            Profile = await MatrixAuth.GetProfile(result.HomeServer, result.UserId)
         };
-        userinfo.Profile = await MatrixAuth.GetProfile(result.HomeServer, result.UserId);
-
-        LocalStorageWrapper.LoginSessions.Add(result.AccessToken, userinfo);
-        LocalStorageWrapper.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(result.HomeServer);
-        
+    //TODO: refactor
+        RuntimeCache.LoginSessions.Add(userinfo.AccessToken, userinfo);
+        RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(result.HomeServer);
 
         await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
-
     }
+
 }

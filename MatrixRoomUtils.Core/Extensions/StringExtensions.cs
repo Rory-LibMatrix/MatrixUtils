@@ -11,7 +11,7 @@ public static class StringExtensions
         
         var server = MxcUrl.Split('/')[2];
         var mediaId = MxcUrl.Split('/')[3];
-        return $"{await MatrixAccount.ResolveHomeserverFromWellKnown(server)}/_matrix/media/v3/download/{server}/{mediaId}";
+        return $"{await MatrixAuth.ResolveHomeserverFromWellKnown(server)}/_matrix/media/v3/download/{server}/{mediaId}";
     }
     
 }

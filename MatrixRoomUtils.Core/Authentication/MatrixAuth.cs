@@ -4,7 +4,7 @@ using MatrixRoomUtils.Responses;
 
 namespace MatrixRoomUtils.Authentication;
 
-public class MatrixAccount
+public class MatrixAuth
 {
     public static async Task<LoginResponse> Login(string homeserver, string username, string password)
     {
@@ -43,13 +43,14 @@ public class MatrixAccount
     {
         Console.WriteLine($"Fetching profile for {mxid} on {homeserver}...");
         homeserver = await ResolveHomeserverFromWellKnown(homeserver);
-        var hc = new HttpClient();
+        using var hc = new HttpClient();
         var resp = await hc.GetAsync($"{homeserver}/_matrix/client/r0/profile/{mxid}");
         var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data.ToString());
         return data.Deserialize<ProfileResponse>();
     }
 
+    [Obsolete("Use IHomeServer")]
     public static async Task<string> ResolveHomeserverFromWellKnown(string homeserver)
     {
         using var hc = new HttpClient();

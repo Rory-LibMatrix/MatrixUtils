@@ -195,9 +195,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeStorage.WasLoaded) await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+        if (!LocalStorageWrapper.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if(RuntimeStorage.AccessToken == null || RuntimeStorage.CurrentHomeserver == null)
+        if(LocalStorageWrapper.AccessToken == null || LocalStorageWrapper.CurrentHomeserver == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -210,8 +210,8 @@ else
     private async Task LoadStatesAsync()
     {
         using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeStorage.AccessToken);
-        var response = await client.GetAsync($"{RuntimeStorage.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+        var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
         var content = await response.Content.ReadAsStringAsync();
         // Console.WriteLine(JsonSerializer.Deserialize<object>(content).ToJson());
         var stateEvents = JsonSerializer.Deserialize<List<StateEvent>>(content);

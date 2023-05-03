@@ -9,7 +9,7 @@
 
 <div style="margin-bottom: 1em;">
     <img style="border-radius: 50%; height: 3em; width: 3em;" src="@_avatarUrl"/>
-    <span style="margin-left: 1em;"><input type="radio" name="csa" checked="@(RuntimeStorage.AccessToken == Token)" onclick="@SetCurrent" style="text-decoration-line: unset;"/> <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b></span>
+    <span style="margin-left: 1em;"><input type="radio" name="csa" checked="@(LocalStorageWrapper.AccessToken == Token)" onclick="@SetCurrent" style="text-decoration-line: unset;"/> <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b></span>
     <a href="#" onclick="@RemoveUser">Remove</a>
 </div>
 
@@ -32,17 +32,18 @@
 
     private async Task RemoveUser()
     {
-        RuntimeStorage.UsersCache.Remove(Token);
-        await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+        LocalStorageWrapper.LoginSessions.Remove(Token);
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
         _removed = true;
         
         StateHasChanged();
     }
     private async Task SetCurrent()
     {
-        RuntimeStorage.AccessToken = Token;
-        RuntimeStorage.CurrentHomeserver = await MatrixAccount.ResolveHomeserverFromWellKnown(RuntimeStorage.UsersCache[Token].LoginResponse.HomeServer);
-        await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+        LocalStorageWrapper.AccessToken = Token;
+        LocalStorageWrapper.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(LocalStorageWrapper.LoginSessions[Token].LoginResponse.HomeServer);
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         
         StateHasChanged();
     }

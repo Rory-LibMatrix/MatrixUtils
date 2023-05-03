@@ -25,9 +25,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeStorage.WasLoaded)
+        if (!LocalStorageWrapper.WasLoaded)
         {
-            await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
             Console.WriteLine("Loaded from local storage");
             StateHasChanged();
         }

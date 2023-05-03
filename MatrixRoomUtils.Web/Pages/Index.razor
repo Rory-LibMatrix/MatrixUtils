@@ -14,19 +14,19 @@ Small collection of tools to do not-so-everyday things.
 <h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
 <hr/>
 @{
-    Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
-    if (!RuntimeStorage.WasLoaded)
+    Console.WriteLine("Users in cache: " + LocalStorageWrapper.LoginSessions.Count);
+    if (!LocalStorageWrapper.WasLoaded)
     {
         Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
-        RuntimeStorage.LoadFromLocalStorage(LocalStorage).GetAwaiter().OnCompleted(() =>
+        LocalStorageWrapper.LoadFromLocalStorage(LocalStorage).GetAwaiter().OnCompleted(() =>
         {
-            Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
+            Console.WriteLine("Users in cache: " + LocalStorageWrapper.LoginSessions.Count);
             StateHasChanged();
         });
     }
 }
 <form>
-    @foreach (var (token, user) in RuntimeStorage.UsersCache)
+    @foreach (var (token, user) in LocalStorageWrapper.LoginSessions)
     {
         <IndexUserItem User="@user" Token="@token"/>
     }

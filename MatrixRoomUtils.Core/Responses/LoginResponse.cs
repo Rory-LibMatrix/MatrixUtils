@@ -26,6 +26,6 @@ public class LoginResponse
     }
     public async Task<string> GetCanonicalHomeserverUrl()
     {
-        return await MatrixAccount.ResolveHomeserverFromWellKnown(HomeServer);
+        return await MatrixAuth.ResolveHomeserverFromWellKnown(HomeServer);
     }
 }

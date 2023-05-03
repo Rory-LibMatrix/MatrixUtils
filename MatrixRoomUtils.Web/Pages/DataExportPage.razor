@@ -17,13 +17,13 @@
 <hr/>
 @if (_isLoaded)
 {
-@foreach (var (token, user) in RuntimeStorage.UsersCache)
+@foreach (var (token, user) in RuntimeCache.LoginSessions)
 {
     <IndexUserItem User="@user" Token="@token"/>
     <pre>
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\access_token=@token
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\device_id=@user.LoginResponse.DeviceId
-@user.LoginResponse.UserId[1..].Split(":")[0]\auth\home_server=@(RuntimeStorage.HomeserverResolutionCache.ContainsKey(user.LoginResponse.HomeServer) ? RuntimeStorage.HomeserverResolutionCache[user.LoginResponse.HomeServer].Result : "loading...")
+@user.LoginResponse.UserId[1..].Split(":")[0]\auth\home_server=@(RuntimeCache.HomeserverResolutionCache.ContainsKey(user.LoginResponse.HomeServer) ? RuntimeCache.HomeserverResolutionCache[user.LoginResponse.HomeServer].Result : "loading...")
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\user_id=@@@user.LoginResponse.UserId
 @user.LoginResponse.UserId[1..].Split(":")[0]\user\automatically_share_keys_with_trusted_users=true
 @user.LoginResponse.UserId[1..].Split(":")[0]\user\muted_tags=global
@@ -46,29 +46,25 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
-        if (!RuntimeStorage.WasLoaded)
+        if (!RuntimeCache.WasLoaded)
         {
-            Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
-            await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
-            Console.WriteLine("Users in cache: " + RuntimeStorage.UsersCache.Count);
-
-            var homeservers = RuntimeStorage.UsersCache.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
+            var homeservers = RuntimeCache.LoginSessions.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
             totalHomeservers = homeservers.Count();
             StateHasChanged();
             foreach (var hs in homeservers)
             {
-                if (RuntimeStorage.HomeserverResolutionCache.ContainsKey(hs)) continue;
-                var resolvedHomeserver = await MatrixAccount.ResolveHomeserverFromWellKnown(hs);
+                if (LocalStorageWrapper.HomeserverResolutionCache.ContainsKey(hs)) continue;
+                var resolvedHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(hs);
 
-                if (RuntimeStorage.HomeserverResolutionCache.ContainsKey(hs))
-                    RuntimeStorage.HomeserverResolutionCache.Remove(hs);
-                RuntimeStorage.HomeserverResolutionCache.Add(hs, new(){Result = resolvedHomeserver, ResolutionTime = DateTime.Now});
-                await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+                if (LocalStorageWrapper.HomeserverResolutionCache.ContainsKey(hs))
+                    LocalStorageWrapper.HomeserverResolutionCache.Remove(hs);
+                LocalStorageWrapper.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
+                await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
 
                 Console.WriteLine("Saved to local storage:");
-                Console.WriteLine(JsonSerializer.Serialize(RuntimeStorage.HomeserverResolutionCache, new JsonSerializerOptions()
+                Console.WriteLine(JsonSerializer.Serialize(LocalStorageWrapper.HomeserverResolutionCache, new JsonSerializerOptions()
                 {
                     WriteIndented = true
                 }));

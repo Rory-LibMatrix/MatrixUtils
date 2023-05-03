@@ -1,4 +1,4 @@
-@page "/RoomStateViewer/{RoomId}"
+@page "/RoomStateViewer/{RoomId}/Edit"
 @using MatrixRoomUtils.Authentication
 @using MatrixRoomUtils.Web.Classes
 @using Blazored.LocalStorage
@@ -8,60 +8,35 @@
 @using MatrixRoomUtils.Extensions
 @using MatrixRoomUtils.StateEventTypes
 @using MatrixRoomUtils.Web.Shared.IndexComponents
+@using Microsoft.Win32.SafeHandles
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-<h3>Room state viewer</h3>
+<h3>Room state editor</h3>
 <p>Room ID: @RoomId</p>
 
 <p>@status</p>
 
 <input type="checkbox" id="showAll" @bind="ShowMembershipEvents"/> Show member events
-
-<table class="table table-striped table-hover" style="width: fit-content;">
-    <thead>
-    <tr>
-        <th scope="col">Type</th>
-        <th scope="col">Content</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var stateEvent in FilteredEvents.Where(x => x.state_key == "").OrderBy(x => x.origin_server_ts))
+<br/>
+<InputSelect @bind-Value="shownStateKey">
+    <option value="">-- State key --</option>
+    @foreach (var stateEvent in FilteredEvents.Where(x => x.state_key != "").Select(x => x.state_key).Distinct().OrderBy(x => x))
     {
-        <tr>
-            <td>@stateEvent.type</td>
-            <td style="max-width: fit-content;">
-                <pre>@stateEvent.content</pre>
-            </td>
-        </tr>
+        <option value="@stateEvent">@stateEvent</option>
+        Console.WriteLine(stateEvent);
     }
-    </tbody>
-</table>
+</InputSelect>
+<br/>
+<InputSelect @bind-Value="shownType">
+    <option value="">-- Type --</option>
+    @foreach (var stateEvent in FilteredEvents.Where(x => x.state_key != shownStateKey).Select(x => x.type).Distinct().OrderBy(x => x))
+    {
+        <option value="@stateEvent">@stateEvent</option>
+    }
+</InputSelect>
+<br/>
 
-@foreach (var group in FilteredEvents.GroupBy(x => x.state_key).OrderBy(x => x.Key).Where(x => x.Key != ""))
-{
-    <details>
-        <summary>@group.Key</summary>
-        <table class="table table-striped table-hover" style="width: fit-content;">
-            <thead>
-            <tr>
-                <th scope="col">Type</th>
-                <th scope="col">Content</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var stateEvent in group.OrderBy(x => x.origin_server_ts))
-            {
-                <tr>
-                    <td>@stateEvent.type</td>
-                    <td style="max-width: fit-content;">
-                        <pre>@stateEvent.content</pre>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </details>
-}
+<textarea @bind="shownEventJson" style="width: 100%; height: fit-content;"></textarea>
 
 <LogView></LogView>
 
@@ -74,8 +49,8 @@
     [Parameter]
     public string? RoomId { get; set; }
 
-    public List<PreRenderedStateEvent> FilteredEvents { get; set; } = new();
-    public List<PreRenderedStateEvent> Events { get; set; } = new();
+    public List<StateEvent> FilteredEvents { get; set; } = new();
+    public List<StateEvent> Events { get; set; } = new();
     public string status = "";
 
     protected override async Task OnInitializedAsync()
@@ -91,6 +66,7 @@
         await LoadStatesAsync();
         Console.WriteLine("Policy list editor initialized!");
     }
+
     private DateTime _lastUpdate = DateTime.Now;
 
     private async Task LoadStatesAsync()
@@ -98,19 +74,19 @@
         int StateLoaded = 0;
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-    var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
-        // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
+        var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+    // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
     //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
         var _data = await response.Content.ReadAsStreamAsync();
-        var __events = JsonSerializer.DeserializeAsyncEnumerable<StateEventStruct>(_data);
+        var __events = JsonSerializer.DeserializeAsyncEnumerable<StateEvent>(_data);
         await foreach (var _ev in __events)
         {
-            var e = new PreRenderedStateEvent()
+            var e = new StateEvent()
             {
                 type = _ev.type,
                 state_key = _ev.state_key,
                 origin_server_ts = _ev.origin_server_ts,
-                content = _ev.content.ToJson(indent: true, ignoreNull: true),
+                content = _ev.content
             };
             Events.Add(e);
             if (string.IsNullOrEmpty(e.state_key))
@@ -125,7 +101,6 @@
                 StateHasChanged();
                 await Task.Delay(0);
             }
-            
         }
 
         StateHasChanged();
@@ -139,11 +114,15 @@
         var _FilteredEvents = Events;
         if (!ShowMembershipEvents)
             _FilteredEvents = _FilteredEvents.Where(x => x.type != "m.room.member").ToList();
-        
+
         status = "Done, rerendering!";
         StateHasChanged();
         await Task.Delay(1);
         FilteredEvents = _FilteredEvents;
+        
+        if(_shownType != null)
+            shownEventJson = _FilteredEvents.Where(x => x.type == _shownType).First().content.ToJson(indent: true, ignoreNull: true);
+        
         StateHasChanged();
     }
 
@@ -171,4 +150,28 @@
     }
 
     private bool _showMembershipEvents;
+    private string _shownStateKey;
+    private string _shownType;
+
+    private string shownStateKey
+    {
+        get => _shownStateKey;
+        set
+        {
+            _shownStateKey = value;
+            RebuildFilteredData();
+        }
+    }
+
+    private string shownType
+    {
+        get => _shownType;
+        set
+        {
+            _shownType = value;
+            RebuildFilteredData();
+        }
+    }
+
+    private string shownEventJson { get; set; }
 }

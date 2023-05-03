@@ -25,22 +25,22 @@
     string password = "";
     async Task Login()
     {
-        var result = await MatrixAccount.Login(homeserver, username, password);
+        var result = await MatrixAuth.Login(homeserver, username, password);
         Console.WriteLine($"Obtained access token for {result.UserId}!");
         
-        RuntimeStorage.AccessToken = result.AccessToken;
+        LocalStorageWrapper.AccessToken = result.AccessToken;
 
         var userinfo = new UserInfo()
         {
             LoginResponse = result
         };
-        userinfo.Profile = await MatrixAccount.GetProfile(result.HomeServer, result.UserId);
+        userinfo.Profile = await MatrixAuth.GetProfile(result.HomeServer, result.UserId);
 
-        RuntimeStorage.UsersCache.Add(result.AccessToken, userinfo);
-        RuntimeStorage.CurrentHomeserver = await MatrixAccount.ResolveHomeserverFromWellKnown(result.HomeServer);
+        LocalStorageWrapper.LoginSessions.Add(result.AccessToken, userinfo);
+        LocalStorageWrapper.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(result.HomeServer);
         
 
-        await RuntimeStorage.SaveToLocalStorage(LocalStorage);
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
 
     }
 }

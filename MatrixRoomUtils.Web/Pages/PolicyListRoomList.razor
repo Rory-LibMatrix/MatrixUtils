@@ -26,12 +26,12 @@ else
     }
     foreach (var s in PolicyRoomList)
     {
-        <a href="@(NavigationManager.Uri + "/" + s.RoomId.Replace('.', '~'))">@s.Name</a>
+        <a href="@(NavigationManager.Uri + "/" + s.RoomId.Replace('.', '~'))">[@s.Shortcode] @s.Name (@s.RoomId)</a>
         <br/>
     }
-    <div style="margin-bottom: 4em;"></div>
 }
 
+<div style="margin-bottom: 4em;"></div>
 <LogView></LogView>
 
 @code {
@@ -47,9 +47,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeStorage.WasLoaded) await RuntimeStorage.LoadFromLocalStorage(LocalStorage);
+        if (!LocalStorageWrapper.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeStorage.AccessToken == null || RuntimeStorage.CurrentHomeserver == null)
+        if (LocalStorageWrapper.AccessToken == null || LocalStorageWrapper.CurrentHomeserver == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -60,13 +60,31 @@ else
 
     private async Task EnumeratePolicyRooms()
     {
-        using HttpClient wc = new();
-        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeStorage.AccessToken);
+        var xxxrooms = await LocalStorageWrapper.CurrentHomeServer.GetJoinedRooms();
+        totalRoomCount = xxxrooms.Count;
+        StateHasChanged();
 
+        var xxxsemaphore = new SemaphoreSlim(256);
+        var xxxtasks = new List<Task<PolicyRoomInfo?>>();
+        foreach (var room in xxxrooms)
+        {
+            xxxtasks.Add(GetPolicyRoomInfo(room.RoomId, xxxsemaphore));
+        }
+        var xxxresults = await Task.WhenAll(xxxtasks);
+        PolicyRoomList.AddRange(xxxresults.Where(x => x != null).Select(x => x.Value));
+
+        Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
+        return;
+        
+        using HttpClient wc = new();
+        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+
+        
+        
     //get room list
     //temporary hack until rooms get enumerated...
         string[] rooms = { "!fTjMjIzNKEsFlUIiru:neko.dev" };
-        var _rooms = await wc.GetAsync($"{RuntimeStorage.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
+        var _rooms = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
         Console.WriteLine($"Got {_rooms.StatusCode}...");
         if (!_rooms.IsSuccessStatusCode)
         {
@@ -82,15 +100,15 @@ else
         totalRoomCount = rooms.Length;
         StateHasChanged();
 
-        var semaphore = new SemaphoreSlim(128);
+        var semaphore = new SemaphoreSlim(256);
         var tasks = new List<Task<PolicyRoomInfo?>>();
         foreach (string room in rooms)
         {
             tasks.Add(GetPolicyRoomInfo(room, semaphore));
         }
         var results = await Task.WhenAll(tasks);
-        PolicyRoomList.AddRange(results.Where(x => x != null).Select(x=>x.Value));
-        
+        PolicyRoomList.AddRange(results.Where(x => x != null).Select(x => x.Value));
+
 
     //print to console
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
@@ -101,16 +119,40 @@ else
         try
         {
             await semaphore.WaitAsync();
+            PolicyRoomInfo roomInfo = new()
+            {
+                RoomId = room
+            };
             using HttpClient wc = new();
-            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeStorage.AccessToken);
-            var sk = await wc.GetAsync($"{RuntimeStorage.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
+            wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+            var sk = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/org.matrix.mjolnir.shortcode");
             if (sk.IsSuccessStatusCode)
             {
                 var sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
                 if (sko.TryGetProperty("shortcode", out JsonElement shortcode))
                 {
                     Console.WriteLine($"Room {room} has a shortcode: {shortcode.GetString()}!");
-                    return new PolicyRoomInfo() { Name = room, Shortcode = shortcode.GetString(), RoomId = room };
+                    roomInfo.Shortcode = shortcode.GetString();
+                    // sk = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{room}/state/m.room.name");
+                    // if (sk.IsSuccessStatusCode)
+                    // {
+                    //     Console.WriteLine($"Got content: {await sk.Content.ReadAsStringAsync()}");
+                    //     sko = await sk.Content.ReadFromJsonAsync<JsonElement>();
+                    //     if (sko.TryGetProperty("name", out JsonElement roomname))
+                    //     {
+                    //         Console.WriteLine($"Room {room} has a name: {roomname.GetString()}!");
+                    //         roomInfo.Name = roomname.GetString();
+                    //     }
+                    //     else Console.WriteLine("No record found...");
+                    // }
+                    // else if (sk.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    // {
+                    // }
+                    // else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
+                    var r = await LocalStorageWrapper.CurrentHomeServer.GetRoom(room);
+                    roomInfo.Shortcode = (await r.GetStateAsync("org.matrix.mjolnir.shortcode")).Value.GetProperty("shortcode").GetString();
+                    roomInfo.Name = await r.GetNameAsync();
+                    return roomInfo;
                 }
                 else Console.WriteLine("No record found...");
             }
@@ -118,6 +160,7 @@ else
             {
             }
             else Console.WriteLine($"Got failure while checking {room}: {sk.StatusCode} ({await sk.Content.ReadAsStringAsync()})...");
+            
             return null;
         }
         finally
@@ -127,11 +170,11 @@ else
             semaphore.Release();
         }
     }
-    
+
     public struct PolicyRoomInfo
     {
         public string RoomId { get; set; }
-        public string Shortcode { get; set; }
-        public string Name { get; set; }
+        public string? Shortcode { get; set; }
+        public string? Name { get; set; }
     }
-} 
+    } 

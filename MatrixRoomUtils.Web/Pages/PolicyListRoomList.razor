@@ -125,7 +125,9 @@ else
 
     // --- //
             var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
-            roomInfo.Shortcode = (await r.GetStateAsync("org.matrix.mjolnir.shortcode")).Value.GetProperty("shortcode").GetString();
+            var shortcodeState = await r.GetStateAsync("org.matrix.mjolnir.shortcode");
+            if(!shortcodeState.HasValue) return null;
+            roomInfo.Shortcode = shortcodeState.Value.TryGetProperty("shortcode", out JsonElement shortcode) ? shortcode.GetString() : null;
 
             if (roomInfo.Shortcode != null)
             {

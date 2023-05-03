@@ -215,7 +215,12 @@ else
     // Console.WriteLine(JsonSerializer.Deserialize<object>(content).ToJson());
     // var stateEvents = JsonSerializer.Deserialize<List<StateEvent>>(content);
         var room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
-        var stateEvents = (await room.GetStateAsync(""))!.Value.Deserialize<List<StateEvent>>();
+        var stateEventsQuery = await room.GetStateAsync("");
+        if (stateEventsQuery == null)
+        {
+            Console.WriteLine("state events query is null!!!");
+        }
+        var stateEvents = stateEventsQuery.Value.Deserialize<List<StateEvent>>();
         PolicyEvents = stateEvents.Where(x => x.type.StartsWith("m.policy.rule"))
             .Select(x => JsonSerializer.Deserialize<StateEvent<PolicyRuleStateEventData>>(JsonSerializer.Serialize(x))).ToList();
         StateHasChanged();

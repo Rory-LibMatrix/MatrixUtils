@@ -17,7 +17,11 @@ public class Room
     public async Task<JsonElement?> GetStateAsync(string type, string state_key="")
     {
         Console.WriteLine($"{RoomId}::_qry[{type}::{state_key}]");
-        var res = await _httpClient.GetAsync($"/_matrix/client/r0/rooms/{RoomId}/state/{type}/{state_key}");
+        var url = $"/_matrix/client/r0/rooms/{RoomId}/state";
+        if (!string.IsNullOrEmpty(state_key)) url += $"/{type}/{state_key}";
+        else if (!string.IsNullOrEmpty(type)) url += $"/{type}";
+        
+        var res = await _httpClient.GetAsync(url);
         if (!res.IsSuccessStatusCode)
         {
             Console.WriteLine($"{RoomId}::_qry[{type}::{state_key}]->status=={res.StatusCode}");
@@ -35,7 +39,7 @@ public class Room
             return null;
         }
         Console.WriteLine($"{RoomId}::_qry_name->{res.Value.ToString()}");
-        var resn = res?.GetProperty("name").GetString();
+        var resn = res?.TryGetProperty("name", out var name) ?? false ? name.GetString() : null;
         Console.WriteLine($"Got name: {resn}");
         return resn;
     }

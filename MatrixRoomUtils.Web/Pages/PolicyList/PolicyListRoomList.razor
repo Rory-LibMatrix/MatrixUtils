@@ -1,14 +1,11 @@
 @page "/PolicyListEditor"
-@using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Core
 @using MatrixRoomUtils.Core.Extensions
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-<h3>Policy list editor</h3>
-
-<h5>Room list</h5>
+<h3>Policy list editor - Room list</h3>
 <hr/>
+
 @if (PolicyRoomList.Count == 0)
 {
     <p>No policy rooms found.</p>

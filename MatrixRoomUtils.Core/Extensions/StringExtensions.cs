@@ -1,5 +1,3 @@
-using MatrixRoomUtils.Core.Authentication;
-
 namespace MatrixRoomUtils.Core.Extensions;
 
 public static class StringExtensions

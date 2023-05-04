@@ -1,0 +1,45 @@
+<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-content;">
+    <img style="width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
+    <span style="vertical-align: middle; padding-right: 8px;">@roomName</span>
+</div>
+
+@code {
+    [Parameter]
+    public Room Room { get; set; }
+    [Parameter]
+    public string RoomId { get; set; }
+
+    private string roomName { get; set; } = "Loading...";
+    private string roomIcon { get; set; } = "/icon-192.png";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        if (Room == null)
+        {
+            if (RoomId == null)
+            {
+                throw new ArgumentNullException(nameof(RoomId));
+            }
+            Room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
+        }
+
+        roomName = await Room.GetNameAsync();
+        if (roomName == null)
+        {
+            roomName = "Unnamed room: " + RoomId;
+        }
+
+        var state = await Room.GetStateAsync("m.room.avatar");
+        if (state != null)
+        {
+            var url = state.Value.GetProperty("url").GetString();
+            if (url != null)
+            {
+                roomIcon = await RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
+            }
+        }
+
+    }
+
+}

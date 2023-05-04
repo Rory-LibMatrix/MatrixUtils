@@ -14,9 +14,8 @@ public class Room
         RoomId = roomId;
     }
     
-    public async Task<JsonElement?> GetStateAsync(string type, string state_key="")
+    public async Task<JsonElement?> GetStateAsync(string type, string state_key="", bool logOnFailure = false)
     {
-        Console.WriteLine($"{RoomId}::_qry[{type}::{state_key}]");
         var url = $"/_matrix/client/r0/rooms/{RoomId}/state";
         if (!string.IsNullOrEmpty(state_key)) url += $"/{type}/{state_key}";
         else if (!string.IsNullOrEmpty(type)) url += $"/{type}";
@@ -24,21 +23,18 @@ public class Room
         var res = await _httpClient.GetAsync(url);
         if (!res.IsSuccessStatusCode)
         {
-            Console.WriteLine($"{RoomId}::_qry[{type}::{state_key}]->status=={res.StatusCode}");
+            if(logOnFailure) Console.WriteLine($"{RoomId}/{state_key}/{type} - got status: {res.StatusCode}");
             return null;
         }
         return await res.Content.ReadFromJsonAsync<JsonElement>();
     }
     public async Task<string?> GetNameAsync()
-    {   
-        Console.WriteLine($"{RoomId}::_qry_name");
+    {
         var res = await GetStateAsync("m.room.name");
         if (!res.HasValue)
         {
-            Console.WriteLine($"{RoomId}::_qry_name->null");
             return null;
         }
-        Console.WriteLine($"{RoomId}::_qry_name->{res.Value.ToString()}");
         var resn = res?.TryGetProperty("name", out var name) ?? false ? name.GetString() : null;
         Console.WriteLine($"Got name: {resn}");
         return resn;

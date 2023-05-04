@@ -1,11 +1,10 @@
 @page "/RoomStateViewer/{RoomId}/Edit"
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Core
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-<h3>Room state editor</h3>
-<p>Room ID: @RoomId</p>
+<h3>Room state editor - Editing @RoomId</h3>
+<hr/>
 
 <p>@status</p>
 

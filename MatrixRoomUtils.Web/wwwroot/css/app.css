@@ -2,6 +2,17 @@
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #222;
+    color: #aaa;
+}
+
+#app > div > main > div {
+    background-color: #333;
+    border-bottom: none;
+}
+
+.table, .table-striped>tbody>tr:nth-of-type(odd), .table-hover>tbody>tr:hover {
+    color: unset;
 }
 
 h1:focus {

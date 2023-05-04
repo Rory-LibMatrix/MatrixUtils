@@ -1,12 +1,11 @@
 @page "/RoomStateViewer/{RoomId}"
 @using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Core
 @using MatrixRoomUtils.Core.Extensions
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-<h3>Room state viewer</h3>
-<p>Room ID: @RoomId</p>
+<h3>Room state viewer - Viewing @RoomId</h3>
+<hr/>
 
 <p>@status</p>
 

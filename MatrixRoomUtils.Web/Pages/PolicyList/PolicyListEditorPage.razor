@@ -1,12 +1,11 @@
 @page "/PolicyListEditor/{RoomId}"
-@using System.Net.Http.Headers
 @using System.Text.Json
-@using MatrixRoomUtils.Core
 @using MatrixRoomUtils.Core.Extensions
 @using MatrixRoomUtils.Core.StateEventTypes
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-<h3>Policy list editor</h3>
+<h3>Policy list editor - Editing @RoomId</h3>
+<hr/>
 
 <p>
     This policy list contains @PolicyEvents.Count(x => x.type == "m.policy.rule.server") server bans,

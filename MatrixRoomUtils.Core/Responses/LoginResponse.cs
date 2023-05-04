@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MatrixRoomUtils.Core.Authentication;
 
 namespace MatrixRoomUtils.Core.Responses;
 

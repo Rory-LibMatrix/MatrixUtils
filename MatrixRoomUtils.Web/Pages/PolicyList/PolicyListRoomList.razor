@@ -57,7 +57,7 @@ else
         totalRoomCount = xxxrooms.Count;
         StateHasChanged();
 
-        var xxxsemaphore = new SemaphoreSlim(256);
+        var xxxsemaphore = new SemaphoreSlim(1000);
         var xxxtasks = new List<Task<PolicyRoomInfo?>>();
         foreach (var room in xxxrooms)
         {
@@ -68,44 +68,6 @@ else
 
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
         return;
-    /*
-        using HttpClient wc = new();
-        wc.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-
-        
-        
-    //get room list
-    //temporary hack until rooms get enumerated...
-        string[] rooms = { "!fTjMjIzNKEsFlUIiru:neko.dev" };
-        var _rooms = await wc.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/joined_rooms");
-        Console.WriteLine($"Got {_rooms.StatusCode}...");
-        if (!_rooms.IsSuccessStatusCode)
-        {
-            Console.WriteLine($"Failed to get rooms: {await _rooms.Content.ReadAsStringAsync()}");
-            return;
-        }
-        var _rooms_o = await _rooms.Content.ReadFromJsonAsync<JsonElement>();
-        if (_rooms_o.TryGetProperty("joined_rooms", out JsonElement _rooms_j))
-        {
-            rooms = _rooms_j.EnumerateArray().Select(x => x.GetString()).ToArray();
-        }
-
-        totalRoomCount = rooms.Length;
-        StateHasChanged();
-
-        var semaphore = new SemaphoreSlim(256);
-        var tasks = new List<Task<PolicyRoomInfo?>>();
-        foreach (string room in rooms)
-        {
-            tasks.Add(GetPolicyRoomInfo(room, semaphore));
-        }
-        var results = await Task.WhenAll(tasks);
-        PolicyRoomList.AddRange(results.Where(x => x != null).Select(x => x.Value));
-
-
-    //print to console
-        Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
-        */
     }
 
     private async Task<PolicyRoomInfo?> GetPolicyRoomInfo(string room, SemaphoreSlim semaphore)

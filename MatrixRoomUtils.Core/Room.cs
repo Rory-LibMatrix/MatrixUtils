@@ -33,10 +33,11 @@ public class Room
         var res = await GetStateAsync("m.room.name");
         if (!res.HasValue)
         {
+            Console.WriteLine($"Room {RoomId} has no name!");
             return null;
         }
         var resn = res?.TryGetProperty("name", out var name) ?? false ? name.GetString() : null;
-        Console.WriteLine($"Got name: {resn}");
+        //Console.WriteLine($"Got name: {resn}");
         return resn;
     }
     

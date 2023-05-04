@@ -1,0 +1,87 @@
+@page "/Debug"
+@using MatrixRoomUtils.Core.Interfaces
+@using MatrixRoomUtils.Core.Extensions
+@using System.Reflection
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+<h3>Debug Tools</h3>
+<hr/>
+@if (Rooms.Count == 0)
+{
+    <p>You are not in any rooms!</p>
+    @* <p>Loading progress: @checkedRoomCount/@totalRoomCount</p> *@
+}
+else
+{
+    <details>
+        <summary>Room List</summary>
+        @foreach (var room in Rooms)
+        {
+            <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@room.Replace('.', '~')"><RoomListItem RoomId="@room"></RoomListItem></a>
+        }
+    </details>
+    
+}
+
+<details open>
+    <summary>Send GET request to URL</summary>
+    <div class="input-group">
+        <input type="text" class="form-control" @bind-value="get_request_url" placeholder="URL">
+        <button class="btn btn-outline-secondary" type="button" @onclick="SendGetRequest">Send</button>
+    </div>
+    <br/>
+    <pre>@get_request_result</pre>
+</details>
+
+<div style="margin-bottom: 4em;"></div>
+<LogView></LogView>
+
+@code {
+    public List<string> Rooms { get; set; } = new();
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await base.OnInitializedAsync();
+        if (RuntimeCache.CurrentHomeServer == null)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+        Rooms = (await RuntimeCache.CurrentHomeServer.GetJoinedRooms()).Select(x=>x.RoomId).ToList();
+        Console.WriteLine("Fetched joined rooms!");
+    }
+
+    
+    //send req
+    string get_request_url { get; set; } = "";
+    string get_request_result { get; set; } = "";
+    private async Task SendGetRequest()
+    {
+        var field = typeof(IHomeServer).GetRuntimeFields().First(x => x.ToString().Contains("<_httpClient>k__BackingField"));
+        var httpClient = field.GetValue(RuntimeCache.CurrentHomeServer) as HttpClient;
+        try
+        {
+            var res = await httpClient.GetAsync(get_request_url);
+            if (res.IsSuccessStatusCode)
+            {
+                if(res.Content.Headers.ContentType.MediaType == "application/json")
+                    get_request_result = (await res.Content.ReadFromJsonAsync<object>()).ToJson();
+                else
+                    get_request_result = await res.Content.ReadAsStringAsync();
+                StateHasChanged();
+                return;
+            }
+            if(res.Content.Headers.ContentType.MediaType == "application/json")
+                get_request_result = $"Error: {res.StatusCode}\n" + (await res.Content.ReadFromJsonAsync<object>()).ToJson();
+            else
+                get_request_result = $"Error: {res.StatusCode}\n" + await res.Content.ReadAsStringAsync();
+
+        }
+        catch (Exception e)
+        {
+            get_request_result = $"Error: {e}";
+        }
+        StateHasChanged();
+    }
+
+} 

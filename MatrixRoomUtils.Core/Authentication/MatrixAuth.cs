@@ -39,6 +39,7 @@ public class MatrixAuth
         //return token;
     }
 
+    [Obsolete("Migrate to IHomeServer instance")]
     public static async Task<ProfileResponse> GetProfile(string homeserver, string mxid) => 
         await (await new RemoteHomeServer(homeserver).Configure()).GetProfile(mxid);
 

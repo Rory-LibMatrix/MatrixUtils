@@ -7,6 +7,8 @@ namespace MatrixRoomUtils.Core;
 
 public class RemoteHomeServer : IHomeServer
 {
+
+
     public RemoteHomeServer(string canonicalHomeServerDomain)
     {
         HomeServerDomain = canonicalHomeServerDomain;
@@ -20,13 +22,6 @@ public class RemoteHomeServer : IHomeServer
         Console.WriteLine("[RHS] Finished setting up http client");
 
         return this;
-    }
-    public async Task<ProfileResponse> GetProfile(string mxid)
-    {
-        var resp = await _httpClient.GetAsync($"/_matrix/client/r0/profile/{mxid}");
-        var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        if(!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data.ToString());
-        return data.Deserialize<ProfileResponse>();
     }
     
     public async Task<Room> GetRoom(string roomId)

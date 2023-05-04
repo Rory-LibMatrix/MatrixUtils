@@ -2,3 +2,5 @@
 **/obj/
 MatrixRoomUtils/
 MatrixRoomUtils.Web/wwwroot/MRU.tar.xz
+/src/
+*.tar.xz

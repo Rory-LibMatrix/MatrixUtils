@@ -29,7 +29,7 @@
     protected override async Task OnInitializedAsync()
     {
         using var hc = new HttpClient();
-        var hr = await hc.SendAsync(new(HttpMethod.Head, NavigationManager.ToAbsoluteUri("/MRU.tar.xz").AbsoluteUri));
+        var hr = await hc.SendAsync(new(HttpMethod.Head, NavigationManager.ToAbsoluteUri("/MRU-BIN.tar.xz").AbsoluteUri));
         showDownload = hr.StatusCode == HttpStatusCode.OK;
         await base.OnInitializedAsync();
 

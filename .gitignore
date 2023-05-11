@@ -4,3 +4,4 @@ MatrixRoomUtils/
 MatrixRoomUtils.Web/wwwroot/MRU.tar.xz
 /src/
 *.tar.xz
+matrix-sync.json

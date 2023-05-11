@@ -28,6 +28,7 @@ public partial class LocalStorageWrapper
             RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.UserId, RuntimeCache.LastUsedToken, RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer).Configure();
             Console.WriteLine("Created authenticated home server");
         }
+        RuntimeCache.GenericResponseCache = await localStorage.GetItemAsync<Dictionary<string, ObjectCache<object>>>("rory.matrixroomutils.generic_cache") ?? new();
         RuntimeCache.WasLoaded = true;
     }
 
@@ -40,5 +41,6 @@ public partial class LocalStorageWrapper
         await localStorage.SetItemAsync("rory.matrixroomutils.homeserver_resolution_cache", 
             RuntimeCache.HomeserverResolutionCache.DistinctBy(x => x.Key)
                 .ToDictionary(x => x.Key, x => x.Value));
+        await localStorage.SetItemAsync("rory.matrixroomutils.generic_cache", RuntimeCache.GenericResponseCache);
     }
 }

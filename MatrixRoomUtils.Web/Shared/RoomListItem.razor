@@ -33,6 +33,12 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        
+        if(!RuntimeCache.WasLoaded) {
+            Console.WriteLine("Loading from local storage");
+            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        }
+
         if (Room == null)
         {
             if (RoomId == null)
@@ -80,7 +86,7 @@
                 {
                     hasCustomProfileName = _name.GetString() != profile.DisplayName;
                     profileName = _name.GetString();
-                    Console.WriteLine($"{profile.DisplayName} - {_name.GetString()}: {hasCustomProfileName}");
+                    // Console.WriteLine($"{profile.DisplayName} - {_name.GetString()}: {hasCustomProfileName}");
                 }
                 else
                 {
@@ -88,6 +94,8 @@
                 }
             }
         }
+        if(Random.Shared.Next(100) == 1)
+            await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
     }
 
 }

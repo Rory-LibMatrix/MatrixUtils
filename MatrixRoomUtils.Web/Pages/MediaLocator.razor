@@ -1,0 +1,36 @@
+@page "/MediaLocator"
+<h3>MediaLocator</h3>
+<hr/>
+
+<span>MXC URL: </span>
+<input type="text" @bind="mxcUrl" />
+<button @onclick="executeSearch">Search</button>
+
+
+@code {
+    string mxcUrl { get; set; }
+    List<string> successResults = new List<string>();
+    List<string> errorResults = new List<string>();
+    List<string> homeservers = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitializedAsync();
+        
+    }
+
+    async Task executeSearch()
+    {
+        var client = new HttpClient();
+        var response = await client.GetAsync($"https://matrix.org/_matrix/media/r0/identicon/{mxcUrl}");
+        if (response.IsSuccessStatusCode)
+        {
+            successResults.Add(mxcUrl);
+        }
+        else
+        {
+            errorResults.Add(mxcUrl);
+        }
+    }
+
+}

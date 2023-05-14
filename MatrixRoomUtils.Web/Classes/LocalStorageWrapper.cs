@@ -6,6 +6,8 @@ namespace MatrixRoomUtils.Web.Classes;
 
 public partial class LocalStorageWrapper
 {
+    public static Settings Settings { get; set; } = new();
+    
     //some basic logic
     public static async Task ReloadLocalStorage(ILocalStorageService localStorage)
     {
@@ -14,6 +16,7 @@ public partial class LocalStorageWrapper
     }
     public static async Task LoadFromLocalStorage(ILocalStorageService localStorage)
     {
+        Settings = await localStorage.GetItemAsync<Settings>("rory.matrixroomutils.settings") ?? new();
         // RuntimeCache.AccessToken = await localStorage.GetItemAsync<string>("rory.matrixroomutils.token");
         RuntimeCache.LastUsedToken = await localStorage.GetItemAsync<string>("rory.matrixroomutils.last_used_token");
         // RuntimeCache.CurrentHomeserver = await localStorage.GetItemAsync<string>("rory.matrixroomutils.current_homeserver");
@@ -34,6 +37,7 @@ public partial class LocalStorageWrapper
 
     public static async Task SaveToLocalStorage(ILocalStorageService localStorage)
     {
+        await localStorage.SetItemAsync("rory.matrixroomutils.settings", Settings);
         // if(RuntimeCache.AccessToken != null) await localStorage.SetItemAsStringAsync("rory.matrixroomutils.token", RuntimeCache.AccessToken);
         // if(RuntimeCache.CurrentHomeserver != null) await localStorage.SetItemAsync("rory.matrixroomutils.current_homeserver", RuntimeCache.CurrentHomeserver);
         if(RuntimeCache.LoginSessions != null) await localStorage.SetItemAsync("rory.matrixroomutils.user_cache", RuntimeCache.LoginSessions);
@@ -43,4 +47,16 @@ public partial class LocalStorageWrapper
                 .ToDictionary(x => x.Key, x => x.Value));
         await localStorage.SetItemAsync("rory.matrixroomutils.generic_cache", RuntimeCache.GenericResponseCache);
     }
+}
+
+
+public class Settings
+{
+    public DeveloperSettings DeveloperSettings { get; set; } = new();
+}
+
+
+public class DeveloperSettings
+{
+    public bool EnableLogViewers { get; set; } = false;
 }

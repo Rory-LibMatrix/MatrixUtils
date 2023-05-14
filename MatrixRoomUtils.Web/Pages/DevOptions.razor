@@ -1,0 +1,32 @@
+﻿@page "/DevOptions"
+@using MatrixRoomUtils.Web.Shared.IndexComponents
+@using System.Net
+@using MatrixRoomUtils.Core.Extensions
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Developer options</PageTitle>
+
+<h3>Rory&::MatrixUtils - Developer options</h3>
+<hr/>
+
+<InputCheckbox @bind-Value="@LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers" @oninput="@LogStuff"></InputCheckbox><label> Enable log views</label>
+
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await base.OnInitializedAsync();
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+    }
+
+    protected async Task LogStuff()
+    {
+        await Task.Delay(100);
+        Console.WriteLine($"Settings: {LocalStorageWrapper.Settings.ToJson()}");
+        
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+    }
+
+}

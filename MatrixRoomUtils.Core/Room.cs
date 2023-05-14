@@ -37,7 +37,7 @@ public class Room
         {
             if(RuntimeCache.GenericResponseCache[cache_key][url].ExpiryTime > DateTime.Now)
             {
-                Console.WriteLine($"[:3] Found cached state: {RuntimeCache.GenericResponseCache[cache_key][url].Result}");
+                // Console.WriteLine($"[:3] Found cached state: {RuntimeCache.GenericResponseCache[cache_key][url].Result}");
                 return (JsonElement?)RuntimeCache.GenericResponseCache[cache_key][url].Result;
             }
             else

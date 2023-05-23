@@ -1,6 +1,7 @@
 @using MatrixRoomUtils.Core.Authentication
 @using System.Text.Json
-<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-content;">
+@using MatrixRoomUtils.Core.Extensions
+<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (ShowOwnProfile)
     {
         <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@profileAvatar"/>
@@ -39,6 +40,9 @@
     private string profileName { get; set; } = "Loading...";
     private bool hasCustomProfileAvatar { get; set; } = false;
     private bool hasCustomProfileName { get; set; } = false;
+    
+    private bool hasOldRoomVersion { get; set; } = false;
+    private bool hasDangerousRoomVersion { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,13 +73,35 @@
             roomName = "Unnamed room: " + RoomId;
         }
 
+        var ce = await Room.GetCreateEventAsync();
+        if (ce != null)
+        {
+            if (int.TryParse(ce.RoomVersion, out int rv) && rv < 10)
+            {
+                hasOldRoomVersion = true;
+            }
+            if (new[] { "1", "8" }.Contains(ce.RoomVersion))
+            {
+                hasDangerousRoomVersion = true;
+                roomName = "Dangerous room: " + roomName;
+            }
+        }
+        
+
         var state = await Room.GetStateAsync("m.room.avatar");
         if (state != null)
         {
-            var url = state.Value.GetProperty("url").GetString();
-            if (url != null)
+            try
             {
-                roomIcon = await RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
+                var url = state.Value.GetProperty("url").GetString();
+                if (url != null)
+                {
+                    roomIcon = await RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
+                }
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine($"Failed to get avatar for room {RoomId}: {e.Message}\n{state.Value.ToJson()}");
             }
         }
 

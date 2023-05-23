@@ -16,6 +16,12 @@ public partial class LocalStorageWrapper
     public static async Task LoadFromLocalStorage(ILocalStorageService localStorage)
     {
         Settings = await localStorage.GetItemAsync<Settings>("rory.matrixroomutils.settings") ?? new();
+        
+        //RuntimeCache stuff
+        async void Save() => await SaveToLocalStorage(localStorage);
+
+        RuntimeCache.Save = Save;
+        RuntimeCache.SaveObject = async (key, obj) => await localStorage.SetItemAsync(key, obj); 
         // RuntimeCache.AccessToken = await localStorage.GetItemAsync<string>("rory.matrixroomutils.token");
         RuntimeCache.LastUsedToken = await localStorage.GetItemAsync<string>("rory.matrixroomutils.last_used_token");
         // RuntimeCache.CurrentHomeserver = await localStorage.GetItemAsync<string>("rory.matrixroomutils.current_homeserver");
@@ -31,6 +37,12 @@ public partial class LocalStorageWrapper
             Console.WriteLine("Created authenticated home server");
         }
         RuntimeCache.GenericResponseCache = await localStorage.GetItemAsync<Dictionary<string, ObjectCache<object>>>("rory.matrixroomutils.generic_cache") ?? new();
+        
+        foreach (var s in (await localStorage.KeysAsync()).Where(x=>x.StartsWith("rory.matrixroomutils.generic_cache:")).ToList())
+        {
+            Console.WriteLine($"Loading generic cache entry {s}");
+            RuntimeCache.GenericResponseCache[s.Replace("rory.matrixroomutils.generic_cache:", "")] = await localStorage.GetItemAsync<ObjectCache<object>>(s);
+        }
         RuntimeCache.WasLoaded = true;
     }
 
@@ -45,6 +57,10 @@ public partial class LocalStorageWrapper
             RuntimeCache.HomeserverResolutionCache.DistinctBy(x => x.Key)
                 .ToDictionary(x => x.Key, x => x.Value));
         await localStorage.SetItemAsync("rory.matrixroomutils.generic_cache", RuntimeCache.GenericResponseCache);
+        // foreach (var s in RuntimeCache.GenericResponseCache.Keys)
+        // {
+            // await localStorage.SetItemAsync($"rory.matrixroomutils.generic_cache:{s}", RuntimeCache.GenericResponseCache[s]);
+        // }
     }
     public static async Task SaveFieldToLocalStorage(ILocalStorageService localStorage, string key)
     {
@@ -55,7 +71,6 @@ public partial class LocalStorageWrapper
         if (key == "rory.matrixroomutils.last_used_token") await localStorage.SetItemAsync(key, RuntimeCache.LastUsedToken);
         if (key == "rory.matrixroomutils.homeserver_resolution_cache") await localStorage.SetItemAsync(key, RuntimeCache.HomeserverResolutionCache);
         if (key == "rory.matrixroomutils.generic_cache") await localStorage.SetItemAsync(key, RuntimeCache.GenericResponseCache);
-        
     }
 }
 

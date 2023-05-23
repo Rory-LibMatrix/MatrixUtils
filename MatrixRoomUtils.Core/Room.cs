@@ -1,6 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Web;
+using MatrixRoomUtils.Core.Extensions;
 
 namespace MatrixRoomUtils.Core;
 
@@ -21,16 +25,22 @@ public class Room
     {
         await _semaphore.WaitAsync();
         var url = $"/_matrix/client/v3/rooms/{RoomId}/state";
-        if (!string.IsNullOrEmpty(state_key)) url += $"/{type}/{state_key}";
-        else if (!string.IsNullOrEmpty(type)) url += $"/{type}";
-        var cache_key = "room_states:" + type;
+        var stateCombo = "";
+        if (!string.IsNullOrEmpty(state_key)) stateCombo += $"{type}/{state_key}";
+        else if (!string.IsNullOrEmpty(type)) stateCombo += $"{type}";
+        if (!string.IsNullOrEmpty(stateCombo)) url += $"/{stateCombo}";
+        var cache_key = "room_states#" + RoomId;
         if (!RuntimeCache.GenericResponseCache.ContainsKey(cache_key))
         {
             Console.WriteLine($"[!!] No cache for {cache_key}, creating...");
-            RuntimeCache.GenericResponseCache.Add(cache_key, new ObjectCache<object?>());
+            RuntimeCache.GenericResponseCache.Add(cache_key, new ObjectCache<object?>()
+            {
+                Name = cache_key
+            });
         }
+        var cache = RuntimeCache.GenericResponseCache[cache_key];
 
-        RuntimeCache.GenericResponseCache[cache_key].DefaultExpiry = type switch
+        cache.DefaultExpiry = type switch
         {
             "m.room.name" => TimeSpan.FromMinutes(30),
             "org.matrix.mjolnir.shortcode" => TimeSpan.FromHours(4),
@@ -38,17 +48,18 @@ public class Room
             _ => TimeSpan.FromMinutes(15)
         };
 
-        if (RuntimeCache.GenericResponseCache[cache_key].Cache.ContainsKey(url) && RuntimeCache.GenericResponseCache[cache_key][url] != null)
+        if (cache.ContainsKey(stateCombo))
         {
-            if (RuntimeCache.GenericResponseCache[cache_key][url].ExpiryTime > DateTime.Now)
+            if (cache[stateCombo].ExpiryTime > DateTime.Now)
             {
                 // Console.WriteLine($"[:3] Found cached state: {RuntimeCache.GenericResponseCache[cache_key][url].Result}");
                 _semaphore.Release();
-                return (JsonElement?)RuntimeCache.GenericResponseCache[cache_key][url].Result;
+                return (JsonElement?) cache[stateCombo].Result;
             }
             else
             {
-                Console.WriteLine($"[!!] Cached state expired at {RuntimeCache.GenericResponseCache[cache_key][url].ExpiryTime}: {RuntimeCache.GenericResponseCache[cache_key][url].Result}");
+                Console.WriteLine($"[!!] Cached state expired at {cache[stateCombo].ExpiryTime}: {cache[stateCombo].Result}");
+                if(cache[stateCombo].ExpiryTime == null)Console.WriteLine("Exiryt time was null");
             }
         }
         // else
@@ -66,13 +77,7 @@ public class Room
 
         var result = await res.Content.ReadFromJsonAsync<JsonElement>();
 
-        if (!RuntimeCache.GenericResponseCache.ContainsKey(cache_key) && type != "")
-        {
-            Console.WriteLine($"[!!] No cache for {cache_key}, creating...");
-            RuntimeCache.GenericResponseCache.Add(cache_key, new ObjectCache<object?>());
-        }
-
-        RuntimeCache.GenericResponseCache[cache_key][url] = new GenericResult<object>()
+        cache[stateCombo] = new GenericResult<object>()
         {
             Result = result
         };
@@ -102,4 +107,111 @@ public class Room
         var full_join_url = $"{join_url}?server_name=" + string.Join("&server_name=", homeservers);
         var res = await _httpClient.PostAsync(full_join_url, null);
     }
+    
+    public async Task<List<string>> GetMembersAsync()
+    {
+        var res = await GetStateAsync("");
+        if (!res.HasValue) return new List<string>();
+        var members = new List<string>();
+        foreach (var member in res.Value.EnumerateArray())
+        {
+            if(member.GetProperty("type").GetString() != "m.room.member") continue;
+            var member_id = member.GetProperty("state_key").GetString();
+            members.Add(member_id);
+        }
+
+        return members;
+    }
+    
+    public async Task<List<string>> GetAliasesAsync()
+    {
+        var res = await GetStateAsync("m.room.aliases");
+        if (!res.HasValue) return new List<string>();
+        var aliases = new List<string>();
+        foreach (var alias in res.Value.GetProperty("aliases").EnumerateArray())
+        {
+            aliases.Add(alias.GetString() ?? "");
+        }
+
+        return aliases;
+    }
+    
+    public async Task<string> GetCanonicalAliasAsync()
+    {
+        var res = await GetStateAsync("m.room.canonical_alias");
+        if (!res.HasValue) return "";
+        return res.Value.GetProperty("alias").GetString() ?? "";
+    }
+    
+    public async Task<string> GetTopicAsync()
+    {
+        var res = await GetStateAsync("m.room.topic");
+        if (!res.HasValue) return "";
+        return res.Value.GetProperty("topic").GetString() ?? "";
+    }
+    
+    public async Task<string> GetAvatarUrlAsync()
+    {
+        var res = await GetStateAsync("m.room.avatar");
+        if (!res.HasValue) return "";
+        return res.Value.GetProperty("url").GetString() ?? "";
+    }
+    
+    public async Task<JoinRules> GetJoinRuleAsync()
+    {
+        var res = await GetStateAsync("m.room.join_rules");
+        if (!res.HasValue) return new JoinRules();
+        return res.Value.Deserialize<JoinRules>() ?? new JoinRules();
+    }
+    
+    public async Task<string> GetHistoryVisibilityAsync()
+    {
+        var res = await GetStateAsync("m.room.history_visibility");
+        if (!res.HasValue) return "";
+        return res.Value.GetProperty("history_visibility").GetString() ?? "";
+    }
+    
+    public async Task<string> GetGuestAccessAsync()
+    {
+        var res = await GetStateAsync("m.room.guest_access");
+        if (!res.HasValue) return "";
+        return res.Value.GetProperty("guest_access").GetString() ?? "";
+    }
+    
+    public async Task<CreateEvent> GetCreateEventAsync()
+    {
+        var res = await GetStateAsync("m.room.create");
+        if (!res.HasValue) return new CreateEvent();
+        
+        res.FindExtraJsonFields(typeof(CreateEvent));
+
+        return res.Value.Deserialize<CreateEvent>() ?? new CreateEvent();
+    }
+}
+
+public class CreateEvent
+{
+    [JsonPropertyName("creator")]
+    public string Creator { get; set; }
+    [JsonPropertyName("room_version")]
+    public string RoomVersion { get; set; }
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
+    [JsonPropertyName("predecessor")]
+    public object? Predecessor { get; set; }
+    
+    [JsonPropertyName("m.federate")]
+    public bool Federate { get; set; }
+}
+
+public class JoinRules
+{
+    private const string Public = "public";
+    private const string Invite = "invite";
+    private const string Knock = "knock";
+    
+    [JsonPropertyName("join_rule")]
+    public string JoinRule { get; set; }
+    [JsonPropertyName("allow")]
+    public List<string> Allow { get; set; }
 }

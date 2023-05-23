@@ -1,0 +1,79 @@
+@page "/KnownHomeserverList"
+@using System.Text.Json
+@using MatrixRoomUtils.Core.Extensions
+<h3>Known Homeserver List</h3>
+<hr/>
+
+@if (!IsFinished)
+{
+    <p>Loading... Please wait...</p>
+}
+else
+{
+    @foreach (var server in HomeServers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList())
+    {
+        <p>@server.Server - @server.KnownUserCount</p>
+    }
+}
+<hr/>
+
+@code {
+    List<HomeServerInfo> HomeServers = new();
+    bool IsFinished { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+
+        HomeServers = await GetHomeservers();
+
+        IsFinished = true;
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+
+    private async Task<List<HomeServerInfo>> GetHomeservers()
+    {
+        List<HomeServerInfo> homeServers = new();
+        var rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+        // Dictionary<string, StateEvent> roomMembers = new();
+        //start a task for each room
+        var tasks = rooms.Select(async room =>
+        {
+            Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
+            StateHasChanged();
+
+            var states = (await room.GetStateAsync("")).Value.Deserialize<List<StateEvent>>();
+            states.RemoveAll(x => x.type != "m.room.member");
+            Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
+            foreach (var state in states)
+            {
+                if (!homeServers.Any(x => x.Server == state.state_key.Split(':')[1]))
+                {
+                    homeServers.Add(new HomeServerInfo() { Server = state.state_key.Split(':')[1] });
+                }
+                var hs = homeServers.First(x => x.Server == state.state_key.Split(':')[1]);
+                if(!hs.KnownUsers.Contains(state.state_key.Split(':')[0]))
+                    hs.KnownUsers.Add(state.state_key.Split(':')[0]);
+            }
+            Console.WriteLine("Collected states!");
+        });
+        await Task.WhenAll(tasks);
+        
+        Console.WriteLine("Calculating member counts...");
+        homeServers.ForEach(x => x.KnownUserCount = x.KnownUsers.Count);
+        Console.WriteLine(homeServers.First(x=>x.Server=="rory.gay").ToJson());
+        Console.WriteLine("Recalculated!");
+        return homeServers;
+    }
+
+    class HomeServerInfo
+    {
+        public string Server { get; set; }
+        public int? KnownUserCount { get; set; }
+        public List<string> KnownUsers { get; set; } = new();
+    }
+
+}

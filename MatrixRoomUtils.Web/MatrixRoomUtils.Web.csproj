@@ -20,4 +20,8 @@
       <_ContentIncludedByDefault Remove="wwwroot\sample-data\weather.json" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="wwwroot\homeservers.txt" />
+    </ItemGroup>
+
 </Project>

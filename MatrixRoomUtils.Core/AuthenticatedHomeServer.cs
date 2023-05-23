@@ -9,12 +9,14 @@ public class AuthenticatedHomeServer : IHomeServer
 {
     public string UserId { get; set; }
     public string AccessToken { get; set; }
+    public readonly HomeserverAdminApi Admin;
 
     public AuthenticatedHomeServer(string userId, string accessToken, string canonicalHomeServerDomain)
     {
         UserId = userId;
         AccessToken = accessToken;
         HomeServerDomain = canonicalHomeServerDomain;
+        Admin = new HomeserverAdminApi(this);
         _httpClient = new HttpClient();
     }
 
@@ -56,9 +58,25 @@ public class AuthenticatedHomeServer : IHomeServer
 
         return rooms;
     }
-
-    public async Task<string> ResolveMediaUri(string mxc)
+    
+    
+    
+    
+    
+    public class HomeserverAdminApi
     {
-        return mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/r0/download/");
+        private readonly AuthenticatedHomeServer _authenticatedHomeServer;
+
+        public HomeserverAdminApi(AuthenticatedHomeServer authenticatedHomeServer)
+        {
+            _authenticatedHomeServer = authenticatedHomeServer;
+        }
+    
+    
+        
+        
+        
+        
+        
     }
 }

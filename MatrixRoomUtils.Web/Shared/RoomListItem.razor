@@ -3,15 +3,25 @@
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-content;">
     @if (ShowOwnProfile)
     {
-        <img style="width: 32px; height:  32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@profileAvatar"/>
+        <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@profileAvatar"/>
         <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(hasCustomProfileName ? "background-color: red;" : "")">@profileName</span>
         <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
     }
-    <img style="width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
-    <span style="vertical-align: middle; padding-right: 8px;">@roomName</span>
+    <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
+    <div style="display: inline-block;">
+        <span style="vertical-align: middle; padding-right: 8px;">@roomName</span>
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+    </div>
+
 </div>
 
 @code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public Room Room { get; set; }
@@ -33,8 +43,9 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        
-        if(!RuntimeCache.WasLoaded) {
+
+        if (!RuntimeCache.WasLoaded)
+        {
             Console.WriteLine("Loading from local storage");
             await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         }
@@ -46,6 +57,10 @@
                 throw new ArgumentNullException(nameof(RoomId));
             }
             Room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
+        }
+        else
+        {
+            RoomId = Room.RoomId;
         }
 
         roomName = await Room.GetNameAsync();
@@ -66,8 +81,8 @@
 
         if (ShowOwnProfile)
         {
-            var profile = await RuntimeCache.CurrentHomeServer.GetProfile(RuntimeCache.CurrentHomeServer.UserId, debounce: true); 
-                
+            var profile = await RuntimeCache.CurrentHomeServer.GetProfile(RuntimeCache.CurrentHomeServer.UserId, debounce: true);
+
             var memberState = await Room.GetStateAsync("m.room.member", RuntimeCache.CurrentHomeServer.UserId);
             if (memberState.HasValue)
             {
@@ -86,7 +101,7 @@
                 {
                     hasCustomProfileName = _name.GetString() != profile.DisplayName;
                     profileName = _name.GetString();
-                    // Console.WriteLine($"{profile.DisplayName} - {_name.GetString()}: {hasCustomProfileName}");
+    // Console.WriteLine($"{profile.DisplayName} - {_name.GetString()}: {hasCustomProfileName}");
                 }
                 else
                 {
@@ -94,7 +109,7 @@
                 }
             }
         }
-        if(Random.Shared.Next(100) == 1)
+        if (Random.Shared.Next(100) == 1)
             await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
     }
 

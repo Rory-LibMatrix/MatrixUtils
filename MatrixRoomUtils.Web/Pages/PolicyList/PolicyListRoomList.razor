@@ -19,8 +19,13 @@ else
     }
     foreach (var s in PolicyRoomList)
     {
-        <a href="@(NavigationManager.Uri + "/" + s.RoomId.Replace('.', '~'))">[@s.Shortcode] @s.Name (@s.RoomId)</a>
-        <br/>
+        
+        <a style="color: unset; text-decoration: unset;" href="/PolicyListEditor/@s.RoomId.Replace('.','~')"><RoomListItem RoomId="@s.RoomId">
+            <br/>
+            <span>Shortcode: @s.Shortcode</span>
+        </RoomListItem></a>
+        @* <a href="@(NavigationManager.Uri + "/" + s.RoomId.Replace('.', '~'))">[@s.Shortcode] @s.Name (@s.RoomId)</a> *@
+        @* <br/> *@
     }
 }
 
@@ -74,15 +79,11 @@ else
     {
         try
         {
-    //TODO: refactor!!!!!
             await semaphore.WaitAsync();
             PolicyRoomInfo roomInfo = new()
             {
                 RoomId = room
             };
-
-
-    // --- //
             var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
             var shortcodeState = await r.GetStateAsync("org.matrix.mjolnir.shortcode");
             if(!shortcodeState.HasValue) return null;

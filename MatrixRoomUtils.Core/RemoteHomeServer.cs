@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using MatrixRoomUtils.Core.Interfaces;
-using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core;
 
@@ -13,12 +12,14 @@ public class RemoteHomeServer : IHomeServer
     {
         HomeServerDomain = canonicalHomeServerDomain;
         _httpClient = new HttpClient();
+        _httpClient.Timeout = TimeSpan.FromSeconds(5);
     }
     public async Task<RemoteHomeServer> Configure()
     {
         FullHomeServerDomain = await ResolveHomeserverFromWellKnown(HomeServerDomain);
         _httpClient.Dispose();
         _httpClient = new HttpClient { BaseAddress = new Uri(FullHomeServerDomain) };
+        _httpClient.Timeout = TimeSpan.FromSeconds(5);
         Console.WriteLine("[RHS] Finished setting up http client");
 
         return this;

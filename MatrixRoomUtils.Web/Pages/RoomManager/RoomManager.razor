@@ -1,0 +1,96 @@
+@page "/RoomManager"
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+<h3>Room manager</h3>
+<hr/>
+@if (Rooms.Count == 0)
+{
+    <p>You are not in any rooms!</p>
+    @* <p>Loading progress: @checkedRoomCount/@totalRoomCount</p> *@
+}
+else
+{
+    <p>You are in @Rooms.Count rooms and @Spaces.Count spaces</p>
+    <details open>
+        <summary>Space List</summary>
+        @foreach (var room in Spaces)
+        {
+            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Space/@room.RoomId.Replace('.', '~')"><RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem></a>
+        }
+    </details>
+    <details open>
+        <summary>Room List</summary>
+        @foreach (var room in Rooms)
+        {
+            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Room/@room.RoomId.Replace('.', '~')"><RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem></a>
+        }
+    </details>
+    
+}
+
+<div style="margin-bottom: 4em;"></div>
+<LogView></LogView>
+
+@code {
+    public List<Room> Rooms { get; set; } = new();
+    public List<Room> Spaces { get; set; } = new();
+    protected override async Task OnInitializedAsync()
+    {
+        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await base.OnInitializedAsync();
+        if (RuntimeCache.CurrentHomeServer == null)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+        Rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+        StateHasChanged();
+        var semaphore = new SemaphoreSlim(1000);
+        var tasks = new List<Task<Room?>>();
+        foreach (var room in Rooms)
+        {
+            tasks.Add(CheckIfSpace(room, semaphore));
+        }
+        await Task.WhenAll(tasks);
+        
+        Console.WriteLine("Fetched joined rooms!");
+    }
+    
+    private async Task<Room?> CheckIfSpace(Room room, SemaphoreSlim semaphore)
+    {
+        await semaphore.WaitAsync();
+        try
+        {
+            var state = await room.GetStateAsync("m.room.create");
+            if (state != null)
+            {
+                //Console.WriteLine(state.Value.ToJson());
+                if(state.Value.TryGetProperty("type", out var type))
+                {
+                    if(type.ToString() == "m.space")
+                    {
+                        Spaces.Add(room);
+                        Rooms.Remove(room);
+                        StateHasChanged();
+                        return room;
+                    }
+                }
+                else
+                {
+                    //this is fine, apprently...
+                    //Console.WriteLine($"Room {room.RoomId} has no content.type in m.room.create!");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return null;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+        return null;
+    }
+} 

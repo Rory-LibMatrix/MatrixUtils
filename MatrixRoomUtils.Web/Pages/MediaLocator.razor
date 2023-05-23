@@ -1,10 +1,45 @@
 @page "/MediaLocator"
-<h3>MediaLocator</h3>
+@inject HttpClient Http
+<h3>Media locator</h3>
 <hr/>
 
+<b>This is going to expose your IP address to all these homeservers!</b>
+<details>
+    <summary>Checked homeserver list (@homeservers.Count entries)</summary>
+    <ul>
+        @foreach (var hs in homeservers)
+        {
+            <li>@hs</li>
+        }
+    </ul>
+</details>
+<button @onclick="addMoreHomeservers">Add more homeservers</button>
+<br/>
 <span>MXC URL: </span>
 <input type="text" @bind="mxcUrl" />
 <button @onclick="executeSearch">Search</button>
+
+@if (successResults.Count > 0)
+{
+    <h4>Successes</h4>
+    <ul>
+        @foreach (var result in successResults)
+        {
+            <li>@result</li>
+        }
+    </ul>
+}
+
+@if (errorResults.Count > 0)
+{
+    <h4>Errors</h4>
+    <ul>
+        @foreach (var result in errorResults)
+        {
+            <li>@result</li>
+        }
+    </ul>
+}
 
 
 @code {
@@ -15,22 +50,82 @@
 
     protected override async Task OnInitializedAsync()
     {
-        base.OnInitializedAsync();
-        
+        await base.OnInitializedAsync();
+        homeservers.AddRange(new []
+        {
+            "matrix.org",
+            "feline.support",
+            "rory.gay",
+            "the-apothecary.club",
+            "envs.net",
+            "projectsegfau.lt"
+        });
     }
 
     async Task executeSearch()
     {
-        var client = new HttpClient();
-        var response = await client.GetAsync($"https://matrix.org/_matrix/media/r0/identicon/{mxcUrl}");
-        if (response.IsSuccessStatusCode)
+        var sem = new SemaphoreSlim(128, 128);
+        homeservers.ForEach(async hs =>
         {
-            successResults.Add(mxcUrl);
-        }
-        else
-        {
-            errorResults.Add(mxcUrl);
-        }
+            await sem.WaitAsync();
+            var httpClient = new HttpClient { BaseAddress = new Uri(hs) };
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
+            var rmu = mxcUrl.Replace("mxc://", $"{hs}/_matrix/media/r0/download/");
+            try
+            {
+                var res = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, rmu));
+                if (res.IsSuccessStatusCode)
+                {
+                    successResults.Add($"{hs}: found - {res.Content.Headers.ContentLength} bytes");
+                    StateHasChanged();
+                    return;
+                }
+                errorResults.Add($"Error: {hs} - {res.StatusCode}\n" + await res.Content.ReadAsStringAsync());
+            }
+            catch (Exception e)
+            {
+                errorResults.Add($"Error: {e}");
+            }
+            finally
+            {
+                sem.Release();
+            }
+            StateHasChanged();
+        });
     }
 
+
+    async Task addMoreHomeservers()
+    {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        var res = await Http.GetAsync("/homeservers.txt");
+        var content = await res.Content.ReadAsStringAsync();
+        homeservers.Clear();
+        var lines = content.Split("\n");
+        
+        var rhs = new RemoteHomeServer("rory.gay");
+        var sem = new SemaphoreSlim(128, 128);
+        lines.ToList().ForEach(async line =>
+        {
+            await sem.WaitAsync();
+            try
+            {
+                homeservers.Add(await rhs.ResolveHomeserverFromWellKnown(line));
+                StateHasChanged();
+                if(Random.Shared.Next(0,101) == 50) 
+                    await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            finally
+            {
+                sem.Release();
+            }
+        });
+
+
+        StateHasChanged();
+    }
 }

@@ -41,7 +41,8 @@ else
                     @policyEvent.content.ExpiryDateTime
                 </td>
                 <td>
-                    <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
+                    <button class="btn" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Edit</button>
+                    @* <button class="btn btn-danger" $1$ @onclick="async () => await RemovePolicyAsync(policyEvent)" #1#>Remove</button> *@
                 </td>
             </tr>
         }

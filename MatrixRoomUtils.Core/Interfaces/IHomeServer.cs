@@ -15,6 +15,18 @@ public class IHomeServer
 
     public async Task<string> ResolveHomeserverFromWellKnown(string homeserver)
     {
+        var res = await _resolveHomeserverFromWellKnown(homeserver);
+        if(!res.StartsWith("http")) res = "https://" + res;
+        if(res.EndsWith(":443")) res = res.Substring(0, res.Length - 4);
+        return res;
+    }
+    private async Task<string> _resolveHomeserverFromWellKnown(string homeserver)
+    {
+        if (RuntimeCache.HomeserverResolutionCache.Count == 0)
+        {
+            Console.WriteLine("No cached homeservers, resolving...");
+            await Task.Delay(Random.Shared.Next(1000, 5000));
+        } 
         if (RuntimeCache.HomeserverResolutionCache.ContainsKey(homeserver))
         {
             if (RuntimeCache.HomeserverResolutionCache[homeserver].ResolutionTime < DateTime.Now.AddHours(1))
@@ -22,6 +34,7 @@ public class IHomeServer
                 Console.WriteLine($"Found cached homeserver: {RuntimeCache.HomeserverResolutionCache[homeserver].Result}");
                 return RuntimeCache.HomeserverResolutionCache[homeserver].Result;
             }
+            Console.WriteLine($"Cached homeserver expired, removing: {RuntimeCache.HomeserverResolutionCache[homeserver].Result}");
             RuntimeCache.HomeserverResolutionCache.Remove(homeserver);
         }
         //throw new NotImplementedException();
@@ -94,5 +107,9 @@ public class IHomeServer
         var profile = data.Deserialize<ProfileResponse>();
         _profileCache[mxid] = profile;
         return profile;
+    }
+    public async Task<string> ResolveMediaUri(string mxc)
+    {
+        return mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/r0/download/");
     }
 }

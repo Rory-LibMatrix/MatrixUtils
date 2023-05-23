@@ -10,22 +10,30 @@
 
 <div style="margin-bottom: 1em;">
     <img style="border-radius: 50%; height: 3em; width: 3em;" src="@_avatarUrl"/>
-    <span style="margin-left: 1em;"><input type="radio" name="csa" checked="@(RuntimeCache.LastUsedToken == User.AccessToken)" onclick="@SetCurrent" style="text-decoration-line: unset;"/> <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b></span>
-    <a href="#" onclick="@RemoveUser">Remove</a>
+    <p style="margin-left: 1em; margin-top: -0.5em; display: inline-block;">
+        <input type="radio" name="csa" checked="@(RuntimeCache.LastUsedToken == User.AccessToken)" onclick="@SetCurrent" style="text-decoration-line: unset;"/>
+        <b>@User.Profile.DisplayName</b> on <b>@User.LoginResponse.HomeServer</b>
+        <a href="#" onclick="@RemoveUser">Remove</a>
+    </p>
+    <p style="margin-top: -1.5em; margin-left: 4em;">Member of @_roomCount rooms</p>
+
 </div>
 
 @code {
 
     [Parameter]
     public UserInfo User { get; set; } = null!;
-    
+
     private string _avatarUrl { get; set; }
+    private int _roomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()
     {
+        var hs = await new AuthenticatedHomeServer(User.LoginResponse.UserId, User.AccessToken, User.LoginResponse.HomeServer).Configure();
         if (User.Profile.AvatarUrl != null && User.Profile.AvatarUrl != "")
-            _avatarUrl = await (await new AuthenticatedHomeServer(User.LoginResponse.UserId, User.AccessToken, User.LoginResponse.HomeServer).Configure()).ResolveMediaUri(User.Profile.AvatarUrl);
+            _avatarUrl = await hs.ResolveMediaUri(User.Profile.AvatarUrl);
         else _avatarUrl = "https://api.dicebear.com/6.x/identicon/svg?seed=" + User.LoginResponse.UserId;
+        _roomCount = (await hs.GetJoinedRooms()).Count;
         await base.OnInitializedAsync();
     }
 
@@ -34,15 +42,17 @@
         Console.WriteLine(User.ToJson());
         RuntimeCache.LoginSessions.Remove(User.AccessToken);
         await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
-        
+
         StateHasChanged();
     }
+
     private async Task SetCurrent()
     {
         RuntimeCache.LastUsedToken = User.AccessToken;
-        //RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(LocalStorageWrapper.LoginSessions[Token].LoginResponse.HomeServer);
+    //RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(LocalStorageWrapper.LoginSessions[Token].LoginResponse.HomeServer);
         await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
-        
+
         StateHasChanged();
     }
+
 }

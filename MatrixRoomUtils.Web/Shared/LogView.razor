@@ -1,13 +1,27 @@
 @using System.Text
-<u>Logs</u><br/>
-<pre>
-    @_stringBuilder
-</pre>
+@if (LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers)
+{
+    <u>Logs</u>
+    <br/>
+    <pre>
+        @_stringBuilder
+    </pre>
+}
 
 @code {
     StringBuilder _stringBuilder = new();
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging)
+        {
+            Console.WriteLine("Console logging disabled!");
+            var _sw = new StringWriter();
+            Console.SetOut(_sw);
+            Console.SetError(_sw);
+            return;
+        }
+        if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers) return;
         //intecept stdout with textwriter to get logs
         var sw = new StringWriter(_stringBuilder);
         Console.SetOut(sw);
@@ -27,6 +41,6 @@
             }
     // ReSharper disable once FunctionNeverReturns - This is intentional behavior
         });
-        base.OnInitialized();
+        await base.OnInitializedAsync();
     }
 }

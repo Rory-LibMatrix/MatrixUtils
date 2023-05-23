@@ -1,6 +1,5 @@
 using Blazored.LocalStorage;
 using MatrixRoomUtils.Core;
-using MatrixRoomUtils.Core.Extensions;
 
 namespace MatrixRoomUtils.Web.Classes;
 
@@ -27,7 +26,7 @@ public partial class LocalStorageWrapper
         {
             Console.WriteLine($"Access token is not null, creating authenticated home server");
             Console.WriteLine($"Homeserver cache: {RuntimeCache.HomeserverResolutionCache.Count} entries");
-            Console.WriteLine(RuntimeCache.HomeserverResolutionCache.ToJson());
+            // Console.WriteLine(RuntimeCache.HomeserverResolutionCache.ToJson());
             RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.UserId, RuntimeCache.LastUsedToken, RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer).Configure();
             Console.WriteLine("Created authenticated home server");
         }
@@ -47,6 +46,17 @@ public partial class LocalStorageWrapper
                 .ToDictionary(x => x.Key, x => x.Value));
         await localStorage.SetItemAsync("rory.matrixroomutils.generic_cache", RuntimeCache.GenericResponseCache);
     }
+    public static async Task SaveFieldToLocalStorage(ILocalStorageService localStorage, string key)
+    {
+        if (key == "rory.matrixroomutils.settings") await localStorage.SetItemAsync(key, Settings);
+        // if (key == "rory.matrixroomutils.token") await localStorage.SetItemAsStringAsync(key, RuntimeCache.AccessToken);
+        // if (key == "rory.matrixroomutils.current_homeserver") await localStorage.SetItemAsync(key, RuntimeCache.CurrentHomeserver);
+        if (key == "rory.matrixroomutils.user_cache") await localStorage.SetItemAsync(key, RuntimeCache.LoginSessions);
+        if (key == "rory.matrixroomutils.last_used_token") await localStorage.SetItemAsync(key, RuntimeCache.LastUsedToken);
+        if (key == "rory.matrixroomutils.homeserver_resolution_cache") await localStorage.SetItemAsync(key, RuntimeCache.HomeserverResolutionCache);
+        if (key == "rory.matrixroomutils.generic_cache") await localStorage.SetItemAsync(key, RuntimeCache.GenericResponseCache);
+        
+    }
 }
 
 
@@ -59,4 +69,6 @@ public class Settings
 public class DeveloperSettings
 {
     public bool EnableLogViewers { get; set; } = false;
+    public bool EnableConsoleLogging { get; set; } = true;
+    public bool EnablePortableDevtools { get; set; } = false;
 }

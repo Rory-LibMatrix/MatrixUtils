@@ -1,0 +1,31 @@
+
+@if (Enabled)
+{
+    <a href="/DevOptions">Portable devtools (enabled)</a>
+    <div id="PortableDevTools" style="position: fixed; bottom: 0; right: 0; min-width: 200px; min-height: 100px; background: #0002;" draggable>
+        <p>Cache size: @RuntimeCache.GenericResponseCache.Sum(x=>x.Value.Cache.Count)</p>
+    </div>
+}
+else {
+    <a href="/DevOptions">Portable devtools (disabled)</a>
+}
+
+@code {
+    private bool Enabled { get; set; } = LocalStorageWrapper.Settings.DeveloperSettings.EnablePortableDevtools;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // if(!RuntimeCache.WasLoaded)
+            // await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        // StateHasChanged();
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(100);
+                Enabled = LocalStorageWrapper.Settings.DeveloperSettings.EnablePortableDevtools;
+                StateHasChanged();
+            }
+        });
+    }
+}

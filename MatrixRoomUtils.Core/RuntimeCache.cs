@@ -1,6 +1,3 @@
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
-using System.Xml.Schema;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Responses;
 
@@ -40,17 +37,6 @@ public class ObjectCache<T> where T : class
     {
         get
         {
-            if (Random.Shared.Next(100) == 1)
-            {
-                // Console.WriteLine("Cleaning cache...");
-                // foreach (var x in Cache.Where(x => x.Value.ExpiryTime < DateTime.Now).OrderBy(x => x.Value.ExpiryTime).Take(3).ToList())
-                // {
-                    // Console.WriteLine($"Removing {x.Key} from cache");
-                    // Cache.Remove(x.Key);   
-                // }
-            }
-
-            
             if (Cache.ContainsKey(key))
             {
                 // Console.WriteLine($"Found item in cache: {key} - {Cache[key].Result.ToJson(indent: false)}");
@@ -67,19 +53,48 @@ public class ObjectCache<T> where T : class
                     Console.WriteLine($"Failed to remove {key} from cache: {e.Message}");
                 }
             }
+            Console.WriteLine($"No item in cache: {key}");
             return null;
         }
         set
         {
             Cache[key] = value;
             if(Cache[key].ExpiryTime == null) Cache[key].ExpiryTime = DateTime.Now.Add(DefaultExpiry);
-            Console.WriteLine($"New item in cache: {key} - {Cache[key].Result.ToJson(indent: false)}");
+            // Console.WriteLine($"New item in cache: {key} - {Cache[key].Result.ToJson(indent: false)}");
             // Console.Error.WriteLine("Full cache: " + Cache.ToJson());
         }
+    }
+    
+    public ObjectCache()
+    {
+        //expiry timer
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(1000);
+                foreach (var x in Cache.Where(x => x.Value.ExpiryTime < DateTime.Now).OrderBy(x => x.Value.ExpiryTime).Take(15).ToList())
+                {
+                    // Console.WriteLine($"Removing {x.Key} from cache");
+                    Cache.Remove(x.Key);   
+                }
+            }
+        });
     }
 }
 public class GenericResult<T>
 {
     public T? Result { get; set; }
     public DateTime? ExpiryTime { get; set; }
+    
+    public GenericResult()
+    {
+        //expiry timer
+        
+    }
+    public GenericResult(T? result, DateTime? expiryTime = null) : this()
+    {
+        Result = result;
+        ExpiryTime = expiryTime;
+    }
 }

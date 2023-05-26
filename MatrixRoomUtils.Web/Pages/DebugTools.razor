@@ -40,7 +40,7 @@ else
     public List<string> Rooms { get; set; } = new();
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
         if (RuntimeCache.CurrentHomeServer == null)
         {

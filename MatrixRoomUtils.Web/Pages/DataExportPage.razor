@@ -15,7 +15,7 @@
 {
 @foreach (var (token, user) in RuntimeCache.LoginSessions)
 {
-    <IndexUserItem User="@user"/>
+    @* <IndexUserItem User="@user"/> *@
     <pre>
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\access_token=@token
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\device_id=@user.LoginResponse.DeviceId
@@ -45,32 +45,31 @@ else
         if (!RuntimeCache.WasLoaded)
         {
             await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-
-            var homeservers = RuntimeCache.LoginSessions.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
-            totalHomeservers = homeservers.Count();
-            StateHasChanged();
-            foreach (var hs in homeservers)
+        }
+        var homeservers = RuntimeCache.LoginSessions.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
+        totalHomeservers = homeservers.Count();
+        StateHasChanged();
+        foreach (var hs in homeservers)
+        {
+            if (RuntimeCache.HomeserverResolutionCache.ContainsKey(hs))
             {
-                if (RuntimeCache.HomeserverResolutionCache.ContainsKey(hs))
-                {
-                    resolvedHomeservers++;
-                    continue;
-                }
-                var resolvedHomeserver = (await new RemoteHomeServer(hs).Configure()).FullHomeServerDomain;
-
-                RuntimeCache.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
-                await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
-
-                Console.WriteLine("Saved to local storage:");
-                Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions()
-                {
-                    WriteIndented = true
-                }));
                 resolvedHomeservers++;
-                StateHasChanged();
+                continue;
             }
+            var resolvedHomeserver = (await new RemoteHomeServer(hs).Configure()).FullHomeServerDomain;
+
+            RuntimeCache.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
+            await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+
+            Console.WriteLine("Saved to local storage:");
+            Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions()
+            {
+                WriteIndented = true
+            }));
+            resolvedHomeservers++;
             StateHasChanged();
         }
+        StateHasChanged();
         _isLoaded = true;
     }
 

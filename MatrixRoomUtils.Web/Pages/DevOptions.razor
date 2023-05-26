@@ -23,7 +23,6 @@
         {
             <li>
                 @item.Key: @item.Value.Cache.Count entries<br/>
-                Default expiry: @item.Value.DefaultExpiry<br/>
                 @if (item.Value.Cache.Count > 0)
                 {
                     <p>Earliest expiry: @(item.Value.Cache.Min(x => x.Value.ExpiryTime)) (@string.Format("{0:g}", item.Value.Cache.Min(x => x.Value.ExpiryTime).Value.Subtract(DateTime.Now)) from now)</p>
@@ -45,7 +44,7 @@
         {
             while (true)
             {
-                await Task.Delay(100);
+                await Task.Delay(1000);
                 StateHasChanged();
             }
         });

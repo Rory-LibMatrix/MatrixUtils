@@ -13,9 +13,9 @@
 <br/>
 <details style="background: #0002;">
     <summary style="background: #fff1;">State list</summary>
-    @foreach (var stateEvent in States.OrderBy(x => x.state_key).ThenBy(x => x.type))
+    @foreach (var stateEvent in States.OrderBy(x => x.StateKey).ThenBy(x => x.Type))
     {
-        <p>@stateEvent.state_key/@stateEvent.type:</p>
+        <p>@stateEvent.StateKey/@stateEvent.Type:</p>
         <pre>@stateEvent.content.ToJson()</pre>
     }
 </details>
@@ -27,7 +27,7 @@
     
     private Room? Room { get; set; }
     
-    private StateEvent<object>[] States { get; set; } = Array.Empty<StateEvent<object>>();
+    private StateEventResponse<object>[] States { get; set; } = Array.Empty<StateEventResponse<object>>();
     private List<Room> Rooms { get; set; } = new();
     
     protected override async Task OnInitializedAsync()
@@ -38,14 +38,14 @@
         if (state != null)
         {
             Console.WriteLine(state.Value.ToJson());
-            States = state.Value.Deserialize<StateEvent<object>[]>()!;
+            States = state.Value.Deserialize<StateEventResponse<object>[]>()!;
             
             foreach (var stateEvent in States)
             {
-                if (stateEvent.type == "m.space.child")
+                if (stateEvent.Type == "m.space.child")
                 {
-                    // if (stateEvent.content.ToJson().Length < 5) return;
-                    var roomId = stateEvent.state_key;
+                    // if (stateEvent.Content.ToJson().Length < 5) return;
+                    var roomId = stateEvent.StateKey;
                     var room = await RuntimeCache.CurrentHomeServer.GetRoom(roomId);
                     if (room != null)
                     {
@@ -54,13 +54,13 @@
                 }
             }
             
-        // if(state.Value.TryGetProperty("type", out var type))
+        // if(state.Value.TryGetProperty("Type", out var Type))
         // {
         // }
         // else
         // {
         //     //this is fine, apprently...
-        //     //Console.WriteLine($"Room {room.RoomId} has no content.type in m.room.create!");
+        //     //Console.WriteLine($"Room {room.RoomId} has no Content.Type in m.room.create!");
         // }
         }
         await base.OnInitializedAsync();

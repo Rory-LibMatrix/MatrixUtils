@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core.Authentication;
@@ -33,7 +34,7 @@ public class MatrixAuth
             await Task.Delay(retryAfter.GetInt32());
             return await Login(homeserver, username, password);
         }
-
+        Console.WriteLine($"Login: {data.ToJson()}");
         return data.Deserialize<LoginResponse>();
         //var token = data.GetProperty("access_token").GetString();
         //return token;

@@ -1,0 +1,18 @@
+@inherits InputBase<string>
+<pre id="@Id" class="@CssClass" @onkeyup="Callback" contenteditable="true">@CurrentValue</pre>
+@code {
+    protected override bool TryParseValueFromString(string? value, out string result, out string? validationErrorMessage)
+    {
+        result = value;
+        validationErrorMessage = null;
+        return true;
+    }
+
+    public object Id { get; set; }
+
+    private async Task Callback()
+    {
+        Console.WriteLine("beep");
+    }
+
+}

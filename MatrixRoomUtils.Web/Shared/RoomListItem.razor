@@ -1,7 +1,7 @@
 @using MatrixRoomUtils.Core.Authentication
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Extensions
-<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
+<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (ShowOwnProfile)
     {
         <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@profileAvatar"/>
@@ -96,7 +96,7 @@
                 var url = state.Value.GetProperty("url").GetString();
                 if (url != null)
                 {
-                    roomIcon = await RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
+                    roomIcon = RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
                 }
             }
             catch (InvalidOperationException e)
@@ -116,7 +116,7 @@
                 if (_avatar.ValueKind == JsonValueKind.String)
                 {
                     hasCustomProfileAvatar = _avatar.GetString() != profile.AvatarUrl;
-                    profileAvatar = await RuntimeCache.CurrentHomeServer.ResolveMediaUri(_avatar.GetString());
+                    profileAvatar = RuntimeCache.CurrentHomeServer.ResolveMediaUri(_avatar.GetString());
                 }
                 else
                 {

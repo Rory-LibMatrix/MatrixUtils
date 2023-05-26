@@ -11,21 +11,28 @@
 else
 {
     <p>You are in @Rooms.Count rooms and @Spaces.Count spaces</p>
+    <p>
+        <a href="/RoomManagerCreateRoom">Create room</a>
+    </p>
+
     <details open>
         <summary>Space List</summary>
         @foreach (var room in Spaces)
         {
-            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Space/@room.RoomId.Replace('.', '~')"><RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem></a>
+            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Space/@room.RoomId.Replace('.', '~')">
+                <RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem>
+            </a>
         }
     </details>
     <details open>
         <summary>Room List</summary>
         @foreach (var room in Rooms)
         {
-            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Room/@room.RoomId.Replace('.', '~')"><RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem></a>
+            <a style="color: unset; text-decoration: unset;" href="/RoomManager/Room/@room.RoomId.Replace('.', '~')">
+                <RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem>
+            </a>
         }
     </details>
-    
 }
 
 <div style="margin-bottom: 4em;"></div>
@@ -34,9 +41,10 @@ else
 @code {
     public List<Room> Rooms { get; set; } = new();
     public List<Room> Spaces { get; set; } = new();
+
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
         if (RuntimeCache.CurrentHomeServer == null)
         {
@@ -45,40 +53,47 @@ else
         }
         Rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
         StateHasChanged();
-        var semaphore = new SemaphoreSlim(1000);
+        Console.WriteLine($"Got {Rooms.Count} rooms");
+        var semaphore = new SemaphoreSlim(10);
         var tasks = new List<Task<Room?>>();
         foreach (var room in Rooms)
         {
             tasks.Add(CheckIfSpace(room, semaphore));
         }
         await Task.WhenAll(tasks);
-        
+
         Console.WriteLine("Fetched joined rooms!");
     }
-    
+
     private async Task<Room?> CheckIfSpace(Room room, SemaphoreSlim semaphore)
     {
         await semaphore.WaitAsync();
+        // Console.WriteLine($"Checking if {room.RoomId} is a space");
         try
         {
-            var state = await room.GetStateAsync("m.room.create");
+            var state = await room.GetStateAsync<CreateEvent>("m.room.create");
             if (state != null)
             {
-                //Console.WriteLine(state.Value.ToJson());
-                if(state.Value.TryGetProperty("type", out var type))
+    //Console.WriteLine(state.Value.ToJson());
+                if (state.Type != null)
                 {
-                    if(type.ToString() == "m.space")
+                    if (state.Type == "m.space")
                     {
+                        Console.WriteLine($"Room {room.RoomId} is a space!");
                         Spaces.Add(room);
                         Rooms.Remove(room);
                         StateHasChanged();
                         return room;
                     }
+                    else
+                    {
+                        Console.WriteLine($"Encountered unknown room type {state.Type}");
+                    }
                 }
                 else
                 {
-                    //this is fine, apprently...
-                    //Console.WriteLine($"Room {room.RoomId} has no content.type in m.room.create!");
+    //this is fine, apprently...
+    // Console.WriteLine($"Room {room.RoomId} has no Content.type in m.room.create!");
                 }
             }
         }
@@ -93,4 +108,5 @@ else
         }
         return null;
     }
-} 
+
+}

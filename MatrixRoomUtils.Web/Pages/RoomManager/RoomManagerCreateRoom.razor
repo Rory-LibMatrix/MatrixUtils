@@ -1,0 +1,298 @@
+@page "/RoomManagerCreateRoom"
+@using System.Text.Json
+@using MatrixRoomUtils.Core.Extensions
+@using MatrixRoomUtils.Core.Responses
+@using System.Runtime.Intrinsics.X86
+<h3>Room Manager - Create Room</h3>
+
+@* <pre Contenteditable="true" @onkeypress="@JsonChanged" ="JsonString">@JsonString</pre> *@
+<table>
+    <tr >
+        <td style="padding-bottom: 16px;">Preset:</td>
+        <td style="padding-bottom: 16px;">
+            <InputSelect @bind-Value="@RoomPreset">
+                @foreach (var createRoomRequest in Presets)
+                {
+                    <option value="@createRoomRequest.Key">@createRoomRequest.Key</option>
+                }
+                @* <option value="private_chat">Private chat</option> *@
+                @* <option value="trusted_private_chat">Trusted private chat</option> *@
+                @* <option value="public_chat">Public chat</option> *@
+            </InputSelect>
+        </td>
+    </tr>
+    <tr>
+        <td>Room name:</td>
+        <td>
+            <InputText @bind-Value="@creationEvent.Name"></InputText>
+        </td>
+    </tr>
+    <tr>
+        <td>Room alias (localpart):</td>
+        <td>
+            <InputText @bind-Value="@creationEvent.RoomAliasName"></InputText>
+        </td>
+    </tr>
+    <tr>
+        <td>Room type:</td>
+        <td>
+            <InputSelect @bind-Value="@creationEvent._creationContentBaseType.Type">
+                <option value="">Room</option>
+                <option value="m.space">Space</option>
+            </InputSelect>
+            <InputText @bind-Value="@creationEvent._creationContentBaseType.Type"></InputText>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-top: 16px;">History visibility:</td>
+        <td style="padding-top: 16px;">
+            <InputSelect @bind-Value="@creationEvent.HistoryVisibility">
+                <option value="invited">Invited</option>
+                <option value="joined">Joined</option>
+                <option value="shared">Shared</option>
+                <option value="world_readable">World readable</option>
+            </InputSelect>
+        </td>
+    </tr>
+    <tr>
+        <td>Guest access:</td>
+        <td>
+            <InputSelect @bind-Value="@creationEvent.GuestAccess">
+                <option value="can_join">Can join</option>
+                <option value="forbidden">Forbidden</option>
+            </InputSelect>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Room icon:</td>
+        <td>
+            <img src="@RuntimeCache.CurrentHomeServer?.ResolveMediaUri(creationEvent.RoomIcon ?? "")" style="max-width: 100px; max-height: 100px; border-radius: 50%;"/>
+            @* <InputText @bind-Value="@creationEvent.RoomIcon"></InputText> *@
+        </td>
+
+    </tr>
+
+    <tr>
+        <td style="vertical-align: top;">Initial states:</td>
+        <td>
+            <details>
+                @code{
+
+                    private static string[] ImplementedStates = new[] { "m.room.avatar", "m.room.history_visibility", "m.room.guest_access", };
+
+                }
+                <summary>@creationEvent.InitialState.Count(x => !ImplementedStates.Contains(x.Type)) custom states</summary>
+                <table>
+                    @foreach (var initialState in creationEvent.InitialState.Where(x => !ImplementedStates.Contains(x.Type)))
+                    {
+                        <tr>
+                            <td style="vertical-align: top;">@(initialState.Type):</td>
+
+                            <td>
+                                <pre>@JsonSerializer.Serialize(initialState.Content, new JsonSerializerOptions { WriteIndented = true })</pre>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </details>
+            <details>
+                <summary>@creationEvent.InitialState.Count initial states</summary>
+                <table>
+                    @foreach (var initialState in creationEvent.InitialState.Where(x => !new[] { "m.room.avatar", "m.room.history_visibility" }.Contains(x.Type)))
+                    {
+                        <tr>
+                            <td style="vertical-align: top;">@(initialState.Type):</td>
+
+                            <td>
+                                <pre>@JsonSerializer.Serialize(initialState.Content, new JsonSerializerOptions { WriteIndented = true })</pre>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </details>
+        </td>
+    </tr>
+</table>
+<br/>
+<details>
+    <summary>Creation JSON</summary>
+    <pre>
+        @creationEvent.ToJson(ignoreNull: true)
+    </pre>
+</details>
+<details open>
+    <summary>Creation JSON (with null values)</summary>
+    <EditablePre @bind-Value="@JsonString" oninput="@JsonChanged"></EditablePre>
+</details>
+
+
+@code {
+
+    private string JsonString
+    {
+        get => creationEvent.ToJson();
+        set
+        {
+            creationEvent = JsonSerializer.Deserialize<CreateRoomRequest>(value);
+            JsonChanged();
+        }
+    }
+
+    private string RoomPreset
+    {
+        get
+        {
+            if (Presets.ContainsValue(creationEvent))
+            {
+                return Presets.First(x => x.Value == creationEvent).Key;
+            }
+            return "Not a preset";
+        }
+        set
+        {
+            creationEvent = Presets[value];
+            JsonChanged();
+        }
+    }
+
+    private Dictionary<string, string> creationEventValidationErrors { get; set; } = new();
+
+    private CreateRoomRequest creationEvent { get; set; }
+
+    private Dictionary<string, CreateRoomRequest> Presets { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+
+        creationEvent = Presets["Default room"] = new CreateRoomRequest
+        {
+            Name = "My new room",
+            RoomAliasName = "myroom",
+            InitialState = new()
+            {
+                new()
+                {
+                    Type = "m.room.history_visibility",
+                    Content = new
+                    {
+                        history_visibility = "world_readable"
+                    }
+                },
+                new()
+                {
+                    Type = "m.room.guest_access",
+                    Content = new
+                    {
+                        guest_access = "can_join"
+                    }
+                },
+                new()
+                {
+                    Type = "m.room.join_rules",
+                    Content = new
+                    {
+                        join_rule = "public"
+                    }
+                },
+                new()
+                {
+                    Type = "m.room.server_acl",
+                    Content = new
+                    {
+                        allow = new[] { "*" },
+                        deny = new[]
+                        {
+                            "midov.pl",
+                            "qoto.org",
+                            "matrix.kiwifarms.net",
+                            "plan9.rocks",
+                            "thisisjoes.site",
+                            "konqi.work",
+                            "austinhuang.lol",
+                            "arcticfox.ems.host",
+                            "*.thisisjoes.site",
+                            "*.abuser.eu",
+                            "*.austinhuang.lol"
+                        },
+                        allow_ip_literals = false
+                    }
+                },
+                new()
+                {
+                    Type = "m.room.avatar",
+                    Content = new
+                    {
+                        url = "mxc://feline.support/UKNhEyrVsrAbYteVvZloZcFj"
+                    }
+                }
+            },
+            Visibility = "public",
+            PowerLevelContentOverride = new()
+            {
+                UsersDefault = 0,
+                EventsDefault = 100,
+                StateDefault = 50,
+                Invite = 0,
+                Redact = 50,
+                Kick = 50,
+                Ban = 50,
+                NotificationsPl = new()
+                {
+                    Room = 50
+                },
+                Events = new()
+                {
+                    { "im.vector.modular.widgets", 50 },
+                    { "io.element.voice_broadcast_info", 50 },
+                    { "m.reaction", 100 },
+                    { "m.room.avatar", 50 },
+                    { "m.room.canonical_alias", 50 },
+                    { "m.room.encryption", 100 },
+                    { "m.room.history_visibility", 100 },
+                    { "m.room.name", 50 },
+                    { "m.room.pinned_events", 50 },
+                    { "m.room.power_levels", 100 },
+                    { "m.room.redaction", 100 },
+                    { "m.room.server_acl", 100 },
+                    { "m.room.tombstone", 100 },
+                    { "m.room.topic", 50 },
+                    { "m.space.child", 50 },
+                    { "org.matrix.msc3401.call", 50 },
+                    { "org.matrix.msc3401.call.member", 50 }
+                },
+                Users = new()
+                {
+                    { "@alicia:rory.gay", 100 },
+                    { "@emma:rory.gay", 100 },
+                    { "@root:rory.gay", 100 },
+                    { "@rory:rory.gay", 100 }
+                },
+            },
+            CreationContent = new()
+            {
+                { "type", null }
+            }
+        };
+
+
+        await base.OnInitializedAsync();
+    }
+
+    private void JsonChanged()
+    {
+        Console.WriteLine(JsonString);
+    }
+
+
+    private string GetStateFriendlyName(string key) => key switch {
+        "m.room.history_visibility" => "History visibility",
+        "m.room.guest_access" => "Guest access",
+        "m.room.join_rules" => "Join rules",
+        "m.room.server_acl" => "Server ACL",
+        "m.room.avatar" => "Avatar",
+        _ => key
+        };
+
+}

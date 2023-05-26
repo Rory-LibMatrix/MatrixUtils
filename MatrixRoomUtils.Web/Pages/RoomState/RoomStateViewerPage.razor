@@ -11,7 +11,7 @@
 
 <input type="checkbox" id="showAll" @bind="ShowMembershipEvents"/> Show member events
 
-<table class="table table-striped table-hover" style="width: fit-content;">
+<table class="table table-striped table-hover" style="width: fit-Content;">
     <thead>
     <tr>
         <th scope="col">Type</th>
@@ -23,7 +23,7 @@
     {
         <tr>
             <td>@stateEvent.type</td>
-            <td style="max-width: fit-content;">
+            <td style="max-width: fit-Content;">
                 <pre>@stateEvent.content</pre>
             </td>
         </tr>
@@ -35,7 +35,7 @@
 {
     <details>
         <summary>@group.Key</summary>
-        <table class="table table-striped table-hover" style="width: fit-content;">
+        <table class="table table-striped table-hover" style="width: fit-Content;">
             <thead>
             <tr>
                 <th scope="col">Type</th>
@@ -47,7 +47,7 @@
             {
                 <tr>
                     <td>@stateEvent.type</td>
-                    <td style="max-width: fit-content;">
+                    <td style="max-width: fit-Content;">
                         <pre>@stateEvent.content</pre>
                     </td>
                 </tr>
@@ -62,7 +62,7 @@
 @code {
     //get room list
     // - sync withroom list filter
-    // type = support.feline.msc3784
+    // Type = support.feline.msc3784
     //support.feline.policy.lists.msc.v1
 
     [Parameter]
@@ -74,7 +74,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
         if (RuntimeCache.CurrentHomeServer == null)
         {
@@ -149,10 +149,10 @@
         public long origin_server_ts { get; set; }
         public string state_key { get; set; }
         public string type { get; set; }
-    // public string sender { get; set; }
-    // public string event_id { get; set; }
-    // public string user_id { get; set; }
-    // public string replaces_state { get; set; }
+    // public string Sender { get; set; }
+    // public string EventId { get; set; }
+    // public string UserId { get; set; }
+    // public string ReplacesState { get; set; }
     }
 
     public bool ShowMembershipEvents

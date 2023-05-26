@@ -1,42 +1,123 @@
 @page "/Login"
+@using System.Text.Json
 @using MatrixRoomUtils.Core.Authentication
 @inject ILocalStorageService LocalStorage
+@inject IJSRuntime JsRuntime
 <h3>Login</h3>
+<hr/>
 
-<label>Homeserver:</label>
-<input @bind="homeserver"/>
+<span>
+    <label>@@</label>
+    @if (inputVisible.username)
+    {
+        <input autofocus @bind="newRecordInput.username" @onfocusout="() => inputVisible.username = false" @ref="elementToFocus"/>
+    }
+    else
+    {
+        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; height: 1.4em;" @onfocusin="() => inputVisible.username = true">@newRecordInput.username</span>
+    }
+    <label>:</label>
+    @if (inputVisible.homeserver)
+    {
+        <input autofocus @bind="newRecordInput.homeserver" @onfocusout="() => inputVisible.homeserver = false" @ref="elementToFocus"/>
+    }
+    else
+    {
+        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; margin-left: 2px; height: 1.4em;" @onfocusin="() => inputVisible.homeserver = true">@newRecordInput.homeserver</span>
+    }
+</span>
+<span style="display: block;">
+    <label>Password:</label>
+    @if (inputVisible.password)
+    {
+        <input autofocus="true" @bind="newRecordInput.password" @onfocusout="() => inputVisible.password = false" @ref="elementToFocus" type="password"/>
+    }
+    else
+    {
+        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; height: 1.4em;" @onfocusin="() => inputVisible.password = true">@string.Join("", newRecordInput.password.Select(x => '*'))</span>
+    }
+</span>
+<button @onclick="AddRecord">Add account to queue</button>
 <br/>
-<label>Username:</label>
-<input @bind="username"/>
-<br/>
-<label>Password:</label>
-<input @bind="password" type="password"/>
+
+<InputFile OnChange="@FileChanged" accept=".tsv"></InputFile>
 <br/>
 <button @onclick="Login">Login</button>
+<br/><br/>
+<h4>Parsed records</h4>
+<hr/>
+<table border="1">
+    @foreach (var (homeserver, username, password) in records)
+    {
+        <tr style="background-color: @(RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
+            <td style="border-width: 1px;">@username</td>
+            <td style="border-width: 1px;">@homeserver</td>
+            <td style="border-width: 1px;">@password.Length chars</td>
+        </tr>
+    }
+</table>
 <br/>
 <br/>
 <LogView></LogView>
 
 @code {
-    string homeserver = "";
-    string username = "";
-    string password = "";
+    List<(string homeserver, string username, string password)> records = new();
+    (string homeserver, string username, string password) newRecordInput = ("", "", "");
+    (bool homeserver, bool username, bool password) inputVisible = (false, false, false);
 
     async Task Login()
     {
-        var result = await MatrixAuth.Login(homeserver, username, password);
-        Console.WriteLine($"Obtained access token for {result.UserId}!");
-
-        RuntimeCache.LastUsedToken = result.AccessToken;
-
-        var userinfo = new UserInfo()
+        foreach (var (homeserver, username, password) in records)
         {
-            LoginResponse = result,
-            Profile = await (await new RemoteHomeServer(result.HomeServer).Configure()).GetProfile(result.UserId)
-        };
-        RuntimeCache.LoginSessions.Add(userinfo.AccessToken, userinfo);
+            if (RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
+            var result = await MatrixAuth.Login(homeserver, username, password);
+            Console.WriteLine($"Obtained access token for {result.UserId}!");
+
+            var userinfo = new UserInfo()
+            {
+                LoginResponse = result
+            };
+            userinfo.Profile = await (await new AuthenticatedHomeServer(result.UserId, result.AccessToken, result.HomeServer).Configure()).GetProfile(result.UserId);
+            RuntimeCache.LastUsedToken = result.AccessToken;
+
+            RuntimeCache.LoginSessions.Add(result.AccessToken, userinfo);
+            StateHasChanged();
+        }
 
         await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+    }
+
+    private async Task FileChanged(InputFileChangeEventArgs obj)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions()
+        {
+            WriteIndented = true
+        }));
+        await using var rs = obj.File.OpenReadStream();
+        using var sr = new StreamReader(rs);
+        string TsvData = await sr.ReadToEndAsync();
+        records.Clear();
+        foreach (var line in TsvData.Split('\n'))
+        {
+            var parts = line.Split('\t');
+            if (parts.Length != 3)
+                continue;
+            records.Add((parts[0], parts[1], parts[2]));
+        }
+    }
+
+
+    private ElementReference elementToFocus;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeVoidAsync("BlazorFocusElement", elementToFocus);
+    }
+
+    private void AddRecord()
+    {
+        records.Add(newRecordInput);
+        newRecordInput = ("", "", "");
     }
 
 }

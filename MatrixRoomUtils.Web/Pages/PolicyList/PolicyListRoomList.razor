@@ -35,7 +35,7 @@ else
 @code {
     //get room list
     // - sync withroom list filter
-    // type = support.feline.msc3784
+    // Type = support.feline.msc3784
     //support.feline.policy.lists.msc.v1
 
     public List<PolicyRoomInfo> PolicyRoomList { get; set; } = new();
@@ -45,7 +45,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!RuntimeCache.WasLoaded) await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
         if (RuntimeCache.CurrentHomeServer == null)
         {

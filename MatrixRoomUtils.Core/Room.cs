@@ -40,14 +40,6 @@ public class Room
         }
         var cache = RuntimeCache.GenericResponseCache[cache_key];
 
-        cache.DefaultExpiry = type switch
-        {
-            "m.room.name" => TimeSpan.FromMinutes(30),
-            "org.matrix.mjolnir.shortcode" => TimeSpan.FromHours(4),
-            "" => TimeSpan.FromSeconds(0),
-            _ => TimeSpan.FromMinutes(15)
-        };
-
         if (cache.ContainsKey(stateCombo))
         {
             if (cache[stateCombo].ExpiryTime > DateTime.Now)
@@ -76,13 +68,27 @@ public class Room
         }
 
         var result = await res.Content.ReadFromJsonAsync<JsonElement>();
-
-        cache[stateCombo] = new GenericResult<object>()
+        var expiryTime = type switch
         {
-            Result = result
+            "m.room.name" => TimeSpan.FromMinutes(30),
+            "org.matrix.mjolnir.shortcode" => TimeSpan.FromHours(4),
+            "" => TimeSpan.FromSeconds(0),
+            _ => TimeSpan.FromMinutes(15)
         };
+        if(!string.IsNullOrWhiteSpace(type) && !string.IsNullOrWhiteSpace(state_key))
+            cache[stateCombo] = new GenericResult<object>()
+            {
+                Result = result,
+                ExpiryTime = DateTime.Now.Add(expiryTime)
+            };
         _semaphore.Release();
         return result;
+    }
+    public async Task<T?> GetStateAsync<T>(string type, string state_key = "", bool logOnFailure = false)
+    {
+        var res = await GetStateAsync(type, state_key, logOnFailure);
+        if (res == null) return default;
+        return res.Value.Deserialize<T>();
     }
 
     public async Task<string> GetNameAsync()
@@ -115,8 +121,8 @@ public class Room
         var members = new List<string>();
         foreach (var member in res.Value.EnumerateArray())
         {
-            if(member.GetProperty("type").GetString() != "m.room.member") continue;
-            var member_id = member.GetProperty("state_key").GetString();
+            if(member.GetProperty("Type").GetString() != "m.room.member") continue;
+            var member_id = member.GetProperty("StateKey").GetString();
             members.Add(member_id);
         }
 
@@ -196,7 +202,7 @@ public class CreateEvent
     [JsonPropertyName("room_version")]
     public string RoomVersion { get; set; }
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string? Type { get; set; }
     [JsonPropertyName("predecessor")]
     public object? Predecessor { get; set; }
     

@@ -5,6 +5,7 @@ namespace MatrixRoomUtils.Web.Classes;
 
 public partial class LocalStorageWrapper
 {
+    private static SemaphoreSlim _semaphoreSlim = new(1);
     public static Settings Settings { get; set; } = new();
     
     //some basic logic
@@ -15,6 +16,9 @@ public partial class LocalStorageWrapper
     }
     public static async Task LoadFromLocalStorage(ILocalStorageService localStorage)
     {
+        await _semaphoreSlim.WaitAsync();
+        if (RuntimeCache.WasLoaded) return;
+        RuntimeCache.WasLoaded = true;
         Settings = await localStorage.GetItemAsync<Settings>("rory.matrixroomutils.settings") ?? new();
         
         //RuntimeCache stuff
@@ -43,7 +47,8 @@ public partial class LocalStorageWrapper
             Console.WriteLine($"Loading generic cache entry {s}");
             RuntimeCache.GenericResponseCache[s.Replace("rory.matrixroomutils.generic_cache:", "")] = await localStorage.GetItemAsync<ObjectCache<object>>(s);
         }
-        RuntimeCache.WasLoaded = true;
+
+        _semaphoreSlim.Release();
     }
 
     public static async Task SaveToLocalStorage(ILocalStorageService localStorage)
@@ -70,7 +75,7 @@ public partial class LocalStorageWrapper
         if (key == "rory.matrixroomutils.user_cache") await localStorage.SetItemAsync(key, RuntimeCache.LoginSessions);
         if (key == "rory.matrixroomutils.last_used_token") await localStorage.SetItemAsync(key, RuntimeCache.LastUsedToken);
         if (key == "rory.matrixroomutils.homeserver_resolution_cache") await localStorage.SetItemAsync(key, RuntimeCache.HomeserverResolutionCache);
-        if (key == "rory.matrixroomutils.generic_cache") await localStorage.SetItemAsync(key, RuntimeCache.GenericResponseCache);
+        //if (key == "rory.matrixroomutils.generic_cache") await localStorage.SetItemAsync(key, RuntimeCache.GenericResponseCache);
     }
 }
 

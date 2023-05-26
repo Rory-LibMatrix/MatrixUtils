@@ -84,8 +84,8 @@ else
             await semaphore.WaitAsync();
             progress.ProcessedUsers.Add(room, new());
             Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
-            var states = (await room.GetStateAsync("")).Value.Deserialize<List<StateEvent>>();
-            states.RemoveAll(x => x.type != "m.room.member" || x.content.GetProperty("membership").GetString() != "join");
+            var states = (await room.GetStateAsync("")).Value.Deserialize<List<StateEventResponse>>();
+            states.RemoveAll(x => x.Type != "m.room.member" || x.Content.GetProperty("membership").GetString() != "join");
             Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
             if (states.Count > memberLimit)
             {
@@ -119,13 +119,13 @@ else
                 {
                     progress.ProcessedUsers[room].Slowmode = false;
                 }
-                if (!homeServers.Any(x => x.Server == state.state_key.Split(':')[1]))
+                if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1]))
                 {
-                    homeServers.Add(new HomeServerInfo() { Server = state.state_key.Split(':')[1] });
+                    homeServers.Add(new HomeServerInfo() { Server = state.StateKey.Split(':')[1] });
                 }
-                var hs = homeServers.First(x => x.Server == state.state_key.Split(':')[1]);
-                if (!hs.KnownUsers.Contains(state.state_key.Split(':')[0]))
-                    hs.KnownUsers.Add(state.state_key.Split(':')[0]);
+                var hs = homeServers.First(x => x.Server == state.StateKey.Split(':')[1]);
+                if (!hs.KnownUsers.Contains(state.StateKey.Split(':')[0]))
+                    hs.KnownUsers.Add(state.StateKey.Split(':')[0]);
                 if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback != null)
                 {
                     await semLock.WaitAsync();

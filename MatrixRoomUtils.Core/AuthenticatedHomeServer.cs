@@ -59,6 +59,18 @@ public class AuthenticatedHomeServer : IHomeServer
         return rooms;
     }
     
+    public async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream")
+    {
+        var res = await _httpClient.PostAsync($"/_matrix/media/r0/upload?filename={fileName}", new StreamContent(fileStream));
+        if (!res.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
+        }
+        var resJson = await res.Content.ReadFromJsonAsync<JsonElement>();
+        return resJson.GetProperty("content_uri").GetString()!;
+    }
+    
     
     
     

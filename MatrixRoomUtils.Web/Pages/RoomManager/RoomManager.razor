@@ -20,7 +20,7 @@ else
         @foreach (var room in Spaces)
         {
             <a style="color: unset; text-decoration: unset;" href="/RoomManager/Space/@room.RoomId.Replace('.', '~')">
-                <RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem>
+                <RoomListItem Room="@room" ShowOwnProfile="false"></RoomListItem>
             </a>
         }
     </details>
@@ -44,19 +44,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("Initializing room manager");
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        Console.WriteLine("Loaded from local storage");
         await base.OnInitializedAsync();
+        Console.WriteLine("Initialized base");
         if (RuntimeCache.CurrentHomeServer == null)
         {
             NavigationManager.NavigateTo("/Login");
             return;
         }
-        Rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+        Console.WriteLine("Fetching joined rooms");
+        var _rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
         StateHasChanged();
-        Console.WriteLine($"Got {Rooms.Count} rooms");
+        Console.WriteLine($"Got {_rooms.Count} rooms");
         var semaphore = new SemaphoreSlim(10);
         var tasks = new List<Task<Room?>>();
-        foreach (var room in Rooms)
+        foreach (var room in _rooms)
         {
             tasks.Add(CheckIfSpace(room, semaphore));
         }
@@ -81,7 +85,6 @@ else
                     {
                         Console.WriteLine($"Room {room.RoomId} is a space!");
                         Spaces.Add(room);
-                        Rooms.Remove(room);
                         StateHasChanged();
                         return room;
                     }
@@ -92,6 +95,7 @@ else
                 }
                 else
                 {
+                    Rooms.Add(room);
     //this is fine, apprently...
     // Console.WriteLine($"Room {room.RoomId} has no Content.type in m.room.create!");
                 }

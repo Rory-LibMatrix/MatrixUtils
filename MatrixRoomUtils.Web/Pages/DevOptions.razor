@@ -39,7 +39,6 @@
     {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
         Task.Run(async () =>
         {
             while (true)
@@ -62,7 +61,7 @@
     {
         RuntimeCache.GenericResponseCache.Clear();
         RuntimeCache.HomeserverResolutionCache.Clear();
-        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+        await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
 
     protected async Task RandomiseCacheTimers()
@@ -75,7 +74,7 @@
                 cacheItem.Value.ExpiryTime = DateTime.Now.AddSeconds(Random.Shared.Next(15, 120));
             }
             
-            await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
         }
     }
 

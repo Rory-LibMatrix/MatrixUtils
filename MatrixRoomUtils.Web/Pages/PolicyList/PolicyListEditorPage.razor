@@ -33,13 +33,13 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.content.Entity != null))
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity != null))
         {
             <tr>
-                <td>Entity: @policyEvent.content.Entity<br/>State: @policyEvent.StateKey</td>
-                <td>@policyEvent.content.Reason</td>
+                <td>Entity: @policyEvent.Content.Entity<br/>State: @policyEvent.StateKey</td>
+                <td>@policyEvent.Content.Reason</td>
                 <td>
-                    @policyEvent.content.ExpiryDateTime
+                    @policyEvent.Content.ExpiryDateTime
                 </td>
                 <td>
                     <button class="btn" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Edit</button>
@@ -59,11 +59,11 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.content.Entity == null))
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity == null))
             {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
                 </tr>
             }
             </tbody>
@@ -88,13 +88,13 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.content.Entity != null))
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity != null))
         {
             <tr>
-                <td>Entity: @policyEvent.content.Entity<br/>State: @policyEvent.StateKey</td>
-                <td>@policyEvent.content.Reason</td>
+                <td>Entity: @policyEvent.Content.Entity<br/>State: @policyEvent.StateKey</td>
+                <td>@policyEvent.Content.Reason</td>
                 <td>
-                    @policyEvent.content.ExpiryDateTime
+                    @policyEvent.Content.ExpiryDateTime
                 </td>
                 <td>
                     <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
@@ -113,11 +113,11 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.content.Entity == null))
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity == null))
             {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
                 </tr>
             }
             </tbody>
@@ -146,17 +146,17 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.content.Entity != null))
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null))
         {
             <tr>
                 @if (_enableAvatars)
                 {
-                    <td scope="col"><img style="width: 48px; height: 48px; aspect-ratio: unset; border-radius: 50%;" src="@(avatars.ContainsKey(policyEvent.content.Entity) ? avatars[policyEvent.content.Entity] : "")"/></td>
+                    <td scope="col"><img style="width: 48px; height: 48px; aspect-ratio: unset; border-radius: 50%;" src="@(avatars.ContainsKey(policyEvent.Content.Entity) ? avatars[policyEvent.Content.Entity] : "")"/></td>
                 }
-                <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.content.Entity.Take(64))<br/>State: @string.Join("", policyEvent.StateKey.Take(64))</td>
-                <td>@policyEvent.content.Reason</td>
+                <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.Content.Entity.Take(64))<br/>State: @string.Join("", policyEvent.StateKey.Take(64))</td>
+                <td>@policyEvent.Content.Reason</td>
                 <td>
-                    @policyEvent.content.ExpiryDateTime
+                    @policyEvent.Content.ExpiryDateTime
                 </td>
                 <td>
                     <button class="btn btn-danger" @* @onclick="async () => await RemovePolicyAsync(policyEvent)" *@>Remove</button>
@@ -175,11 +175,11 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.content.Entity == null))
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity == null))
             {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
                 </tr>
             }
             </tbody>
@@ -261,9 +261,9 @@ else
     
     private async Task GetAllAvatars()
     {
-        foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.content.Entity != null))
+        foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null))
         {
-            await GetAvatar(policyEvent.content.Entity);
+            await GetAvatar(policyEvent.Content.Entity);
         }
         StateHasChanged();
     }

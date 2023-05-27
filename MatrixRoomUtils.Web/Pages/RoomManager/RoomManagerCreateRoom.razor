@@ -79,7 +79,7 @@
             <details>
                 @code{
 
-                    private static string[] ImplementedStates = new[] { "m.room.avatar", "m.room.history_visibility", "m.room.guest_access", };
+                    private static readonly string[] ImplementedStates = { "m.room.avatar", "m.room.history_visibility", "m.room.guest_access", };
 
                 }
                 <summary>@creationEvent.InitialState.Count(x => !ImplementedStates.Contains(x.Type)) custom states</summary>

@@ -43,24 +43,26 @@
     
     private bool hasOldRoomVersion { get; set; } = false;
     private bool hasDangerousRoomVersion { get; set; } = false;
+    
+    
+    private static SemaphoreSlim _semaphoreSlim = new(128);
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        if (!RuntimeCache.WasLoaded)
-        {
-            Console.WriteLine("Loading from local storage");
-            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-        }
-
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        
+        await _semaphoreSlim.WaitAsync();
+        
+        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
+        
         if (Room == null)
         {
             if (RoomId == null)
             {
                 throw new ArgumentNullException(nameof(RoomId));
             }
-            Room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
+            Room = await hs.GetRoom(RoomId);
         }
         else
         {
@@ -96,7 +98,8 @@
                 var url = state.Value.GetProperty("url").GetString();
                 if (url != null)
                 {
-                    roomIcon = RuntimeCache.CurrentHomeServer.ResolveMediaUri(url);
+                    roomIcon = hs.ResolveMediaUri(url);
+                    Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
                 }
             }
             catch (InvalidOperationException e)
@@ -107,16 +110,16 @@
 
         if (ShowOwnProfile)
         {
-            var profile = await RuntimeCache.CurrentHomeServer.GetProfile(RuntimeCache.CurrentHomeServer.UserId, debounce: true);
+            var profile = await hs.GetProfile(hs.UserId, debounce: true);
 
-            var memberState = await Room.GetStateAsync("m.room.member", RuntimeCache.CurrentHomeServer.UserId);
+            var memberState = await Room.GetStateAsync("m.room.member", hs.UserId);
             if (memberState.HasValue)
             {
                 memberState.Value.TryGetProperty("avatar_url", out var _avatar);
                 if (_avatar.ValueKind == JsonValueKind.String)
                 {
                     hasCustomProfileAvatar = _avatar.GetString() != profile.AvatarUrl;
-                    profileAvatar = RuntimeCache.CurrentHomeServer.ResolveMediaUri(_avatar.GetString());
+                    profileAvatar = hs.ResolveMediaUri(_avatar.GetString());
                 }
                 else
                 {
@@ -135,8 +138,9 @@
                 }
             }
         }
+        _semaphoreSlim.Release();
         if (Random.Shared.Next(100) == 1)
-            await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
 
 }

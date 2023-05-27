@@ -113,7 +113,7 @@
                 homeservers.Add(await rhs.ResolveHomeserverFromWellKnown(line));
                 StateHasChanged();
                 if(Random.Shared.Next(0,101) == 50) 
-                    await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+                    await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
             }
             catch (Exception e)
             {

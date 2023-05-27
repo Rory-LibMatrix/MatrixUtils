@@ -16,7 +16,7 @@
     @foreach (var stateEvent in States.OrderBy(x => x.StateKey).ThenBy(x => x.Type))
     {
         <p>@stateEvent.StateKey/@stateEvent.Type:</p>
-        <pre>@stateEvent.content.ToJson()</pre>
+        <pre>@stateEvent.Content.ToJson()</pre>
     }
 </details>
 

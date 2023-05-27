@@ -76,8 +76,8 @@ public class ObjectCache<T> where T : class
         set
         {
             Cache[key] = value;
-            Console.WriteLine($"set({key}) = {Cache[key].Result.ToJson(indent:false)}");
-            Console.WriteLine($"new_state: {this.ToJson(indent:false)}");
+            // Console.WriteLine($"set({key}) = {Cache[key].Result.ToJson(indent:false)}");
+            // Console.WriteLine($"new_state: {this.ToJson(indent:false)}");
             // Console.WriteLine($"New item in cache: {key} - {Cache[key].Result.ToJson(indent: false)}");
             // Console.Error.WriteLine("Full cache: " + Cache.ToJson());
         }

@@ -59,7 +59,7 @@ else
             var resolvedHomeserver = (await new RemoteHomeServer(hs).Configure()).FullHomeServerDomain;
 
             RuntimeCache.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
-            await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
 
             Console.WriteLine("Saved to local storage:");
             Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions()

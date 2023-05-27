@@ -4,31 +4,33 @@ namespace MatrixRoomUtils.Core;
 
 public class StateEventResponse
 {
-    [JsonPropertyName("Content")]
+    [JsonPropertyName("content")]
     public dynamic Content { get; set; }
     [JsonPropertyName("origin_server_ts")]
     public long OriginServerTs { get; set; }
-    [JsonPropertyName("RoomId")]
+    [JsonPropertyName("room_id")]
     public string RoomId { get; set; }
-    [JsonPropertyName("Sender")]
+    [JsonPropertyName("sender")]
     public string Sender { get; set; }
-    [JsonPropertyName("StateKey")]
+    [JsonPropertyName("state_key")]
     public string StateKey { get; set; }
-    [JsonPropertyName("Type")]
+    [JsonPropertyName("type")]
     public string Type { get; set; }
-    [JsonPropertyName("Unsigned")]
+    [JsonPropertyName("unsigned")]
     public dynamic Unsigned { get; set; }
-    [JsonPropertyName("EventId")]
+    [JsonPropertyName("event_id")]
     public string EventId { get; set; }
-    [JsonPropertyName("UserId")]
+    [JsonPropertyName("user_id")]
     public string UserId { get; set; }
-    [JsonPropertyName("ReplacesState")]
+    [JsonPropertyName("replaces_state")]
     public string ReplacesState { get; set; }
-    [JsonPropertyName("PrevContent")]
+    [JsonPropertyName("prev_content")]
     public dynamic PrevContent { get; set; }
 }
 
 public class StateEventResponse<T> : StateEventResponse where T : class
 {
-    public T content { get; set; }
+    
+    [JsonPropertyName("content")]
+    public T Content { get; set; }
 }

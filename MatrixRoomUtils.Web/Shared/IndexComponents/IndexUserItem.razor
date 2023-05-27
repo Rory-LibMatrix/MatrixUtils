@@ -41,7 +41,6 @@
     {
         Console.WriteLine(User.ToJson());
         RuntimeCache.LoginSessions.Remove(User.AccessToken);
-        await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
 
         StateHasChanged();
     }
@@ -50,9 +49,8 @@
     {
         RuntimeCache.LastUsedToken = User.AccessToken;
     //RuntimeCache.CurrentHomeserver = await MatrixAuth.ResolveHomeserverFromWellKnown(LocalStorageWrapper.LoginSessions[Token].LoginResponse.HomeServer);
-        await LocalStorageWrapper.ReloadLocalStorage(LocalStorage);
-
+        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+        await LocalStorageWrapper.InitialiseRuntimeVariables(LocalStorage);
         StateHasChanged();
     }
-
 }

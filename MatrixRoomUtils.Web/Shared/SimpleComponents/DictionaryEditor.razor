@@ -1,0 +1,41 @@
+@using MatrixRoomUtils.Core.Extensions
+<table>
+    @foreach(var i in Items.Keys)
+    {
+        var key = i;
+        <input value="@Items[key]" @oninput="(obj) => inputChanged(obj, key)">
+        <button @onclick="() => { Items.Remove(key); ItemsChanged.InvokeAsync(); }">Remove</button>
+        <br/>
+    }
+</table>
+<button @onclick="() => { Items.Add(string.Empty, default); ItemsChanged.InvokeAsync(); }">Add</button>
+
+@code {
+    
+    [Parameter]
+    public Dictionary<string, object> Items { get; set; } = new();
+
+    [Parameter, EditorRequired]
+    public EventCallback ItemsChanged { get; set; }
+
+    [Parameter]
+    public Func<string,string>? KeyFormatter { get; set; }
+    
+    [Parameter]
+    public Action? OnFocusLost { get; set; }
+
+
+    protected override Task OnInitializedAsync()
+    {
+        Console.WriteLine($"DictionaryEditor initialized with {Items.Count} items: {Items.ToJson()}");
+        return base.OnInitializedAsync();
+    }
+
+    private void inputChanged(ChangeEventArgs obj, string key)
+    {
+        Console.WriteLine($"StringListEditor inputChanged {key} {obj.Value}");
+        Items[key] = obj.Value.ToString();
+        ItemsChanged.InvokeAsync();
+    }
+
+}

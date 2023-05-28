@@ -1,41 +1,21 @@
 @page "/Login"
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Authentication
+@using MatrixRoomUtils.Web.Shared.SimpleComponents
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 <h3>Login</h3>
 <hr/>
 
 <span>
-    <label>@@</label>
-    @if (inputVisible.username)
-    {
-        <input autofocus @bind="newRecordInput.username" @onfocusout="() => inputVisible.username = false" @ref="elementToFocus"/>
-    }
-    else
-    {
-        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; height: 1.4em;" @onfocusin="() => inputVisible.username = true">@newRecordInput.username</span>
-    }
-    <label>:</label>
-    @if (inputVisible.homeserver)
-    {
-        <input autofocus @bind="newRecordInput.homeserver" @onfocusout="() => inputVisible.homeserver = false" @ref="elementToFocus"/>
-    }
-    else
-    {
-        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; margin-left: 2px; height: 1.4em;" @onfocusin="() => inputVisible.homeserver = true">@newRecordInput.homeserver</span>
-    }
+    <span>@@</span><!--
+    --><FancyTextBox @bind-Value="@newRecordInput.username"></FancyTextBox><!--
+    --><span>:</span><!--
+    --><FancyTextBox @bind-Value="@newRecordInput.homeserver"></FancyTextBox>
 </span>
 <span style="display: block;">
     <label>Password:</label>
-    @if (inputVisible.password)
-    {
-        <input autofocus="true" @bind="newRecordInput.password" @onfocusout="() => inputVisible.password = false" @ref="elementToFocus" type="password"/>
-    }
-    else
-    {
-        <span tabindex="0" style="border-bottom: #ccc solid 1px; min-width: 50px; display: inline-block; height: 1.4em;" @onfocusin="() => inputVisible.password = true">@string.Join("", newRecordInput.password.Select(x => '*'))</span>
-    }
+    <FancyTextBox @bind-Value="@newRecordInput.password" IsPassword="true"></FancyTextBox>
 </span>
 <button @onclick="AddRecord">Add account to queue</button>
 <br/>
@@ -63,7 +43,6 @@
 @code {
     List<(string homeserver, string username, string password)> records = new();
     (string homeserver, string username, string password) newRecordInput = ("", "", "");
-    (bool homeserver, bool username, bool password) inputVisible = (false, false, false);
 
     async Task Login()
     {
@@ -104,14 +83,6 @@
                 continue;
             records.Add((parts[0], parts[1], parts[2]));
         }
-    }
-
-
-    private ElementReference elementToFocus;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JsRuntime.InvokeVoidAsync("BlazorFocusElement", elementToFocus);
     }
 
     private void AddRecord()

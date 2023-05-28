@@ -1,7 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using MatrixRoomUtils.Core.Interfaces;
+using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core;
 
@@ -72,6 +74,17 @@ public class AuthenticatedHomeServer : IHomeServer
     }
     
     
+    public async Task<Room> CreateRoom(CreateRoomRequest creationEvent)
+    {
+        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/r0/createRoom", creationEvent);
+        if (!res.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
+            throw new InvalidDataException($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
+        }
+
+        return await GetRoom((await res.Content.ReadFromJsonAsync<JsonObject>())!["room_id"]!.ToString()!);
+    }
     
     
     
@@ -83,12 +96,6 @@ public class AuthenticatedHomeServer : IHomeServer
         {
             _authenticatedHomeServer = authenticatedHomeServer;
         }
-    
-    
-        
-        
-        
-        
-        
     }
+
 }

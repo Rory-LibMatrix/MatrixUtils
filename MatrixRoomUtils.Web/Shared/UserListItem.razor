@@ -1,0 +1,62 @@
+@using MatrixRoomUtils.Core.Responses
+<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
+    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
+    <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
+
+    <div style="display: inline-block;">
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public ProfileResponse User { get; set; }
+
+    [Parameter]
+    public string UserId { get; set; }
+
+    private string profileAvatar { get; set; } = "/icon-192.png";
+    private string profileName { get; set; } = "Loading...";
+
+
+    private static SemaphoreSlim _semaphoreSlim = new(128);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+
+        await _semaphoreSlim.WaitAsync();
+
+        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
+
+        if (User == null)
+        {
+            if (UserId == null)
+            {
+                throw new ArgumentNullException(nameof(UserId));
+            }
+            User = await hs.GetProfile(UserId);
+        }
+        else
+        {
+            // UserId = User.;
+        }
+        
+        profileAvatar = RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
+        profileName = User.DisplayName;
+
+        _semaphoreSlim.Release();
+        if (Random.Shared.Next(100) == 1)
+            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
+    }
+
+}

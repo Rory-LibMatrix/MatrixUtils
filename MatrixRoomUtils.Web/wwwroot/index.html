@@ -32,7 +32,7 @@
         if (element instanceof HTMLElement) {
             console.log(element);
             element.focus();
-        } else {
+        } else if (element.__internalId) {
             console.log("Element is not an HTMLElement", element);
         }
     }

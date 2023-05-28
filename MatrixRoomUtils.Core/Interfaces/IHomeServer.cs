@@ -93,7 +93,7 @@ public class IHomeServer
             {
                 while (_profileCache[mxid] == null)
                 {
-                    Console.WriteLine($"Waiting for profile cache for {mxid}, currently {_profileCache[mxid]?.ToJson()} within {_profileCache.Count} profiles...");
+                    Console.WriteLine($"Waiting for profile cache for {mxid}, currently {_profileCache[mxid]?.ToJson() ?? "null"} within {_profileCache.Count} profiles...");
                     await Task.Delay(Random.Shared.Next(50, 500));
                 }
                 return _profileCache[mxid];

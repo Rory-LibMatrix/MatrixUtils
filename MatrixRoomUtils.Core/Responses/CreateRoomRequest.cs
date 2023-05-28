@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using MatrixRoomUtils.Core.Extensions;
 
 namespace MatrixRoomUtils.Core.Responses;
 
@@ -26,6 +27,22 @@ public class CreateRoomRequest
     /// For use only when you can't use the CreationContent property
     /// </summary>
 
+    public StateEvent this[string event_type, string event_key = ""]
+    {
+        get => InitialState.First(x => x.Type == event_type && x.StateKey == event_key);
+        set
+        {
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == event_type && x.StateKey == event_key);
+            if (stateEvent == null)
+            {
+                InitialState.Add(value);
+            }
+            else
+            {
+                InitialState[InitialState.IndexOf(stateEvent)] = value;
+            }
+        }
+    }
 
     //extra properties
     [JsonIgnore]
@@ -116,52 +133,118 @@ public class CreateRoomRequest
         }
     }
 
-    [JsonIgnore]
-    public string GuestAccess
+    // [JsonIgnore]
+    // public string GuestAccess
+    // {
+    //     get
+    //     {
+    //         var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.guest_access");
+    //         if (stateEvent == null)
+    //         {
+    //             InitialState.Add(new StateEvent()
+    //             {
+    //                 Type = "m.room.guest_access",
+    //                 Content = new JsonObject()
+    //                 {
+    //                     ["guest_access"] = "can_join"
+    //                 }
+    //             });
+    //             return "can_join";
+    //         }
+    //
+    //         return stateEvent.ContentAsJsonNode["guest_access"].GetValue<string>();
+    //     }
+    //     set
+    //     {
+    //         var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.guest_access");
+    //         if (stateEvent == null)
+    //         {
+    //             InitialState.Add(new StateEvent()
+    //             {
+    //                 Type = "m.room.guest_access",
+    //                 Content = new JsonObject()
+    //                 {
+    //                     ["guest_access"] = value
+    //                 }
+    //             });
+    //         }
+    //         else
+    //         {
+    //             var v = stateEvent.ContentAsJsonNode;
+    //             v["guest_access"] = value;
+    //             stateEvent.ContentAsJsonNode = v;
+    //         }
+    //     }
+    // }
+
+    public ServerACL ServerACLs
     {
         get
         {
-            var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.guest_access");
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.server_acl");
             if (stateEvent == null)
             {
                 InitialState.Add(new StateEvent()
                 {
-                    Type = "m.room.guest_access",
+                    Type = "m.room.server_acl",
                     Content = new JsonObject()
                     {
-                        ["guest_access"] = "can_join"
+                        ["allow"] = new JsonArray()
+                        {
+                            "*"
+                        },
+                        ["deny"] = new JsonArray()
                     }
                 });
-                return "can_join";
+                return new ServerACL()
+                {
+                    Allow = new List<string>()
+                    {
+                        "*"
+                    },
+                    Deny = new List<string>(),
+                    AllowIpLiterals = true
+                };
             }
-
-            return stateEvent.ContentAsJsonNode["guest_access"].GetValue<string>();
+            return new ServerACL()
+            {
+                Allow = JsonSerializer.Deserialize<List<string>>(stateEvent.ContentAsJsonNode["allow"]),
+                Deny = JsonSerializer.Deserialize<List<string>>(stateEvent.ContentAsJsonNode["deny"]),
+                AllowIpLiterals = true
+            };
         }
         set
         {
-            var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.guest_access");
+            Console.WriteLine($"Setting server acl to {value.ToJson()}");
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == "m.room.server_acl");
             if (stateEvent == null)
             {
                 InitialState.Add(new StateEvent()
                 {
-                    Type = "m.room.guest_access",
+                    Type = "m.room.server_acl",
                     Content = new JsonObject()
                     {
-                        ["guest_access"] = value
+                        ["allow"] = JsonArray.Parse(JsonSerializer.Serialize(value.Allow)),
+                        ["deny"] = JsonArray.Parse(JsonSerializer.Serialize(value.Deny))
+                        ["allow_ip_literals"] = value.AllowIpLiterals
                     }
                 });
             }
             else
             {
                 var v = stateEvent.ContentAsJsonNode;
-                v["guest_access"] = value;
+                v["allow"] = JsonArray.Parse(JsonSerializer.Serialize(value.Allow));
+                v["deny"] = JsonArray.Parse(JsonSerializer.Serialize(value.Deny));
+                v["allow_ip_literals"] = value.AllowIpLiterals;
                 stateEvent.ContentAsJsonNode = v;
+                Console.WriteLine($"v={v.ToJson()}");
+                Console.WriteLine($"stateEvent.ContentAsJsonNode={stateEvent.ContentAsJsonNode.ToJson()}");
             }
         }
     }
 
 
-        [JsonIgnore] public CreationContentBaseType _creationContentBaseType;
+    [JsonIgnore] public CreationContentBaseType _creationContentBaseType;
 
     public CreateRoomRequest() => _creationContentBaseType = new(this);
 
@@ -214,4 +297,11 @@ public class PowerLevelEvent
 public class NotificationsPL
 {
     [JsonPropertyName("room")] public int Room { get; set; } = 50;
+}
+
+public class ServerACL
+{
+    [JsonPropertyName("allow")] public List<string> Allow { get; set; } // = null!;
+    [JsonPropertyName("deny")] public List<string> Deny { get; set; } // = null!;
+    [JsonPropertyName("allow_ip_literals")] public bool AllowIpLiterals { get; set; } // = false;
 }

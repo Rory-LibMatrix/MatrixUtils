@@ -65,15 +65,10 @@
         <tr>
             <td>Guest access:</td>
             <td>
-@code
-{
-    bool test { get; set; } = true;
-    GuestAccessContent a => creationEvent["m.room.guest_access"].As<GuestAccessContent>().Content;
-}
-<ToggleSlider @bind-Value="a.IsGuestAccessEnabled">@(a.IsGuestAccessEnabled ? "Guests can join" : "Guests cannot join")</ToggleSlider>
+                <ToggleSlider Value="guestAccessEvent.IsGuestAccessEnabled" ValueChanged="@((bool v) => { guestAccessEvent.IsGuestAccessEnabled = v; creationEvent["m.room.guest_access"].Content = guestAccessEvent; })">@(guestAccessEvent.IsGuestAccessEnabled ? "Guests can join" : "Guests cannot join")</ToggleSlider>
                 @* <InputSelect @bind-Value="@creationEvent.GuestAccess"> *@
-                    @* <option value="can_join">Can join</option> *@
-                    @* <option value="forbidden">Forbidden</option> *@
+                @* <option value="can_join">Can join</option> *@
+                @* <option value="forbidden">Forbidden</option> *@
                 @* </InputSelect> *@
             </td>
         </tr>
@@ -98,7 +93,7 @@
                 {
                     var _event = user;
                     <tr>
-                        <td><FancyTextBox Formatter="@GetPermissionFriendlyName"  Value="@_event" ValueChanged="val => { creationEvent.PowerLevelContentOverride.Events.ChangeKey(_event, val); }"></FancyTextBox>:</td>
+                        <td><FancyTextBox Formatter="@GetPermissionFriendlyName" Value="@_event" ValueChanged="val => { creationEvent.PowerLevelContentOverride.Events.ChangeKey(_event, val); }"></FancyTextBox>:</td>
                         <td>
                             <input type="number" value="@creationEvent.PowerLevelContentOverride.Events[_event]" @oninput="val => { creationEvent.PowerLevelContentOverride.Events[_event] = int.Parse(val.Value.ToString()); }" @onfocusout="() => { creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"/>
                         </td>
@@ -235,12 +230,24 @@
             JsonChanged();
             OverwriteWrappedPropertiesFromEvent();
             creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            creationEvent.PowerLevelContentOverride.Users = creationEvent.PowerLevelContentOverride.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            guestAccessEvent = creationEvent["m.room.guest_access"].As<GuestAccessContent>().Content;
+            
+            Console.WriteLine($"Creation event uncasted: {creationEvent["m.room.guest_access"].ToJson()}");
+            Console.WriteLine($"Creation event casted: {creationEvent["m.room.guest_access"].As<GuestAccessContent>().ToJson()}");
+            creationEvent["m.room.guest_access"].As<GuestAccessContent>().Content.IsGuestAccessEnabled = false;
+            Console.WriteLine("-- Created new guest access content --");
+            Console.WriteLine($"Creation event uncasted: {creationEvent["m.room.guest_access"].ToJson()}");
+            Console.WriteLine($"Creation event casted: {creationEvent["m.room.guest_access"].As<GuestAccessContent>().ToJson()}");
+            Console.WriteLine($"Creation event casted back: {creationEvent["m.room.guest_access"].As<GuestAccessContent>().ToJson()}");
+            StateHasChanged();
         }
     }
 
     private Dictionary<string, string> creationEventValidationErrors { get; set; } = new();
 
     private CreateRoomRequest creationEvent { get; set; }
+    GuestAccessContent guestAccessEvent { get; set; }
 
     private Dictionary<string, CreateRoomRequest> Presets { get; set; } = new();
 
@@ -355,6 +362,7 @@
         "m.room.server_acl" => "Change server ACLs",
         _ => key
         };
+
     public class GuestAccessContent
     {
         [JsonPropertyName("guest_access")]
@@ -366,6 +374,7 @@
             set => GuestAccess = value ? "can_join" : "forbidden";
         }
     }
+
     
     }
 

@@ -24,6 +24,19 @@ public class StateEvent
     {
         return (StateEvent<T>)this;
     }
+
+    public string dtype
+    {
+        get
+        {
+            string res = GetType().Name switch
+            {
+                "StateEvent`1" => $"StateEvent<{Content.GetType().Name}>",
+                _ => GetType().Name
+            };
+            return res;
+        }
+    }
 }
 
 public class StateEvent<T> : StateEvent where T : class
@@ -38,5 +51,5 @@ public class StateEvent<T> : StateEvent where T : class
         }
     }
     [JsonPropertyName("content")]
-    public T Content { get; set; }
+    public new T Content { get; set; }
 }

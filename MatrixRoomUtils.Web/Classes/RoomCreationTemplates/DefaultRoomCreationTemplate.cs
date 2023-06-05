@@ -24,14 +24,14 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate
                             history_visibility = "world_readable"
                         }
                     },
-new StateEvent<Pages.RoomManager.RoomManagerCreateRoom.GuestAccessContent>
-{
-    Type = "m.room.guest_access",
-    Content = new()
-    {
-        GuestAccess = "can_join"
-    }
-},
+                    new StateEvent<Pages.RoomManager.RoomManagerCreateRoom.GuestAccessContent>
+                    {
+                        Type = "m.room.guest_access",
+                        Content = new()
+                        {
+                            GuestAccess = "can_join"
+                        }
+                    },
                     new()
                     {
                         Type = "m.room.join_rules",

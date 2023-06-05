@@ -65,7 +65,7 @@
         <tr>
             <td>Guest access:</td>
             <td>
-                <ToggleSlider Value="guestAccessEvent.IsGuestAccessEnabled" ValueChanged="@((bool v) => { guestAccessEvent.IsGuestAccessEnabled = v; creationEvent["m.room.guest_access"].Content = guestAccessEvent; })">@(guestAccessEvent.IsGuestAccessEnabled ? "Guests can join" : "Guests cannot join")</ToggleSlider>
+                <ToggleSlider Value="guestAccessEvent.IsGuestAccessEnabled" ValueChanged="@(v => { guestAccessEvent.IsGuestAccessEnabled = v; creationEvent["m.room.guest_access"].Content = guestAccessEvent; })">@(guestAccessEvent.IsGuestAccessEnabled ? "Guests can join" : "Guests cannot join") (@guestAccessEvent.GuestAccess)</ToggleSlider>
                 @* <InputSelect @bind-Value="@creationEvent.GuestAccess"> *@
                 @* <option value="can_join">Can join</option> *@
                 @* <option value="forbidden">Forbidden</option> *@
@@ -235,7 +235,7 @@
             
             Console.WriteLine($"Creation event uncasted: {creationEvent["m.room.guest_access"].ToJson()}");
             Console.WriteLine($"Creation event casted: {creationEvent["m.room.guest_access"].As<GuestAccessContent>().ToJson()}");
-            creationEvent["m.room.guest_access"].As<GuestAccessContent>().Content.IsGuestAccessEnabled = false;
+            creationEvent["m.room.guest_access"].As<GuestAccessContent>().Content.IsGuestAccessEnabled = true;
             Console.WriteLine("-- Created new guest access content --");
             Console.WriteLine($"Creation event uncasted: {creationEvent["m.room.guest_access"].ToJson()}");
             Console.WriteLine($"Creation event casted: {creationEvent["m.room.guest_access"].As<GuestAccessContent>().ToJson()}");

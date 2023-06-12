@@ -1,7 +1,7 @@
 @inject IJSRuntime JsRuntime
 @if (isVisible)
 {
-    <input autofocus @bind="Value" @onfocusout="() => { isVisible = false; ValueChanged.InvokeAsync(Value); }" @ref="elementToFocus"/>
+    <input autofocus type="@(IsPassword ? "password" : "text")" @bind="Value" @onfocusout="() => { isVisible = false; ValueChanged.InvokeAsync(Value); }" @ref="elementToFocus"/>
 }
 else
 {

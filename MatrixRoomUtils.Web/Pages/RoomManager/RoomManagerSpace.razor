@@ -29,6 +29,7 @@
     
     private StateEventResponse<object>[] States { get; set; } = Array.Empty<StateEventResponse<object>>();
     private List<Room> Rooms { get; set; } = new();
+    private List<string> ServersInSpace { get; set; } = new();
     
     protected override async Task OnInitializedAsync()
     {
@@ -37,7 +38,7 @@
         var state = await Room.GetStateAsync("");
         if (state != null)
         {
-            Console.WriteLine(state.Value.ToJson());
+            // Console.WriteLine(state.Value.ToJson());
             States = state.Value.Deserialize<StateEventResponse<object>[]>()!;
             
             foreach (var stateEvent in States)
@@ -50,6 +51,14 @@
                     if (room != null)
                     {
                         Rooms.Add(room);
+                    }
+                }
+                else if (stateEvent.Type == "m.room.member")
+                {
+                    var serverName = stateEvent.StateKey.Split(':').Last();
+                    if (!ServersInSpace.Contains(serverName))
+                    {
+                        ServersInSpace.Add(serverName);
                     }
                 }
             }
@@ -70,7 +79,7 @@
     {
         foreach (var room in Rooms)
         {
-            room.JoinAsync();
+            room.JoinAsync(ServersInSpace.ToArray());
         }
     }
 

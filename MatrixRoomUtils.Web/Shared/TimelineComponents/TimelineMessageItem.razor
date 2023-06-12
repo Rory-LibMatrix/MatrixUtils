@@ -1,0 +1,11 @@
+@using MatrixRoomUtils.Core.Extensions
+<pre>
+    @ObjectExtensions.ToJson(Event.Content, indent: false)
+</pre>
+
+@code {
+
+    [Parameter]
+    public StateEventResponse Event { get; set; }
+
+}

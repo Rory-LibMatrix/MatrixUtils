@@ -24,7 +24,7 @@
     [Parameter]
     public UserInfo User { get; set; } = null!;
 
-    private string _avatarUrl { get; set; }
+    private string? _avatarUrl { get; set; }
     private int _roomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()

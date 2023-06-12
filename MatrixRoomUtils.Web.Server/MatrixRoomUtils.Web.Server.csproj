@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MatrixRoomUtils.Web\MatrixRoomUtils.Web.csproj" />
-    <ProjectReference Include="..\MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

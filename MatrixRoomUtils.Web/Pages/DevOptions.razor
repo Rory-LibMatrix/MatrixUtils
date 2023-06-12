@@ -59,7 +59,12 @@
 
     protected async Task DropCaches()
     {
-        RuntimeCache.GenericResponseCache.Clear();
+        foreach (var (key, value) in RuntimeCache.GenericResponseCache)
+        {
+            value.Cache.Clear();
+        }
+        
+        //RuntimeCache.GenericResponseCache.Clear();
         RuntimeCache.HomeserverResolutionCache.Clear();
         await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }

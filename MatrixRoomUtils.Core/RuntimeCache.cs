@@ -14,38 +14,41 @@ public class RuntimeCache
     // public static Dictionary<string, (DateTime cachedAt, ProfileResponse response)> ProfileCache { get; set; } = new();
 
     public static Dictionary<string, ObjectCache<object>> GenericResponseCache { get; set; } = new();
-    
-    public static Action Save { get; set; } = () =>
-    {
-        Console.WriteLine("RuntimeCache.Save() was called, but no callback was set!");
-    };
-    public static Action<string, object> SaveObject { get; set; } = (key, value) =>
-    {
-        Console.WriteLine($"RuntimeCache.SaveObject({key}, {value}) was called, but no callback was set!");
-    };
+
+    public static Action Save { get; set; } = () => { Console.WriteLine("RuntimeCache.Save() was called, but no callback was set!"); };
+    public static Action<string, object> SaveObject { get; set; } = (key, value) => { Console.WriteLine($"RuntimeCache.SaveObject({key}, {value}) was called, but no callback was set!"); };
+    public static Action<string> RemoveObject { get; set; } = key => { Console.WriteLine($"RuntimeCache.RemoveObject({key}) was called, but no callback was set!"); };
 
     static RuntimeCache()
     {
         Task.Run(async () =>
         {
-            while (true)
+            while(true)
             {
                 await Task.Delay(1000);
-                foreach (var (key, value) in RuntimeCache.GenericResponseCache)
+                foreach (var (key, value) in GenericResponseCache)
                 {
-                    SaveObject("rory.matrixroomutils.generic_cache:" + key, value);    
+                    if (value.Cache.Any())
+                        SaveObject("rory.matrixroomutils.generic_cache:" + key, value);
+                    else
+                    {
+                        RemoveObject("rory.matrixroomutils.generic_cache:" + key);
+                    }
                 }
             }
         });
     }
 }
 
-
 public class UserInfo
 {
     public ProfileResponse Profile { get; set; } = new();
     public LoginResponse LoginResponse { get; set; }
-    public string AccessToken { get => LoginResponse.AccessToken; }
+
+    public string AccessToken
+    {
+        get => LoginResponse.AccessToken;
+    }
 }
 
 public class HomeServerResolutionResult
@@ -53,10 +56,12 @@ public class HomeServerResolutionResult
     public string Result { get; set; }
     public DateTime ResolutionTime { get; set; }
 }
+
 public class ObjectCache<T> where T : class
 {
     public Dictionary<string, GenericResult<T>> Cache { get; set; } = new();
     public string Name { get; set; } = null!;
+
     public GenericResult<T> this[string key]
     {
         get
@@ -65,11 +70,11 @@ public class ObjectCache<T> where T : class
             {
                 // Console.WriteLine($"cache.get({key}): hit");
                 // Console.WriteLine($"Found item in cache: {key} - {Cache[key].Result.ToJson(indent: false)}");
-                if(Cache[key].ExpiryTime < DateTime.Now)
+                if (Cache[key].ExpiryTime < DateTime.Now)
                     Console.WriteLine($"WARNING: item {key} in cache {Name} expired at {Cache[key].ExpiryTime}:\n{Cache[key].Result.ToJson(indent: false)}");
                 return Cache[key];
-               
             }
+
             Console.WriteLine($"cache.get({key}): miss");
             return null;
         }
@@ -82,19 +87,19 @@ public class ObjectCache<T> where T : class
             // Console.Error.WriteLine("Full cache: " + Cache.ToJson());
         }
     }
-    
+
     public ObjectCache()
     {
         //expiry timer
         Task.Run(async () =>
         {
-            while (true)
+            while (Cache.Any())
             {
                 await Task.Delay(1000);
                 foreach (var x in Cache.Where(x => x.Value.ExpiryTime < DateTime.Now).OrderBy(x => x.Value.ExpiryTime).Take(15).ToList())
                 {
                     // Console.WriteLine($"Removing {x.Key} from cache");
-                    Cache.Remove(x.Key);   
+                    Cache.Remove(x.Key);
                 }
                 //RuntimeCache.SaveObject("rory.matrixroomutils.generic_cache:" + Name, this);
             }
@@ -103,16 +108,17 @@ public class ObjectCache<T> where T : class
 
     public bool ContainsKey(string key) => Cache.ContainsKey(key);
 }
+
 public class GenericResult<T>
 {
     public T? Result { get; set; }
     public DateTime? ExpiryTime { get; set; } = DateTime.Now;
-    
+
     public GenericResult()
     {
         //expiry timer
-        
     }
+
     public GenericResult(T? result, DateTime? expiryTime = null) : this()
     {
         Result = result;

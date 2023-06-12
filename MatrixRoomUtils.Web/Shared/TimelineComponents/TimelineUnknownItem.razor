@@ -1,0 +1,21 @@
+@using MatrixRoomUtils.Core.Extensions
+<div>
+
+    <details style="display: inline;">
+        <summary>
+            <i style="color: red;">
+                Unknown event type: <pre style="display: inline;">@Event.Type</pre>
+            </i>
+        </summary>
+        <pre>
+           @Event.ToJson()
+        </pre>
+    </details>
+</div>
+
+@code {
+
+    [Parameter]
+    public StateEvent Event { get; set; }
+
+}

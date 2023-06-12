@@ -108,7 +108,7 @@ public class IHomeServer
         _profileCache[mxid] = profile;
         return profile;
     }
-    public string ResolveMediaUri(string mxc)
+    public string? ResolveMediaUri(string mxc)
     {
         return mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/r0/download/");
     }

@@ -200,7 +200,7 @@ else
     
     private bool _enableAvatars = false;
     
-    static Dictionary<string, string> avatars = new Dictionary<string, string>();
+    static Dictionary<string, string?> avatars = new Dictionary<string, string?>();
     static Dictionary<string, RemoteHomeServer> servers = new Dictionary<string, RemoteHomeServer>();
 
     public static List<StateEventResponse<PolicyRuleStateEventData>> PolicyEvents { get; set; } = new();

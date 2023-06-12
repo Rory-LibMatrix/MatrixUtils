@@ -1,11 +1,11 @@
 @using MatrixRoomUtils.Core.Authentication
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Extensions
-<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
+<div class="roomListItem" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (ShowOwnProfile)
     {
-        <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@profileAvatar"/>
-        <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(hasCustomProfileName ? "background-color: red;" : "")">@profileName</span>
+        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(profileAvatar) ? "" : "imageLoaded")" style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height: 32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@(profileAvatar ?? "/icon-192.png")" @onload="Callback"/>
+        <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(hasCustomProfileName ? "background-color: red;" : "")">@(profileName ?? "Loading...")</span>
         <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
     }
     <img style="@(ChildContent != null ? "vertical-align: baseline;":"") width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
@@ -34,10 +34,10 @@
     public bool ShowOwnProfile { get; set; } = false;
 
     private string roomName { get; set; } = "Loading...";
-    private string roomIcon { get; set; } = "/icon-192.png";
+    private string? roomIcon { get; set; } = "/icon-192.png";
 
-    private string profileAvatar { get; set; } = "/icon-192.png";
-    private string profileName { get; set; } = "Loading...";
+    private string? profileAvatar { get; set; }
+    private string? profileName { get; set; }
     private bool hasCustomProfileAvatar { get; set; } = false;
     private bool hasCustomProfileName { get; set; } = false;
     
@@ -53,8 +53,8 @@
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         
         await _semaphoreSlim.WaitAsync();
-        
-        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
+
+        var hs = RuntimeCache.CurrentHomeServer; //await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
         
         if (Room == null)
         {
@@ -69,11 +69,7 @@
             RoomId = Room.RoomId;
         }
 
-        roomName = await Room.GetNameAsync();
-        if (roomName == null)
-        {
-            roomName = "Unnamed room: " + RoomId;
-        }
+        roomName = await Room.GetNameAsync() ?? "Unnamed room: " + RoomId;
 
         var ce = await Room.GetCreateEventAsync();
         if (ce != null)
@@ -141,6 +137,11 @@
         _semaphoreSlim.Release();
         if (Random.Shared.Next(100) == 1)
             await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
+    }
+
+    private void Callback(ProgressEventArgs obj)
+    {
+        Console.WriteLine("prog: " + obj.ToJson(indent: false));
     }
 
 }

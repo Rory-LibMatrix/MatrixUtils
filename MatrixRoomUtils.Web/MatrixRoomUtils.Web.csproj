@@ -15,5 +15,9 @@
     <ItemGroup>
       <ProjectReference Include="..\MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Shared\TimelineComponents\TimelineMessageComponents" />
+    </ItemGroup>
     
 </Project>

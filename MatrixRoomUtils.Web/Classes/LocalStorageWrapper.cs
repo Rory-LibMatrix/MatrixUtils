@@ -16,6 +16,7 @@ public partial class LocalStorageWrapper
 
         RuntimeCache.Save = Save;
         RuntimeCache.SaveObject = async (key, obj) => await localStorage.SetItemAsync(key, obj);
+        RuntimeCache.RemoveObject = async (key) => await localStorage.RemoveItemAsync(key);
         if (RuntimeCache.LastUsedToken != null)
         {
             Console.WriteLine($"Access token is not null, creating authenticated home server");

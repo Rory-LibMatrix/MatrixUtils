@@ -42,6 +42,21 @@ public class Room
         if (res == null) return default;
         return res.Value.Deserialize<T>();
     }
+    
+    public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b", string filter = "")
+    {
+        var url = $"/_matrix/client/r0/rooms/{RoomId}/messages?from={from}&limit={limit}&dir={dir}";
+        if (!string.IsNullOrEmpty(filter)) url += $"&filter={filter}";
+        var res = await _httpClient.GetAsync(url);
+        if (!res.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to get messages for {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to get messages for {RoomId} - got status: {res.StatusCode}");
+        }
+
+        var result = await res.Content.ReadFromJsonAsync<MessagesResponse>();
+        return result ?? new MessagesResponse();
+    }
 
     public async Task<string> GetNameAsync()
     {
@@ -146,6 +161,18 @@ public class Room
 
         return res.Value.Deserialize<CreateEvent>() ?? new CreateEvent();
     }
+}
+
+public class MessagesResponse
+{
+    [JsonPropertyName("start")]
+    public string Start { get; set; }
+    [JsonPropertyName("end")]
+    public string? End { get; set; }
+    [JsonPropertyName("chunk")]
+    public List<StateEventResponse> Chunk { get; set; } = new();
+    [JsonPropertyName("state")]
+    public List<StateEventResponse> State { get; set; } = new();
 }
 
 public class CreateEvent

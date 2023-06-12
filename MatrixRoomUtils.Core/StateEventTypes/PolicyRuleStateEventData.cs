@@ -8,7 +8,7 @@ public class PolicyRuleStateEventData
     /// Entity this ban applies to, can use * and ? as globs.
     /// </summary>
     [JsonPropertyName("entity")]
-    public string? Entity { get; set; }
+    public string Entity { get; set; }
     /// <summary>
     /// Reason this user is banned
     /// </summary>

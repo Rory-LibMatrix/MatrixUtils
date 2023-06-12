@@ -1,7 +1,7 @@
 @using MatrixRoomUtils.Core.Responses
-<div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
-    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
-    <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
+<div style="background-color: #ffffff11; border-radius: 0.5em; height: 1em; display: inline-block; vertical-align: middle;" alt="@UserId">
+    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "vertical-align: top;") width: 1em; height: 1em; border-radius: 50%;" src="@ProfileAvatar"/>
+    <span style="position: relative; top: -5px;">@ProfileName</span>
 
     <div style="display: inline-block;">
         @if (ChildContent != null)
@@ -23,8 +23,11 @@
     [Parameter]
     public string UserId { get; set; }
 
-    private string? profileAvatar { get; set; } = "/icon-192.png";
-    private string? profileName { get; set; } = "Loading...";
+    [Parameter]
+    public string? ProfileAvatar { get; set; } = null;
+    
+    [Parameter]
+    public string? ProfileName { get; set; } = null;
 
 
     private static SemaphoreSlim _semaphoreSlim = new(128);
@@ -51,12 +54,10 @@
             // UserId = User.;
         }
         
-        profileAvatar = RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
-        profileName = User.DisplayName;
+        ProfileAvatar ??= RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
+        ProfileName ??= User.DisplayName;
 
         _semaphoreSlim.Release();
-        if (Random.Shared.Next(100) == 1)
-            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
 
 }

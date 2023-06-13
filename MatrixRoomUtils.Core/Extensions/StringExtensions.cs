@@ -1,7 +1,6 @@
 namespace MatrixRoomUtils.Core.Extensions;
 
-public static class StringExtensions
-{
+public static class StringExtensions {
     // public static async Task<string> GetMediaUrl(this string MxcUrl)
     // {
     //     //MxcUrl: mxc://rory.gay/ocRVanZoUTCcifcVNwXgbtTg
@@ -11,5 +10,4 @@ public static class StringExtensions
     //     var mediaId = MxcUrl.Split('/')[3];
     //     return $"{(await new RemoteHomeServer(server).Configure()).FullHomeServerDomain}/_matrix/media/v3/download/{server}/{mediaId}";
     // }
-    
 }

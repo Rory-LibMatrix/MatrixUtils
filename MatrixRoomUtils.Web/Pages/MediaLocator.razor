@@ -7,8 +7,7 @@
 <details>
     <summary>Checked homeserver list (@homeservers.Count entries)</summary>
     <ul>
-        @foreach (var hs in homeservers)
-        {
+        @foreach (var hs in homeservers) {
             <li>@hs</li>
         }
     </ul>
@@ -16,26 +15,22 @@
 <button @onclick="addMoreHomeservers">Add more homeservers</button>
 <br/>
 <span>MXC URL: </span>
-<input type="text" @bind="mxcUrl" />
+<input type="text" @bind="mxcUrl"/>
 <button @onclick="executeSearch">Search</button>
 
-@if (successResults.Count > 0)
-{
+@if (successResults.Count > 0) {
     <h4>Successes</h4>
     <ul>
-        @foreach (var result in successResults)
-        {
+        @foreach (var result in successResults) {
             <li>@result</li>
         }
     </ul>
 }
 
-@if (errorResults.Count > 0)
-{
+@if (errorResults.Count > 0) {
     <h4>Errors</h4>
     <ul>
-        @foreach (var result in errorResults)
-        {
+        @foreach (var result in errorResults) {
             <li>@result</li>
         }
     </ul>
@@ -44,15 +39,13 @@
 
 @code {
     string mxcUrl { get; set; }
-    List<string> successResults = new List<string>();
-    List<string> errorResults = new List<string>();
-    List<string> homeservers = new List<string>();
+    readonly List<string> successResults = new();
+    readonly List<string> errorResults = new();
+    readonly List<string> homeservers = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        homeservers.AddRange(new []
-        {
+        homeservers.AddRange(new[] {
             "matrix.org",
             "feline.support",
             "rory.gay",
@@ -62,70 +55,58 @@
         });
     }
 
-    async Task executeSearch()
-    {
+    async Task executeSearch() {
         var sem = new SemaphoreSlim(128, 128);
-        homeservers.ForEach(async hs =>
-        {
+        homeservers.ForEach(async hs => {
             await sem.WaitAsync();
             var httpClient = new HttpClient { BaseAddress = new Uri(hs) };
             httpClient.Timeout = TimeSpan.FromSeconds(5);
             var rmu = mxcUrl.Replace("mxc://", $"{hs}/_matrix/media/r0/download/");
-            try
-            {
+            try {
                 var res = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, rmu));
-                if (res.IsSuccessStatusCode)
-                {
+                if (res.IsSuccessStatusCode) {
                     successResults.Add($"{hs}: found - {res.Content.Headers.ContentLength} bytes");
                     StateHasChanged();
                     return;
                 }
                 errorResults.Add($"Error: {hs} - {res.StatusCode}\n" + await res.Content.ReadAsStringAsync());
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 errorResults.Add($"Error: {e}");
             }
-            finally
-            {
+            finally {
                 sem.Release();
             }
             StateHasChanged();
         });
     }
 
-
-    async Task addMoreHomeservers()
-    {
+    async Task addMoreHomeservers() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         var res = await Http.GetAsync("/homeservers.txt");
         var content = await res.Content.ReadAsStringAsync();
         homeservers.Clear();
         var lines = content.Split("\n");
-        
+
         var rhs = new RemoteHomeServer("rory.gay");
         var sem = new SemaphoreSlim(128, 128);
-        lines.ToList().ForEach(async line =>
-        {
+        lines.ToList().ForEach(async line => {
             await sem.WaitAsync();
-            try
-            {
+            try {
                 homeservers.Add(await rhs.ResolveHomeserverFromWellKnown(line));
                 StateHasChanged();
-                if(Random.Shared.Next(0,101) == 50) 
+                if (Random.Shared.Next(0, 101) == 50)
                     await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Console.WriteLine(e);
             }
-            finally
-            {
+            finally {
                 sem.Release();
             }
         });
 
-
         StateHasChanged();
     }
+
 }

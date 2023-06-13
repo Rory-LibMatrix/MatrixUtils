@@ -3,12 +3,10 @@
 @inject NavigationManager NavigationManager
 <h3>Room manager</h3>
 <hr/>
-@if (Rooms.Count == 0)
-{
+@if (Rooms.Count == 0) {
     <p>You are not in any rooms!</p>
 }
-else
-{
+else {
     <p>You are in @Rooms.Count rooms and @Spaces.Count spaces</p>
     <p>
         <a href="/RoomManagerCreateRoom">Create room</a>
@@ -16,8 +14,7 @@ else
 
     <details open>
         <summary>Space List</summary>
-        @foreach (var room in Spaces)
-        {
+        @foreach (var room in Spaces) {
             <a style="color: unset; text-decoration: unset;" href="/RoomManager/Space/@room.RoomId.Replace('.', '~')">
                 <RoomListItem Room="@room" ShowOwnProfile="false"></RoomListItem>
             </a>
@@ -25,8 +22,7 @@ else
     </details>
     <details open>
         <summary>Room List</summary>
-        @foreach (var room in Rooms)
-        {
+        @foreach (var room in Rooms) {
             <a style="color: unset; text-decoration: unset;" href="/RoomManager/Room/@room.RoomId.Replace('.', '~')">
                 <RoomListItem Room="@room" ShowOwnProfile="true"></RoomListItem>
             </a>
@@ -41,15 +37,13 @@ else
     public List<Room> Rooms { get; set; } = new();
     public List<Room> Spaces { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         Console.WriteLine("Initializing room manager");
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         Console.WriteLine("Loaded from local storage");
         await base.OnInitializedAsync();
         Console.WriteLine("Initialized base");
-        if (RuntimeCache.CurrentHomeServer == null)
-        {
+        if (RuntimeCache.CurrentHomeServer == null) {
             NavigationManager.NavigateTo("/Login");
             return;
         }
@@ -59,8 +53,7 @@ else
         Console.WriteLine($"Got {_rooms.Count} rooms");
         var semaphore = new SemaphoreSlim(10);
         var tasks = new List<Task<Room?>>();
-        foreach (var room in _rooms)
-        {
+        foreach (var room in _rooms) {
             tasks.Add(CheckIfSpace(room, semaphore));
         }
         await Task.WhenAll(tasks);
@@ -68,45 +61,36 @@ else
         Console.WriteLine("Fetched joined rooms!");
     }
 
-    private async Task<Room?> CheckIfSpace(Room room, SemaphoreSlim semaphore)
-    {
+    private async Task<Room?> CheckIfSpace(Room room, SemaphoreSlim semaphore) {
         await semaphore.WaitAsync();
-        // Console.WriteLine($"Checking if {room.RoomId} is a space");
-        try
-        {
+    // Console.WriteLine($"Checking if {room.RoomId} is a space");
+        try {
             var state = await room.GetStateAsync<CreateEvent>("m.room.create");
-            if (state != null)
-            {
+            if (state != null) {
     //Console.WriteLine(state.Value.ToJson());
-                if (state.Type != null)
-                {
-                    if (state.Type == "m.space")
-                    {
+                if (state.Type != null) {
+                    if (state.Type == "m.space") {
                         Console.WriteLine($"Room {room.RoomId} is a space!");
                         Spaces.Add(room);
                         StateHasChanged();
                         return room;
                     }
-                    else
-                    {
+                    else {
                         Console.WriteLine($"Encountered unknown room type {state.Type}");
                     }
                 }
-                else
-                {
+                else {
                     Rooms.Add(room);
     //this is fine, apprently...
     // Console.WriteLine($"Room {room.RoomId} has no Content.type in m.room.create!");
                 }
             }
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             Console.WriteLine(e);
             return null;
         }
-        finally
-        {
+        finally {
             semaphore.Release();
         }
         return null;

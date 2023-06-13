@@ -4,8 +4,7 @@
     <span style="position: relative; top: -5px;">@ProfileName</span>
 
     <div style="display: inline-block;">
-        @if (ChildContent != null)
-        {
+        @if (ChildContent != null) {
             @ChildContent
         }
     </div>
@@ -25,15 +24,13 @@
 
     [Parameter]
     public string? ProfileAvatar { get; set; } = null;
-    
+
     [Parameter]
     public string? ProfileName { get; set; } = null;
 
-
     private static SemaphoreSlim _semaphoreSlim = new(128);
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
@@ -41,19 +38,14 @@
 
         var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
 
-        if (User == null)
-        {
-            if (UserId == null)
-            {
+        if (User == null) {
+            if (UserId == null) {
                 throw new ArgumentNullException(nameof(UserId));
             }
             User = await hs.GetProfile(UserId);
         }
-        else
-        {
-            // UserId = User.;
-        }
-        
+
+    // UserId = User.;
         ProfileAvatar ??= RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
         ProfileName ??= User.DisplayName;
 

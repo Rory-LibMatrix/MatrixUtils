@@ -1,7 +1,6 @@
 namespace MatrixRoomUtils.Core;
 
-public struct StateEventStruct
-{
+public struct StateEventStruct {
     public object content { get; set; }
     public long origin_server_ts { get; set; }
     public string sender { get; set; }

@@ -1,12 +1,10 @@
 @page "/RoomManager/Timeline/{RoomId}"
 @using MatrixRoomUtils.Web.Shared.TimelineComponents
-@using MatrixRoomUtils.Core.Extensions
 <h3>RoomManagerTimeline</h3>
 <hr/>
 <p>Loaded @Events.Count events...</p>
 
-@foreach (var evt in Events)
-{
+@foreach (var evt in Events) {
     <div type="@evt.Type" key="@evt.StateKey" itemid="@evt.EventId">
         <DynamicComponent Type="@ComponentType(evt)" Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events } })"></DynamicComponent>
     </div>
@@ -17,18 +15,16 @@
     [Parameter]
     public string RoomId { get; set; } = "invalid!!!!!!";
 
-    private List<MessagesResponse> Messages { get; set; } = new();
-    private List<StateEventResponse> Events { get; set; } = new();
+    private List<MessagesResponse> Messages { get; } = new();
+    private List<StateEventResponse> Events { get; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         RoomId = RoomId.Replace('~', '.');
         Console.WriteLine("RoomId: " + RoomId);
         var room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
         MessagesResponse? msgs = null;
-        do
-        {
+        do {
             msgs = await room.GetMessagesAsync(limit: 250, from: msgs?.End, dir: "b");
             Messages.Add(msgs);
             Console.WriteLine($"Got {msgs.Chunk.Count} messages");
@@ -37,12 +33,10 @@
             StateHasChanged();
         } while (msgs.End != null);
 
-
         await base.OnInitializedAsync();
     }
 
     private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
-
 
     private Type ComponentType(StateEventResponse Event) => Event.Type switch {
         "m.room.message" => typeof(TimelineMessageItem),

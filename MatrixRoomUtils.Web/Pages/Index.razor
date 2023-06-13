@@ -12,18 +12,15 @@ Small collection of tools to do not-so-everyday things.
 <h5>Signed in accounts - <a href="/Login">Add new account</a></h5>
 <hr/>
 <form>
-    @foreach (var (token, user) in RuntimeCache.LoginSessions)
-    {
+    @foreach (var (token, user) in RuntimeCache.LoginSessions) {
         <IndexUserItem User="@user"/>
     }
 </form>
 
 @code
 {
-    protected override async Task OnInitializedAsync()
-    {
-        if (!RuntimeCache.WasLoaded)
-        {
+    protected override async Task OnInitializedAsync() {
+        if (!RuntimeCache.WasLoaded) {
             Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
             await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         }

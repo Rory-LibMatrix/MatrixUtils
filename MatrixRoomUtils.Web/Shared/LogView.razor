@@ -1,6 +1,5 @@
 @using System.Text
-@if (LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers)
-{
+@if (LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers) {
     <u>Logs</u>
     <br/>
     <pre>
@@ -10,11 +9,10 @@
 
 @code {
     StringBuilder _stringBuilder = new();
-    protected override async Task OnInitializedAsync()
-    {
+
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-        if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging)
-        {
+        if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging) {
             Console.WriteLine("Console logging disabled!");
             var _sw = new StringWriter();
             Console.SetOut(_sw);
@@ -22,19 +20,16 @@
             return;
         }
         if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers) return;
-        //intecept stdout with textwriter to get logs
+    //intecept stdout with textwriter to get logs
         var sw = new StringWriter(_stringBuilder);
         Console.SetOut(sw);
         Console.SetError(sw);
-        //keep updated
-        int length = 0;
-        Task.Run(async () =>
-        {
-            while (true)
-            {
+    //keep updated
+        var length = 0;
+        Task.Run(async () => {
+            while (true) {
                 await Task.Delay(100);
-                if (_stringBuilder.Length != length)
-                {
+                if (_stringBuilder.Length != length) {
                     StateHasChanged();
                     length = _stringBuilder.Length;
                 }
@@ -43,4 +38,5 @@
         });
         await base.OnInitializedAsync();
     }
+
 }

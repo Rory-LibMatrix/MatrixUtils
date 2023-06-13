@@ -2,8 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MatrixRoomUtils.Core.Responses.Admin;
 
-public class AdminRoomListingResult
-{
+public class AdminRoomListingResult {
     [JsonPropertyName("offset")]
     public int Offset { get; set; }
 
@@ -19,8 +18,7 @@ public class AdminRoomListingResult
     [JsonPropertyName("rooms")]
     public List<AdminRoomListingResultRoom> Rooms { get; set; } = new();
 
-    public class AdminRoomListingResultRoom
-    {
+    public class AdminRoomListingResultRoom {
         [JsonPropertyName("room_id")]
         public string RoomId { get; set; }
 

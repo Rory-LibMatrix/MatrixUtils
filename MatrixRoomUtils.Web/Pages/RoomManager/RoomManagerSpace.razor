@@ -4,8 +4,7 @@
 <h3>Room manager - Viewing Space</h3>
 
 <button onclick="@JoinAllRooms">Join all rooms</button>
-@foreach (var room in Rooms)
-{
+@foreach (var room in Rooms) {
     <RoomListItem Room="room" ShowOwnProfile="true"></RoomListItem>
 }
 
@@ -13,8 +12,7 @@
 <br/>
 <details style="background: #0002;">
     <summary style="background: #fff1;">State list</summary>
-    @foreach (var stateEvent in States.OrderBy(x => x.StateKey).ThenBy(x => x.Type))
-    {
+    @foreach (var stateEvent in States.OrderBy(x => x.StateKey).ThenBy(x => x.Type)) {
         <p>@stateEvent.StateKey/@stateEvent.Type:</p>
         <pre>@stateEvent.Content.ToJson()</pre>
     }
@@ -24,61 +22,52 @@
 
     [Parameter]
     public string RoomId { get; set; } = "invalid!!!!!!";
-    
+
     private Room? Room { get; set; }
-    
+
     private StateEventResponse<object>[] States { get; set; } = Array.Empty<StateEventResponse<object>>();
-    private List<Room> Rooms { get; set; } = new();
-    private List<string> ServersInSpace { get; set; } = new();
-    
-    protected override async Task OnInitializedAsync()
-    {
+    private List<Room> Rooms { get; } = new();
+    private List<string> ServersInSpace { get; } = new();
+
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         Room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId.Replace('~', '.'));
         var state = await Room.GetStateAsync("");
-        if (state != null)
-        {
-            // Console.WriteLine(state.Value.ToJson());
+        if (state != null) {
+    // Console.WriteLine(state.Value.ToJson());
             States = state.Value.Deserialize<StateEventResponse<object>[]>()!;
-            
-            foreach (var stateEvent in States)
-            {
-                if (stateEvent.Type == "m.space.child")
-                {
-                    // if (stateEvent.Content.ToJson().Length < 5) return;
+
+            foreach (var stateEvent in States) {
+                if (stateEvent.Type == "m.space.child") {
+    // if (stateEvent.Content.ToJson().Length < 5) return;
                     var roomId = stateEvent.StateKey;
                     var room = await RuntimeCache.CurrentHomeServer.GetRoom(roomId);
-                    if (room != null)
-                    {
+                    if (room != null) {
                         Rooms.Add(room);
                     }
                 }
-                else if (stateEvent.Type == "m.room.member")
-                {
+                else if (stateEvent.Type == "m.room.member") {
                     var serverName = stateEvent.StateKey.Split(':').Last();
-                    if (!ServersInSpace.Contains(serverName))
-                    {
+                    if (!ServersInSpace.Contains(serverName)) {
                         ServersInSpace.Add(serverName);
                     }
                 }
             }
-            
-        // if(state.Value.TryGetProperty("Type", out var Type))
-        // {
-        // }
-        // else
-        // {
-        //     //this is fine, apprently...
-        //     //Console.WriteLine($"Room {room.RoomId} has no Content.Type in m.room.create!");
-        // }
+
+    // if(state.Value.TryGetProperty("Type", out var Type))
+    // {
+    // }
+    // else
+    // {
+    //     //this is fine, apprently...
+    //     //Console.WriteLine($"Room {room.RoomId} has no Content.Type in m.room.create!");
+    // }
         }
         await base.OnInitializedAsync();
     }
-    
-    private async Task JoinAllRooms()
-    {
-        foreach (var room in Rooms)
-        {
+
+    private async Task JoinAllRooms() {
+        foreach (var room in Rooms) {
             room.JoinAsync(ServersInSpace.ToArray());
         }
     }

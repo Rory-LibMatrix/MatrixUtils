@@ -1,5 +1,4 @@
-@for (int i = 0; i < Items.Count; i++)
-{
+@for (var i = 0; i < Items.Count; i++) {
     var self = i;
     <button @onclick="() => { Items.RemoveAt(self); ItemsChanged.InvokeAsync(); }">Remove</button>
     <FancyTextBox Value="@Items[self]" ValueChanged="@(obj => inputChanged(obj, self))"/>
@@ -10,19 +9,18 @@
 @code {
 
     [Parameter]
-    public List<string> Items { get; set; } = new List<string>();
+    public List<string> Items { get; set; } = new();
 
-    [Parameter, EditorRequired]
+    [Parameter]
+    [EditorRequired]
     public EventCallback ItemsChanged { get; set; }
 
-    protected override Task OnInitializedAsync()
-    {
+    protected override Task OnInitializedAsync() {
         Console.WriteLine($"StringListEditor initialized with {Items.Count} items: {string.Join(",", Items)}");
         return base.OnInitializedAsync();
     }
 
-    private void inputChanged(string obj, int i)
-    {
+    private void inputChanged(string obj, int i) {
         Console.WriteLine($"StringListEditor inputChanged {i} {obj}");
         Items[i] = obj;
         ItemsChanged.InvokeAsync();

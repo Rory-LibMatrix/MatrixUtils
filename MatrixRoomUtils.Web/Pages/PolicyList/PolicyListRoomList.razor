@@ -1,29 +1,25 @@
 @page "/PolicyListEditor"
-@using System.Text.Json
 @using MatrixRoomUtils.Core.Extensions
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Policy list editor - Room list</h3>
 <hr/>
 
-@if (PolicyRoomList.Count == 0)
-{
+@if (PolicyRoomList.Count == 0) {
     <p>No policy rooms found.</p>
     <p>Loading progress: @checkedRoomCount/@totalRoomCount</p>
 }
-else
-{
-    @if (checkedRoomCount != totalRoomCount)
-    {
+else {
+    @if (checkedRoomCount != totalRoomCount) {
         <p>Loading progress: @checkedRoomCount/@totalRoomCount</p>
     }
-    foreach (var s in PolicyRoomList)
-    {
-        
-        <a style="color: unset; text-decoration: unset;" href="/PolicyListEditor/@s.RoomId.Replace('.','~')"><RoomListItem RoomId="@s.RoomId">
-            <br/>
-            <span>Shortcode: @s.Shortcode</span>
-        </RoomListItem></a>
+    foreach (var s in PolicyRoomList) {
+        <a style="color: unset; text-decoration: unset;" href="/PolicyListEditor/@s.RoomId.Replace('.', '~')">
+            <RoomListItem RoomId="@s.RoomId">
+                <br/>
+                <span>Shortcode: @s.Shortcode</span>
+            </RoomListItem>
+        </a>
         @* <a href="@(NavigationManager.Uri + "/" + s.RoomId.Replace('.', '~'))">[@s.Shortcode] @s.Name (@s.RoomId)</a> *@
         @* <br/> *@
     }
@@ -40,15 +36,13 @@ else
 
     public List<PolicyRoomInfo> PolicyRoomList { get; set; } = new();
 
-    private int checkedRoomCount { get; set; } = 0;
-    private int totalRoomCount { get; set; } = 0;
+    private int checkedRoomCount { get; set; }
+    private int totalRoomCount { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer == null)
-        {
+        if (RuntimeCache.CurrentHomeServer == null) {
             NavigationManager.NavigateTo("/Login");
             return;
         }
@@ -56,59 +50,48 @@ else
         Console.WriteLine("Policy list editor initialized!");
     }
 
-    private async Task EnumeratePolicyRooms()
-    {
+    private async Task EnumeratePolicyRooms() {
         var xxxrooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
         totalRoomCount = xxxrooms.Count;
         StateHasChanged();
 
         var xxxsemaphore = new SemaphoreSlim(1000);
         var xxxtasks = new List<Task<PolicyRoomInfo?>>();
-        foreach (var room in xxxrooms)
-        {
+        foreach (var room in xxxrooms) {
             xxxtasks.Add(GetPolicyRoomInfo(room.RoomId, xxxsemaphore));
         }
         var xxxresults = await Task.WhenAll(xxxtasks);
         PolicyRoomList.AddRange(xxxresults.Where(x => x != null).Select(x => x.Value));
 
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
-        return;
     }
 
-    private async Task<PolicyRoomInfo?> GetPolicyRoomInfo(string room, SemaphoreSlim semaphore)
-    {
-        try
-        {
+    private async Task<PolicyRoomInfo?> GetPolicyRoomInfo(string room, SemaphoreSlim semaphore) {
+        try {
             await semaphore.WaitAsync();
-            PolicyRoomInfo roomInfo = new()
-            {
+            PolicyRoomInfo roomInfo = new() {
                 RoomId = room
             };
             var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
             var shortcodeState = await r.GetStateAsync("org.matrix.mjolnir.shortcode");
-            if(!shortcodeState.HasValue) return null;
-            roomInfo.Shortcode = shortcodeState.Value.TryGetProperty("shortcode", out JsonElement shortcode) ? shortcode.GetString() : null;
+            if (!shortcodeState.HasValue) return null;
+            roomInfo.Shortcode = shortcodeState.Value.TryGetProperty("shortcode", out var shortcode) ? shortcode.GetString() : null;
 
-            if (roomInfo.Shortcode != null)
-            {
+            if (roomInfo.Shortcode != null) {
                 roomInfo.Name = await r.GetNameAsync();
                 return roomInfo;
             }
 
             return null;
         }
-        finally
-
-        {
+        finally {
             checkedRoomCount++;
             StateHasChanged();
             semaphore.Release();
         }
     }
 
-    public struct PolicyRoomInfo
-
-    {
+    public struct PolicyRoomInfo {
         public
             string RoomId { get; set; }
 
@@ -118,4 +101,5 @@ else
         public
             string? Name { get; set; }
     }
-    } 
+
+}

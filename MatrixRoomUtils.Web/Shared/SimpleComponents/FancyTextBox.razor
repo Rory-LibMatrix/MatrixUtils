@@ -1,35 +1,29 @@
 @inject IJSRuntime JsRuntime
-@if (isVisible)
-{
+@if (isVisible) {
     <input autofocus type="@(IsPassword ? "password" : "text")" @bind="Value" @onfocusout="() => { isVisible = false; ValueChanged.InvokeAsync(Value); }" @ref="elementToFocus"/>
 }
-else
-{
-    <span tabindex="0" style="border-bottom: #ccc solid 1px; height: 1.4em; display: inline-block; @(string.IsNullOrEmpty(Value) ? "min-width: 50px;" : "")" @onfocusin="() => isVisible = true">@(Formatter?.Invoke(Value) ?? (IsPassword ? string.Join("", Value.Select(x=>'*')) : Value))</span>
+else {
+    <span tabindex="0" style="border-bottom: #ccc solid 1px; height: 1.4em; display: inline-block; @(string.IsNullOrEmpty(Value) ? "min-width: 50px;" : "")" @onfocusin="() => isVisible = true">@(Formatter?.Invoke(Value) ?? (IsPassword ? string.Join("", Value.Select(x => '*')) : Value))</span>
 }
 
 @code {
 
     [Parameter]
     public string Value { get; set; }
-    
+
     [Parameter]
     public bool IsPassword { get; set; } = false;
-    
+
     [Parameter]
     public EventCallback<string> ValueChanged { get; set; }
-    
+
     [Parameter]
     public Func<string?, string>? Formatter { get; set; }
-    
 
     private bool isVisible { get; set; } = false;
 
     private ElementReference elementToFocus;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JsRuntime.InvokeVoidAsync("BlazorFocusElement", elementToFocus);
-    }
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JsRuntime.InvokeVoidAsync("BlazorFocusElement", elementToFocus);
 
 }

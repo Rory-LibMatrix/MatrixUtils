@@ -1,7 +1,7 @@
 @page "/PolicyListEditor/{RoomId}"
-@using System.Text.Json
 @using MatrixRoomUtils.Core.Extensions
 @using MatrixRoomUtils.Core.StateEventTypes
+@using System.Text.Json
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Policy list editor - Editing @RoomId</h3>
@@ -15,12 +15,10 @@
 <InputCheckbox @bind-Value="_enableAvatars" @oninput="GetAllAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label>
 
 
-@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.server"))
-{
+@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.server")) {
     <p>No server policies</p>
 }
-else
-{
+else {
     <h3>Server policies</h3>
     <hr/>
     <table class="table table-striped table-hover" style="width: fit-Content;">
@@ -33,8 +31,7 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity != null))
-        {
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity != null)) {
             <tr>
                 <td>Entity: @policyEvent.Content.Entity<br/>State: @policyEvent.StateKey</td>
                 <td>@policyEvent.Content.Reason</td>
@@ -59,23 +56,20 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity == null))
-            {
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.server" && x.Content.Entity == null)) {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(false, true)</td>
                 </tr>
             }
             </tbody>
         </table>
     </details>
 }
-@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.room"))
-{
+@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.room")) {
     <p>No room policies</p>
 }
-else
-{
+else {
     <h3>Room policies</h3>
     <hr/>
     <table class="table table-striped table-hover" style="width: fit-Content;">
@@ -88,8 +82,7 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity != null))
-        {
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity != null)) {
             <tr>
                 <td>Entity: @policyEvent.Content.Entity<br/>State: @policyEvent.StateKey</td>
                 <td>@policyEvent.Content.Reason</td>
@@ -113,30 +106,26 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity == null))
-            {
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && x.Content.Entity == null)) {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(false, true)</td>
                 </tr>
             }
             </tbody>
         </table>
     </details>
 }
-@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.user"))
-{
+@if (!PolicyEvents.Any(x => x.Type == "m.policy.rule.user")) {
     <p>No user policies</p>
 }
-else
-{
+else {
     <h3>User policies</h3>
     <hr/>
     <table class="table table-striped table-hover" style="width: fit-Content;">
         <thead>
         <tr>
-            @if (_enableAvatars)
-            {
+            @if (_enableAvatars) {
                 <th scope="col"></th>
             }
             <th scope="col" style="max-width: 0.2vw; word-wrap: anywhere;">User</th>
@@ -146,12 +135,12 @@ else
         </tr>
         </thead>
         <tbody>
-        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null))
-        {
+        @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null)) {
             <tr>
-                @if (_enableAvatars)
-                {
-                    <td scope="col"><img style="width: 48px; height: 48px; aspect-ratio: unset; border-radius: 50%;" src="@(avatars.ContainsKey(policyEvent.Content.Entity) ? avatars[policyEvent.Content.Entity] : "")"/></td>
+                @if (_enableAvatars) {
+                    <td scope="col">
+                        <img style="width: 48px; height: 48px; aspect-ratio: unset; border-radius: 50%;" src="@(avatars.ContainsKey(policyEvent.Content.Entity) ? avatars[policyEvent.Content.Entity] : "")"/>
+                    </td>
                 }
                 <td style="word-wrap: anywhere;">Entity: @string.Join("", policyEvent.Content.Entity.Take(64))<br/>State: @string.Join("", policyEvent.StateKey.Take(64))</td>
                 <td>@policyEvent.Content.Reason</td>
@@ -175,11 +164,10 @@ else
             </tr>
             </thead>
             <tbody>
-            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity == null))
-            {
+            @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity == null)) {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.Content.ToJson(indent: false, ignoreNull: true)</td>
+                    <td>@policyEvent.Content.ToJson(false, true)</td>
                 </tr>
             }
             </tbody>
@@ -197,21 +185,19 @@ else
 
     [Parameter]
     public string? RoomId { get; set; }
-    
-    private bool _enableAvatars = false;
-    
-    static Dictionary<string, string?> avatars = new Dictionary<string, string?>();
-    static Dictionary<string, RemoteHomeServer> servers = new Dictionary<string, RemoteHomeServer>();
+
+    private bool _enableAvatars;
+
+    static readonly Dictionary<string, string?> avatars = new();
+    static readonly Dictionary<string, RemoteHomeServer> servers = new();
 
     public static List<StateEventResponse<PolicyRuleStateEventData>> PolicyEvents { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        // if(RuntimeCache.AccessToken == null || RuntimeCache.CurrentHomeserver == null)
-        if (RuntimeCache.CurrentHomeServer == null)
-        {
+    // if(RuntimeCache.AccessToken == null || RuntimeCache.CurrentHomeserver == null)
+        if (RuntimeCache.CurrentHomeServer == null) {
             NavigationManager.NavigateTo("/Login");
             return;
         }
@@ -220,18 +206,16 @@ else
         Console.WriteLine("Policy list editor initialized!");
     }
 
-    private async Task LoadStatesAsync()
-    {
-        // using var client = new HttpClient();
-        // client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-        // var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
-        // var Content = await response.Content.ReadAsStringAsync();
-        // Console.WriteLine(JsonSerializer.Deserialize<object>(Content).ToJson());
-        // var stateEvents = JsonSerializer.Deserialize<List<StateEventResponse>>(Content);
+    private async Task LoadStatesAsync() {
+    // using var client = new HttpClient();
+    // client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
+    // var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+    // var Content = await response.Content.ReadAsStringAsync();
+    // Console.WriteLine(JsonSerializer.Deserialize<object>(Content).ToJson());
+    // var stateEvents = JsonSerializer.Deserialize<List<StateEventResponse>>(Content);
         var room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
         var stateEventsQuery = await room.GetStateAsync("");
-        if (stateEventsQuery == null)
-        {
+        if (stateEventsQuery == null) {
             Console.WriteLine("state events query is null!!!");
         }
         var stateEvents = stateEventsQuery.Value.Deserialize<List<StateEventResponse>>();
@@ -239,30 +223,25 @@ else
             .Select(x => JsonSerializer.Deserialize<StateEventResponse<PolicyRuleStateEventData>>(JsonSerializer.Serialize(x))).ToList();
         StateHasChanged();
     }
-    
-    private async Task GetAvatar(string userId)
-    {
-        try
-        {
+
+    private async Task GetAvatar(string userId) {
+        try {
             if (avatars.ContainsKey(userId)) return;
             var hs = userId.Split(':')[1];
-            RemoteHomeServer server = servers.ContainsKey(hs) ? servers[hs] : await new RemoteHomeServer(userId.Split(':')[1]).Configure();
+            var server = servers.ContainsKey(hs) ? servers[hs] : await new RemoteHomeServer(userId.Split(':')[1]).Configure();
             if (!servers.ContainsKey(hs)) servers.Add(hs, server);
             var profile = await server.GetProfile(userId);
             avatars.Add(userId, server.ResolveMediaUri(profile.AvatarUrl));
             servers.Add(userId, server);
             StateHasChanged();
         }
-        catch
-        {
-            // ignored
+        catch {
+    // ignored
         }
     }
-    
-    private async Task GetAllAvatars()
-    {
-        foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null))
-        {
+
+    private async Task GetAllAvatars() {
+        foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.user" && x.Content.Entity != null)) {
             await GetAvatar(policyEvent.Content.Entity);
         }
         StateHasChanged();

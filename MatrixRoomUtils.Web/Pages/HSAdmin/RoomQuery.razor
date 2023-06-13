@@ -1,73 +1,78 @@
-@page "/RoomQuery"
+@page "/HSAdmin/RoomQuery"
 @using MatrixRoomUtils.Core.Extensions
-@using System.Runtime.InteropServices
-@using System.ComponentModel
 @using MatrixRoomUtils.Core.Responses.Admin
 <h3>Homeserver Administration - Room Query</h3>
 
 <label>Search name: </label>
-<InputText @bind-Value="SearchTerm" /><br/>
+<InputText @bind-Value="SearchTerm"/><br/>
 <label>Search id/name/creator (slow!): </label>
-<InputText @bind-Value="ContentSearchTerm" /><br/>
+<InputText @bind-Value="ContentSearchTerm"/><br/>
 <label>Order by: </label>
 <select @bind="OrderBy">
-    @foreach (var item in validOrderBy)
-    {
+    @foreach (var item in validOrderBy) {
         <option value="@item.Key">@item.Value</option>
     }
 </select><br/>
 <label>Ascending: </label>
-<InputCheckbox @bind-Value="Ascending" /><br/>
+<InputCheckbox @bind-Value="Ascending"/><br/>
 <button class="btn btn-primary" @onclick="Search">Search</button>
 <br/>
 
-@foreach (var res in Results)
-{
+@foreach (var res in Results) {
     <div style="background-color: #ffffff11; border-radius: 0.5em; display: block; margin-top: 4px; padding: 4px;">
-        <RoomListItem RoomId="@res.RoomId"></RoomListItem> 
-        <p>@res.CanonicalAlias, created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></p>
+        <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem>
+        <p>
+            @res.CanonicalAlias
+            @if (!string.IsNullOrWhiteSpace(res.Creator)) {
+                <span>
+                    , created by <InlineUserItem UserId="@res.Creator"></InlineUserItem>
+                </span>
+            }
+        </p>
         <p>@res.StateEvents state events</p>
         <p>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</p>
     </div>
 }
 
 @code {
-    
-    [Parameter, SupplyParameterFromQuery(Name = "order_by")]
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "order_by")]
     public string? OrderBy { get; set; }
-    
-    [Parameter, SupplyParameterFromQuery(Name = "search_term")]
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "search_term")]
     public string SearchTerm { get; set; }
-    
-    [Parameter, SupplyParameterFromQuery(Name = "content_search_term")]
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "content_search_term")]
     public string ContentSearchTerm { get; set; }
-    
-    [Parameter, SupplyParameterFromQuery(Name = "ascending")]
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "ascending")]
     public bool Ascending { get; set; }
 
     public List<AdminRoomListingResult.AdminRoomListingResultRoom> Results { get; set; } = new();
-    
-    protected override async Task OnParametersSetAsync()
-    {
-        if(Ascending == null)
+
+    private string Status { get; set; }
+
+    protected override async Task OnParametersSetAsync() {
+        if (Ascending == null)
             Ascending = true;
         OrderBy ??= "name";
     }
-    
-    private async Task Search()
-    {
+
+    private async Task Search() {
         Results.Clear();
         var searchRooms = RuntimeCache.CurrentHomeServer.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, contentSearch: ContentSearchTerm).GetAsyncEnumerator();
-        while (await searchRooms.MoveNextAsync())
-        {
+        while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
-            Console.WriteLine("Hit: " + room.ToJson(indent: false));
+            Console.WriteLine("Hit: " + room.ToJson(false));
             Results.Add(room);
         }
     }
 
-    private Dictionary<string, string> validOrderBy = new Dictionary<string, string>()
-    {
+    private readonly Dictionary<string, string> validOrderBy = new() {
         { "name", "Room name" },
         { "canonical_alias", "Main alias address" },
         { "joined_members", "Number of members (reversed)" },
@@ -80,7 +85,7 @@
         { "join_rules", "Join rules" },
         { "guest_access", "Guest access" },
         { "history_visibility", "Visibility of history" },
-        { "state_events", "Number of state events" },
+        { "state_events", "Number of state events" }
     };
 
 }

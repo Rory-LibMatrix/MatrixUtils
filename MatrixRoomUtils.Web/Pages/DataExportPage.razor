@@ -1,5 +1,4 @@
 ﻿@page "/Export"
-@using MatrixRoomUtils.Web.Shared.IndexComponents
 @using System.Text.Json
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
@@ -11,12 +10,10 @@
 <br/><br/>
 <h5>Signed in accounts - <a href="/Login">Add new account</a> or <a href="/ImportUsers">Import from TSV</a></h5>
 <hr/>
-@if (_isLoaded)
-{
-@foreach (var (token, user) in RuntimeCache.LoginSessions)
-{
+@if (_isLoaded) {
+    @foreach (var (token, user) in RuntimeCache.LoginSessions) {
     @* <IndexUserItem User="@user"/> *@
-    <pre>
+        <pre>
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\access_token=@token
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\device_id=@user.LoginResponse.DeviceId
 @user.LoginResponse.UserId[1..].Split(":")[0]\auth\home_server=@(RuntimeCache.HomeserverResolutionCache.ContainsKey(user.LoginResponse.HomeServer) ? RuntimeCache.HomeserverResolutionCache[user.LoginResponse.HomeServer].Result : "loading...")
@@ -26,10 +23,9 @@
 @user.LoginResponse.UserId[1..].Split(":")[0]\user\online_key_backup=true
 @user.LoginResponse.UserId[1..].Split(":")[0]\user\only_share_keys_with_verified_users=false
     </pre>
+    }
 }
-}
-else
-{
+else {
     <p>Loading...</p>
     <p>@resolvedHomeservers/@totalHomeservers homeservers resolved...</p>
 }
@@ -39,31 +35,26 @@ else
     private int resolvedHomeservers;
     private int totalHomeservers;
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        if (!RuntimeCache.WasLoaded)
-        {
+        if (!RuntimeCache.WasLoaded) {
             await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         }
         var homeservers = RuntimeCache.LoginSessions.Values.Select(x => x.LoginResponse.HomeServer).Distinct();
         totalHomeservers = homeservers.Count();
         StateHasChanged();
-        foreach (var hs in homeservers)
-        {
-            if (RuntimeCache.HomeserverResolutionCache.ContainsKey(hs))
-            {
+        foreach (var hs in homeservers) {
+            if (RuntimeCache.HomeserverResolutionCache.ContainsKey(hs)) {
                 resolvedHomeservers++;
                 continue;
             }
             var resolvedHomeserver = (await new RemoteHomeServer(hs).Configure()).FullHomeServerDomain;
 
-            RuntimeCache.HomeserverResolutionCache.Add(hs, new() { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
+            RuntimeCache.HomeserverResolutionCache.Add(hs, new HomeServerResolutionResult { Result = resolvedHomeserver, ResolutionTime = DateTime.Now });
             await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
 
             Console.WriteLine("Saved to local storage:");
-            Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions()
-            {
+            Console.WriteLine(JsonSerializer.Serialize(RuntimeCache.HomeserverResolutionCache, new JsonSerializerOptions {
                 WriteIndented = true
             }));
             resolvedHomeservers++;

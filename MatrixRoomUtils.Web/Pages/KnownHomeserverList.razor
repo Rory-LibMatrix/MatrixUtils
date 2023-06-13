@@ -5,33 +5,25 @@
 <h3>Known Homeserver List</h3>
 <hr/>
 
-@if (!IsFinished)
-{
+@if (!IsFinished) {
     <p>Loading... Please wait...</p>
     <progress value="@QueryProgress.ProcessedRooms" max="@QueryProgress.TotalRooms"></progress>
     <p>@QueryProgress.ProcessedRooms / @QueryProgress.TotalRooms</p>
-    @foreach (var (room, state) in QueryProgress.ProcessedUsers.Where(x => !x.Value.IsFinished).OrderByDescending(x => x.Value.Total).ToList())
-    {
-        @if (state.Blocked)
-        {
+    @foreach (var (room, state) in QueryProgress.ProcessedUsers.Where(x => !x.Value.IsFinished).OrderByDescending(x => x.Value.Total).ToList()) {
+        @if (state.Blocked) {
             <p>🔒 @room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
         }
-        else if (state.Slowmode)
-        {
-            
+        else if (state.Slowmode) {
             <p>🐢 @room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
         }
-        else
-        {
+        else {
             <p>@room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
         }
         <progress value="@state.Processed" max="@state.Total"></progress>
     }
 }
-else
-{
-    @foreach (var server in HomeServers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList())
-    {
+else {
+    @foreach (var server in HomeServers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList()) {
         <p>@server.Server - @server.KnownUserCount</p>
     }
 }
@@ -42,15 +34,12 @@ else
     bool IsFinished { get; set; }
     HomeServerInfoQueryProgress QueryProgress { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
         var sw = Stopwatch.StartNew();
-        HomeServers = await GetHomeservers(progressCallback: async progress =>
-        {
-            if (sw.ElapsedMilliseconds > 1000)
-            {
+        HomeServers = await GetHomeservers(progressCallback: async progress => {
+            if (sw.ElapsedMilliseconds > 1000) {
                 Console.WriteLine("Progress updated...");
                 QueryProgress = progress;
                 StateHasChanged();
@@ -69,9 +58,7 @@ else
         await base.OnInitializedAsync();
     }
 
-
-    private async Task<List<HomeServerInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeServerInfoQueryProgress, Task<bool>>? progressCallback = null)
-    {
+    private async Task<List<HomeServerInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeServerInfoQueryProgress, Task<bool>>? progressCallback = null) {
         HomeServerInfoQueryProgress progress = new();
         List<HomeServerInfo> homeServers = new();
         var rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
@@ -79,16 +66,14 @@ else
 
         var semaphore = new SemaphoreSlim(4);
         var semLock = new SemaphoreSlim(1);
-        var tasks = rooms.Select(async room =>
-        {
+        var tasks = rooms.Select(async room => {
             await semaphore.WaitAsync();
-            progress.ProcessedUsers.Add(room, new());
+            progress.ProcessedUsers.Add(room, new HomeServerInfoQueryProgress.State());
             Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
             var states = (await room.GetStateAsync("")).Value.Deserialize<List<StateEventResponse>>();
             states.RemoveAll(x => x.Type != "m.room.member" || x.Content.GetProperty("membership").GetString() != "join");
             Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
-            if (states.Count > memberLimit)
-            {
+            if (states.Count > memberLimit) {
                 Console.WriteLine("Skipping!");
                 semaphore.Release();
                 progress.ProcessedUsers.Remove(room);
@@ -97,37 +82,31 @@ else
             }
             progress.ProcessedUsers[room].Total = states.Count;
             var updateInterval = progress.ProcessedUsers[room].Total >= 1000 ? 1000 : 100;
-            while (progress.ProcessedUsers.Any(x => x.Value.Total == 0) && progress.ProcessedUsers[room].Total >= 1000)
-            {
+            while (progress.ProcessedUsers.Any(x => x.Value.Total == 0) && progress.ProcessedUsers[room].Total >= 1000) {
                 progress.ProcessedUsers[room].Blocked = true;
                 await Task.Delay(1000);
-                // if(progressCallback != null)
-                //     await progressCallback.Invoke(progress);
+    // if(progressCallback != null)
+    //     await progressCallback.Invoke(progress);
             }
             progress.ProcessedUsers[room].Blocked = false;
-            int processedStates = 0;
-            foreach (var state in states)
-            {
+            var processedStates = 0;
+            foreach (var state in states) {
                 await semLock.WaitAsync();
                 semLock.Release();
-                if (progress.ProcessedUsers.Count(x => x.Value.Total == 0) > 5 && progress.ProcessedUsers[room].Total >= 200)
-                {
+                if (progress.ProcessedUsers.Count(x => x.Value.Total == 0) > 5 && progress.ProcessedUsers[room].Total >= 200) {
                     progress.ProcessedUsers[room].Slowmode = true;
                     await Task.Delay(progress.ProcessedUsers[room].Total >= 500 ? 1000 : 100);
                 }
-                else
-                {
+                else {
                     progress.ProcessedUsers[room].Slowmode = false;
                 }
-                if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1]))
-                {
-                    homeServers.Add(new HomeServerInfo() { Server = state.StateKey.Split(':')[1] });
+                if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) {
+                    homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
                 }
                 var hs = homeServers.First(x => x.Server == state.StateKey.Split(':')[1]);
                 if (!hs.KnownUsers.Contains(state.StateKey.Split(':')[0]))
                     hs.KnownUsers.Add(state.StateKey.Split(':')[0]);
-                if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback != null)
-                {
+                if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback != null) {
                     await semLock.WaitAsync();
                     var _ = await progressCallback.Invoke(progress);
                     semLock.Release();
@@ -148,29 +127,26 @@ else
         return homeServers;
     }
 
-    class HomeServerInfo
-    {
+    class HomeServerInfo {
         public string Server { get; set; }
         public int? KnownUserCount { get; set; }
-        public List<string> KnownUsers { get; set; } = new();
+        public List<string> KnownUsers { get; } = new();
     }
 
-    class HomeServerInfoQueryProgress
-    {
+    class HomeServerInfoQueryProgress {
         public int ProcessedRooms { get; set; }
         public int TotalRooms { get; set; }
-        public Dictionary<Room, State> ProcessedUsers { get; set; } = new();
+        public Dictionary<Room, State> ProcessedUsers { get; } = new();
         public List<HomeServerInfo> CurrentState { get; set; } = new();
 
-        public class State
-        {
+        public class State {
             public int Processed { get; set; }
             public int Total { get; set; }
             public bool Blocked { get; set; }
             public bool Slowmode { get; set; }
             public float Progress => (float)Processed / Total;
             public bool IsFinished { get; set; }
-            public Stopwatch Timing { get; set; } = Stopwatch.StartNew();
+            public Stopwatch Timing { get; } = Stopwatch.StartNew();
         }
     }
 

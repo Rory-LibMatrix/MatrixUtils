@@ -1,6 +1,6 @@
 @page "/Login"
-@using System.Text.Json
 @using MatrixRoomUtils.Core.Authentication
+@using System.Text.Json
 @using MatrixRoomUtils.Web.Shared.SimpleComponents
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
@@ -27,8 +27,7 @@
 <h4>Parsed records</h4>
 <hr/>
 <table border="1">
-    @foreach (var (homeserver, username, password) in records)
-    {
+    @foreach (var (homeserver, username, password) in records) {
         <tr style="background-color: @(RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
             <td style="border-width: 1px;">@username</td>
             <td style="border-width: 1px;">@homeserver</td>
@@ -41,19 +40,16 @@
 <LogView></LogView>
 
 @code {
-    List<(string homeserver, string username, string password)> records = new();
+    readonly List<(string homeserver, string username, string password)> records = new();
     (string homeserver, string username, string password) newRecordInput = ("", "", "");
 
-    async Task Login()
-    {
-        foreach (var (homeserver, username, password) in records)
-        {
+    async Task Login() {
+        foreach (var (homeserver, username, password) in records) {
             if (RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
             var result = await MatrixAuth.Login(homeserver, username, password);
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-            var userinfo = new UserInfo()
-            {
+            var userinfo = new UserInfo {
                 LoginResponse = result
             };
             userinfo.Profile = await (await new AuthenticatedHomeServer(result.UserId, result.AccessToken, result.HomeServer).Configure()).GetProfile(result.UserId);
@@ -66,18 +62,15 @@
         await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
     }
 
-    private async Task FileChanged(InputFileChangeEventArgs obj)
-    {
-        Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions()
-        {
+    private async Task FileChanged(InputFileChangeEventArgs obj) {
+        Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions {
             WriteIndented = true
         }));
         await using var rs = obj.File.OpenReadStream();
         using var sr = new StreamReader(rs);
-        string TsvData = await sr.ReadToEndAsync();
+        var TsvData = await sr.ReadToEndAsync();
         records.Clear();
-        foreach (var line in TsvData.Split('\n'))
-        {
+        foreach (var line in TsvData.Split('\n')) {
             var parts = line.Split('\t');
             if (parts.Length != 3)
                 continue;
@@ -85,8 +78,7 @@
         }
     }
 
-    private void AddRecord()
-    {
+    private void AddRecord() {
         records.Add(newRecordInput);
         newRecordInput = ("", "", "");
     }

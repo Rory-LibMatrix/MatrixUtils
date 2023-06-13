@@ -12,8 +12,7 @@
 <br/>
 <InputSelect @bind-Value="shownStateKey">
     <option value="">-- State key --</option>
-    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey != "").Select(x => x.StateKey).Distinct().OrderBy(x => x))
-    {
+    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey != "").Select(x => x.StateKey).Distinct().OrderBy(x => x)) {
         <option value="@stateEvent">@stateEvent</option>
         Console.WriteLine(stateEvent);
     }
@@ -21,8 +20,7 @@
 <br/>
 <InputSelect @bind-Value="shownType">
     <option value="">-- Type --</option>
-    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey != shownStateKey).Select(x => x.Type).Distinct().OrderBy(x => x))
-    {
+    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey != shownStateKey).Select(x => x.Type).Distinct().OrderBy(x => x)) {
         <option value="@stateEvent">@stateEvent</option>
     }
 </InputSelect>
@@ -45,12 +43,10 @@
     public List<StateEventResponse> Events { get; set; } = new();
     public string status = "";
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer != null)
-        {
+        if (RuntimeCache.CurrentHomeServer != null) {
             NavigationManager.NavigateTo("/Login");
             return;
         }
@@ -61,34 +57,29 @@
 
     private DateTime _lastUpdate = DateTime.Now;
 
-    private async Task LoadStatesAsync()
-    {
-        int StateLoaded = 0;
+    private async Task LoadStatesAsync() {
+        var StateLoaded = 0;
         using var client = new HttpClient();
-        //TODO: can this be improved?
+    //TODO: can this be improved?
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
         var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/r0/rooms/{RoomId}/state");
     // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
     //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
         var _data = await response.Content.ReadAsStreamAsync();
         var __events = JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(_data);
-        await foreach (var _ev in __events)
-        {
-            var e = new StateEventResponse()
-            {
+        await foreach (var _ev in __events) {
+            var e = new StateEventResponse {
                 Type = _ev.Type,
                 StateKey = _ev.StateKey,
                 OriginServerTs = _ev.OriginServerTs,
                 Content = _ev.Content
             };
             Events.Add(e);
-            if (string.IsNullOrEmpty(e.StateKey))
-            {
+            if (string.IsNullOrEmpty(e.StateKey)) {
                 FilteredEvents.Add(e);
             }
             StateLoaded++;
-            if ((DateTime.Now - _lastUpdate).TotalMilliseconds > 100)
-            {
+            if ((DateTime.Now - _lastUpdate).TotalMilliseconds > 100) {
                 _lastUpdate = DateTime.Now;
                 status = $"Loaded {StateLoaded} state events";
                 StateHasChanged();
@@ -99,8 +90,7 @@
         StateHasChanged();
     }
 
-    private async Task RebuildFilteredData()
-    {
+    private async Task RebuildFilteredData() {
         status = "Rebuilding filtered data...";
         StateHasChanged();
         await Task.Delay(1);
@@ -112,16 +102,14 @@
         StateHasChanged();
         await Task.Delay(1);
         FilteredEvents = _FilteredEvents;
-        
-        if(_shownType != null)
+
+        if (_shownType != null)
             shownEventJson = _FilteredEvents.Where(x => x.Type == _shownType).First().Content.ToJson(indent: true, ignoreNull: true);
-        
+
         StateHasChanged();
     }
 
-
-    public struct PreRenderedStateEvent
-    {
+    public struct PreRenderedStateEvent {
         public string content { get; set; }
         public long origin_server_ts { get; set; }
         public string state_key { get; set; }
@@ -132,11 +120,9 @@
     // public string ReplacesState { get; set; }
     }
 
-    public bool ShowMembershipEvents
-    {
+    public bool ShowMembershipEvents {
         get => _showMembershipEvents;
-        set
-        {
+        set {
             _showMembershipEvents = value;
             RebuildFilteredData();
         }
@@ -146,21 +132,17 @@
     private string _shownStateKey;
     private string _shownType;
 
-    private string shownStateKey
-    {
+    private string shownStateKey {
         get => _shownStateKey;
-        set
-        {
+        set {
             _shownStateKey = value;
             RebuildFilteredData();
         }
     }
 
-    private string shownType
-    {
+    private string shownType {
         get => _shownType;
-        set
-        {
+        set {
             _shownType = value;
             RebuildFilteredData();
         }

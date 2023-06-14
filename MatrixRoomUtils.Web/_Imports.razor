@@ -11,13 +11,18 @@
 @using MatrixRoomUtils.Web
 @using MatrixRoomUtils.Web.Classes
 @using MatrixRoomUtils.Web.Shared
+@using MatrixRoomUtils.Core.RoomTypes
+@using MatrixRoomUtils.Core.Extensions
+
+@using LinkButton = MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton
+
+
 
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 
 @code
 {
-
     protected override async Task OnInitializedAsync() {
         if (!RuntimeCache.WasLoaded) {
             await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);

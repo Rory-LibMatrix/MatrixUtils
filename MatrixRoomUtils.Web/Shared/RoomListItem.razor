@@ -2,7 +2,7 @@
 @using System.Text.Json
 <div class="roomListItem" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (ShowOwnProfile) {
-        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(profileAvatar) ? "" : "imageLoaded")" style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@(profileAvatar ?? "/icon-192.png")" @onload="Callback"/>
+        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(profileAvatar) ? "" : "imageLoaded")" style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@(profileAvatar ?? "/icon-192.png")" />
         <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(hasCustomProfileName ? "background-color: red;" : "")">@(profileName ?? "Loading...")</span>
         <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
     }
@@ -51,7 +51,7 @@
 
         await _semaphoreSlim.WaitAsync();
 
-        var hs = RuntimeCache.CurrentHomeServer; //await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
+        var hs = RuntimeCache.CurrentHomeServer;
 
         if (Room == null) {
             if (RoomId == null) {
@@ -118,7 +118,5 @@
         if (Random.Shared.Next(100) == 1)
             await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
-
-    private void Callback(ProgressEventArgs obj) => Console.WriteLine("prog: " + obj.ToJson(false));
 
 }

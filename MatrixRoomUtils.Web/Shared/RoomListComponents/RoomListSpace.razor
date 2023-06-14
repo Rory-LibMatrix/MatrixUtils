@@ -1,0 +1,42 @@
+<LinkButton href="@($"/Rooms/{Space.RoomId}/Space")">Manage space</LinkButton>
+
+<br/>
+<details @ontoggle="SpaceChildrenOpened">
+    <summary>@Children.Count children</summary>
+    @if (_shouldRenderChildren) {
+        <p>Breadcrumb: @Breadcrumbs</p>
+        <div style="margin-left: 8px;">
+            <RoomList Rooms="Children"></RoomList>
+        </div>
+    }
+</details>
+
+@code {
+
+    [Parameter]
+    public Room Space { get; set; }
+
+    [Parameter, CascadingParameter]
+    public string? Breadcrumbs {
+        get => _breadcrumbs + Space.RoomId;
+        set => _breadcrumbs = value;
+    }
+
+    private List<Room> Children { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));
+        Children = (await Space.AsSpace.GetRoomsAsync()).Where(x => !Breadcrumbs.Contains(x.RoomId)).ToList();
+        await base.OnInitializedAsync();
+    }
+
+    private bool _shouldRenderChildren = false;
+    private string? _breadcrumbs;
+
+    private async Task SpaceChildrenOpened() {
+        if (_shouldRenderChildren) return;
+        _shouldRenderChildren = true;
+        Console.WriteLine($"[RoomList] Rendering children of {Space.RoomId}");
+    }
+
+}

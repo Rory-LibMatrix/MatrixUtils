@@ -1,0 +1,22 @@
+@page "/Rooms"
+<h3>Room list</h3>
+
+@if (Rooms != null) {
+    <RoomList Rooms="Rooms"></RoomList>
+}
+
+
+@code {
+
+    private List<Room> Rooms { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+
+        Rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+
+        await base.OnInitializedAsync();
+    }
+
+}

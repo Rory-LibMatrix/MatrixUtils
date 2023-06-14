@@ -1,0 +1,13 @@
+<a href="@href" class="btn btn-primary">
+    @ChildContent
+</a>
+
+@code {
+    
+    [Parameter]
+    public string href { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+}

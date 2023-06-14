@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.RoomTypes;
 
 namespace MatrixRoomUtils.Core;
 
@@ -12,6 +13,8 @@ public class Room {
     public Room(HttpClient httpClient, string roomId) {
         _httpClient = httpClient;
         RoomId = roomId;
+        if(GetType() != typeof(SpaceRoom))
+            AsSpace = new SpaceRoom(_httpClient, RoomId);
     }
 
     public string RoomId { get; set; }
@@ -137,6 +140,16 @@ public class Room {
 
         return res.Value.Deserialize<CreateEvent>() ?? new CreateEvent();
     }
+
+    public async Task<string?> GetRoomType() {
+        var res = await GetStateAsync("m.room.create");
+        if (!res.HasValue) return null;
+        if (res.Value.TryGetProperty("type", out var type)) return type.GetString();
+        return null;
+    }
+
+
+    public SpaceRoom AsSpace;
 }
 
 public class MessagesResponse {

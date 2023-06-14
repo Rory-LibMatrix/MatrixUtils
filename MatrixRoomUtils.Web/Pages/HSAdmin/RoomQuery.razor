@@ -18,19 +18,26 @@
 <button class="btn btn-primary" @onclick="Search">Search</button>
 <br/>
 
+@if (Results.Count > 0) {
+    <p>Found @Results.Count rooms</p>
+}
+
 @foreach (var res in Results) {
     <div style="background-color: #ffffff11; border-radius: 0.5em; display: block; margin-top: 4px; padding: 4px;">
         <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem>
         <p>
-            @res.CanonicalAlias
+            @if (!string.IsNullOrWhiteSpace(res.CanonicalAlias)) {
+                <span>@res.CanonicalAlias (@res.RoomId)</span><br/>
+            }
+            else {
+                <span>@res.RoomId</span><br/>
+            }
             @if (!string.IsNullOrWhiteSpace(res.Creator)) {
-                <span>
-                    , created by <InlineUserItem UserId="@res.Creator"></InlineUserItem>
-                </span>
+                <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span><br/>
             }
         </p>
-        <p>@res.StateEvents state events</p>
-        <p>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</p>
+        <span>@res.StateEvents state events</span><br/>
+        <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</span>
     </div>
 }
 
@@ -41,11 +48,11 @@
     public string? OrderBy { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "search_term")]
+    [SupplyParameterFromQuery(Name = "name_search")]
     public string SearchTerm { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "content_search_term")]
+    [SupplyParameterFromQuery(Name = "content_search")]
     public string ContentSearchTerm { get; set; }
 
     [Parameter]
@@ -69,6 +76,8 @@
             var room = searchRooms.Current;
             Console.WriteLine("Hit: " + room.ToJson(false));
             Results.Add(room);
+            if (Results.Count % 10 == 0)
+                StateHasChanged();
         }
     }
 

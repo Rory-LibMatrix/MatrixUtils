@@ -7,17 +7,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Blazored.LocalStorage" Version="4.3.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.3"/>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.3" PrivateAssets="all"/>
+        <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.3" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj"/>
+        <ProjectReference Include="..\MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Shared\TimelineComponents\TimelineMessageComponents"/>
+        <Folder Include="Shared\TimelineComponents\TimelineMessageComponents" />
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,5 @@
+.fancy-textbox-inline {
+    border-bottom: #ccc solid 1px;
+    height: 1.4em;
+    display: inline-block;
+}

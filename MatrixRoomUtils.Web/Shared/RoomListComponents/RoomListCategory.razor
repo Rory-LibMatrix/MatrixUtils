@@ -1,0 +1,24 @@
+<details>
+    <summary>@roomType (@rooms.Count)</summary>
+    @foreach (var room in rooms) {
+        <div class="room-list-item">
+            <RoomListItem Room="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
+            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
+            
+            @if (roomType == "Space") {
+                <RoomListSpace Space="@room"></RoomListSpace>
+            }
+        </div>
+    }
+</details>
+<br/>
+
+@code {
+
+    [Parameter]
+    public KeyValuePair<string, List<Room>> Category { get; set; }
+
+    private string roomType => Category.Key;
+    private List<Room> rooms => Category.Value;
+    
+}

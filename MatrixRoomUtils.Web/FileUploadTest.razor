@@ -6,7 +6,7 @@
 
 @code {
 
-    private async void FilePicked(InputFileChangeEventArgs obj) {
+    private async Task FilePicked(InputFileChangeEventArgs obj) {
         Console.WriteLine("FilePicked");
         Console.WriteLine(obj.File.Name);
         Console.WriteLine(obj.File.Size);

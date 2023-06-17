@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Filters;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.Responses.Admin;
@@ -73,7 +74,7 @@ public class AuthenticatedHomeServer : IHomeServer {
 
         public HomeserverAdminApi(AuthenticatedHomeServer authenticatedHomeServer) => _authenticatedHomeServer = authenticatedHomeServer;
 
-        public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f", string? searchTerm = null, string? contentSearch = null) {
+        public async IAsyncEnumerable<AdminRoomListingResult.AdminRoomListingResultRoom> SearchRoomsAsync(int limit = int.MaxValue, string orderBy = "name", string dir = "f", string? searchTerm = null, LocalRoomQueryFilter? localFilter = null) {
             AdminRoomListingResult? res = null;
             var i = 0;
             int? totalRooms = null;
@@ -89,16 +90,72 @@ public class AuthenticatedHomeServer : IHomeServer {
                 totalRooms ??= res?.TotalRooms;
                 Console.WriteLine(res.ToJson(false));
                 foreach (var room in res.Rooms) {
-                    if (contentSearch != null && !string.IsNullOrEmpty(contentSearch) &&
-                        !(
-                            room.Name?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||
-                            room.CanonicalAlias?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||
-                            room.Creator?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true
-                        )
-                       ) {
-                        totalRooms--;
-                        continue;
+                    if (localFilter != null) {
+                        if (!room.RoomId.Contains(localFilter.RoomIdContains)) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.Name?.Contains(localFilter.NameContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.CanonicalAlias?.Contains(localFilter.CanonicalAliasContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.Version.Contains(localFilter.VersionContains)) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.Creator.Contains(localFilter.CreatorContains)) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.Encryption?.Contains(localFilter.EncryptionContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if (!room.JoinRules?.Contains(localFilter.JoinRulesContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if(!room.GuestAccess?.Contains(localFilter.GuestAccessContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if(!room.HistoryVisibility?.Contains(localFilter.HistoryVisibilityContains) == true) {
+                            totalRooms--;
+                            continue;
+                        }
+                        
+                        if(localFilter.CheckFederation && room.Federatable != localFilter.Federatable) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if(localFilter.CheckPublic && room.Public != localFilter.Public) {
+                            totalRooms--;
+                            continue;
+                        }
+                        
+                        if(room.JoinedMembers < localFilter.JoinedMembersGreaterThan || room.JoinedMembers > localFilter.JoinedMembersLessThan) {
+                            totalRooms--;
+                            continue;
+                        }
+                        if(room.JoinedLocalMembers < localFilter.JoinedLocalMembersGreaterThan || room.JoinedLocalMembers > localFilter.JoinedLocalMembersLessThan) {
+                            totalRooms--;
+                            continue;
+                        }
                     }
+                    // if (contentSearch != null && !string.IsNullOrEmpty(contentSearch) &&
+                    //     !(
+                    //         room.Name?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||
+                    //         room.CanonicalAlias?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||
+                    //         room.Creator?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true
+                    //     )
+                    //    ) {
+                    //     totalRooms--;
+                    //     continue;
+                    // }
 
                     i++;
                     yield return room;

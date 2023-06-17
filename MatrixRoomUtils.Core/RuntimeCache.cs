@@ -27,7 +27,7 @@ public class RuntimeCache {
 
     public static Dictionary<string, ObjectCache<object>> GenericResponseCache { get; set; } = new();
 
-    public static Action Save { get; set; } = () => { Console.WriteLine("RuntimeCache.Save() was called, but no callback was set!"); };
+    public static Task Save { get; set; } = new Task(() => { Console.WriteLine("RuntimeCache.Save() was called, but no callback was set!"); });
     public static Action<string, object> SaveObject { get; set; } = (key, value) => { Console.WriteLine($"RuntimeCache.SaveObject({key}, {value}) was called, but no callback was set!"); };
     public static Action<string> RemoveObject { get; set; } = key => { Console.WriteLine($"RuntimeCache.RemoveObject({key}) was called, but no callback was set!"); };
 }

@@ -1,4 +1,5 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('jetbrains-mono/jetbrains-mono.css');
 
 article > h3:first-child {
     padding-top: 24px;
@@ -113,4 +114,8 @@ a, .btn-link {
 
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Loading");
+}
+
+pre {
+    font-family: JetBrainsMono, var(--bs-font-monospace);
 }

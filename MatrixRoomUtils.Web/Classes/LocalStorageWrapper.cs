@@ -10,11 +10,13 @@ public class LocalStorageWrapper {
     //some basic logic
     public static async Task InitialiseRuntimeVariables(ILocalStorageService localStorage) {
         //RuntimeCache stuff
-        async void Save() => await SaveToLocalStorage(localStorage);
-
+        async Task Save() => await SaveToLocalStorage(localStorage);
+        async Task SaveObject(string key, object obj) => await localStorage.SetItemAsync(key, obj);
+        async Task RemoveObject(string key) => await localStorage.RemoveItemAsync(key);
+        
         RuntimeCache.Save = Save;
-        RuntimeCache.SaveObject = async (key, obj) => await localStorage.SetItemAsync(key, obj);
-        RuntimeCache.RemoveObject = async key => await localStorage.RemoveItemAsync(key);
+        RuntimeCache.SaveObject = SaveObject;
+        RuntimeCache.RemoveObject = RemoveObject;
         if (RuntimeCache.LastUsedToken != null) {
             Console.WriteLine("Access token is not null, creating authenticated home server");
             Console.WriteLine($"Homeserver cache: {RuntimeCache.HomeserverResolutionCache.Count} entries");

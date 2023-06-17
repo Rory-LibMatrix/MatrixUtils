@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
 using MatrixRoomUtils.Web;
+using MatrixRoomUtils.Web.Classes;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -19,5 +20,9 @@ builder.Services.AddBlazoredLocalStorage(config => {
     config.JsonSerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip;
     config.JsonSerializerOptions.WriteIndented = false;
 });
+
+builder.Services.AddSingleton<LocalStorageProviderService>();
+builder.Services.AddSingleton<SessionStorageProviderService>();
+builder.Services.AddSingleton<TieredStorage<LocalStorageProviderService, SessionStorageProviderService>>();
 
 await builder.Build().RunAsync();

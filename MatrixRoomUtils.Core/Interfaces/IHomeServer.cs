@@ -21,7 +21,7 @@ public class IHomeServer {
 
     private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
         if (RuntimeCache.HomeserverResolutionCache.Count == 0) {
-            Console.WriteLine("No cached homeservers, resolving...");
+            // Console.WriteLine("No cached homeservers, resolving...");
             await Task.Delay(Random.Shared.Next(1000, 5000));
         }
 

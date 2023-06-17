@@ -1,12 +1,13 @@
 @page "/HSAdmin/RoomQuery"
 @using MatrixRoomUtils.Core.Extensions
+@using MatrixRoomUtils.Core.Filters
 @using MatrixRoomUtils.Core.Responses.Admin
+@using MatrixRoomUtils.Web.Shared.SimpleComponents
+
 <h3>Homeserver Administration - Room Query</h3>
 
 <label>Search name: </label>
 <InputText @bind-Value="SearchTerm"/><br/>
-<label>Search id/name/creator (slow!): </label>
-<InputText @bind-Value="ContentSearchTerm"/><br/>
 <label>Order by: </label>
 <select @bind="OrderBy">
     @foreach (var item in validOrderBy) {
@@ -15,11 +16,69 @@
 </select><br/>
 <label>Ascending: </label>
 <InputCheckbox @bind-Value="Ascending"/><br/>
+<details>
+    <summary>
+        <span>Local filtering (slow)</span>
+
+    </summary>
+    <div style="margin-left: 8px; margin-bottom: 8px;">
+        <u style="display: block;">String contains</u>
+        <span class="tile tile280">Room ID: <FancyTextBox @bind-Value="@Filter.RoomIdContains"></FancyTextBox></span>
+        <span class="tile tile280">Room name: <FancyTextBox @bind-Value="@Filter.NameContains"></FancyTextBox></span>
+        <span class="tile tile280">Canonical alias: <FancyTextBox @bind-Value="@Filter.CanonicalAliasContains"></FancyTextBox></span>
+        <span class="tile tile280">Creator: <FancyTextBox @bind-Value="@Filter.CreatorContains"></FancyTextBox></span>
+        <span class="tile tile280">Room version: <FancyTextBox @bind-Value="@Filter.VersionContains"></FancyTextBox></span>
+        <span class="tile tile280">Encryption algorithm: <FancyTextBox @bind-Value="@Filter.EncryptionContains"></FancyTextBox></span>
+        <span class="tile tile280">Join rules: <FancyTextBox @bind-Value="@Filter.JoinRulesContains"></FancyTextBox></span>
+        <span class="tile tile280">Guest access: <FancyTextBox @bind-Value="@Filter.GuestAccessContains"></FancyTextBox></span>
+        <span class="tile tile280">History visibility: <FancyTextBox @bind-Value="@Filter.HistoryVisibilityContains"></FancyTextBox></span>
+
+        <u style="display: block;">Optional checks</u>
+        <span class="tile tile150">
+            <InputCheckbox @bind-Value="@Filter.CheckFederation"></InputCheckbox> Is federated:
+            @if (Filter.CheckFederation) {
+                <InputCheckbox @bind-Value="@Filter.Federatable"></InputCheckbox>
+            }
+        </span>
+        <span class="tile tile150">
+            <InputCheckbox @bind-Value="@Filter.CheckPublic"></InputCheckbox> Is public:
+            @if (Filter.CheckPublic) {
+                <InputCheckbox @bind-Value="@Filter.Public"></InputCheckbox>
+            }
+        </span>
+
+        <u style="display: block;">Ranges</u>
+        <span class="tile center-children">
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsGreaterThan"></InputNumber><span class="range-sep">state events</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsLessThan"></InputNumber>
+        </span>
+        <span class="tile center-children">
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersGreaterThan"></InputNumber><span class="range-sep">members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersLessThan"></InputNumber>
+        </span>
+        <span class="tile center-children">
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersGreaterThan"></InputNumber><span class="range-sep">local members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersLessThan"></InputNumber>
+        </span>
+    </div>
+</details>
 <button class="btn btn-primary" @onclick="Search">Search</button>
 <br/>
 
 @if (Results.Count > 0) {
     <p>Found @Results.Count rooms</p>
+    <details>
+        <summary>TSV data (copy/paste)</summary>
+        <pre style="font-size: 0.6em;">
+            <table>
+                @foreach (var res in Results) {
+                    <tr>
+                        <td style="padding: 8px;">@res.RoomId@("\t")</td>
+                        <td style="padding: 8px;">@res.CanonicalAlias@("\t")</td>
+                        <td style="padding: 8px;">@res.Creator@("\t")</td>
+                        <td style="padding: 8px;">@res.Name</td>
+                    </tr>
+                }
+            </table>
+        </pre>
+    </details>
 }
 
 @foreach (var res in Results) {
@@ -27,19 +86,57 @@
         <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem>
         <p>
             @if (!string.IsNullOrWhiteSpace(res.CanonicalAlias)) {
-                <span>@res.CanonicalAlias (@res.RoomId)</span><br/>
+                <span>@res.CanonicalAlias (@res.RoomId)</span>
+                <br/>
             }
             else {
-                <span>@res.RoomId</span><br/>
+                <span>@res.RoomId</span>
+                <br/>
             }
             @if (!string.IsNullOrWhiteSpace(res.Creator)) {
-                <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span><br/>
+                <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span>
+                <br/>
             }
         </p>
         <span>@res.StateEvents state events</span><br/>
         <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</span>
+        <details>
+            <summary>Full result data</summary>
+            <pre>@res.ToJson(ignoreNull: true)</pre>
+        </details>
     </div>
 }
+
+<style>
+    .int-input {
+        width: 128px;
+    }
+    .tile {
+        display: inline-block;
+        padding: 4px;
+        border: 1px solid #ffffff22;
+    }
+    .tile280 {
+        min-width: 280px;
+    }
+    .tile150 {
+        min-width: 150px;
+    }
+    .range-sep { 
+        display: inline-block;
+        padding: 4px;
+        width: 150px;
+    }
+    .range-sep::before {
+        content: "@("<") ";
+    }
+    .range-sep::after {
+        content: " @("<")";
+    }
+    .center-children {
+        text-align: center;
+    }
+</style>
 
 @code {
 
@@ -52,16 +149,14 @@
     public string SearchTerm { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "content_search")]
-    public string ContentSearchTerm { get; set; }
-
-    [Parameter]
     [SupplyParameterFromQuery(Name = "ascending")]
     public bool Ascending { get; set; }
 
     public List<AdminRoomListingResult.AdminRoomListingResultRoom> Results { get; set; } = new();
 
     private string Status { get; set; }
+
+    public LocalRoomQueryFilter Filter { get; set; } = new();
 
     protected override async Task OnParametersSetAsync() {
         if (Ascending == null)
@@ -71,7 +166,7 @@
 
     private async Task Search() {
         Results.Clear();
-        var searchRooms = RuntimeCache.CurrentHomeServer.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, contentSearch: ContentSearchTerm).GetAsyncEnumerator();
+        var searchRooms = RuntimeCache.CurrentHomeServer.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
         while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
             Console.WriteLine("Hit: " + room.ToJson(false));

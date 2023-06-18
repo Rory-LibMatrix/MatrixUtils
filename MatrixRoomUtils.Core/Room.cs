@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.RoomTypes;
 
 namespace MatrixRoomUtils.Core;

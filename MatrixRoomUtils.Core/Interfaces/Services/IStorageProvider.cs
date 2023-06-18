@@ -1,3 +1,5 @@
+namespace MatrixRoomUtils.Core.Interfaces.Services; 
+
 public interface IStorageProvider {
     // save 
     public async Task SaveAll() {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MatrixRoomUtils.Core;
+namespace MatrixRoomUtils.Core.Responses;
 
 public class StateEventResponse : StateEvent {
     [JsonPropertyName("origin_server_ts")]

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core.RoomTypes;
 

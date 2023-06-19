@@ -7,15 +7,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.3"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.7" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MatrixRoomUtils.Web\MatrixRoomUtils.Web.csproj"/>
+        <ProjectReference Include="..\MatrixRoomUtils.Web\MatrixRoomUtils.Web.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Controllers"/>
+        <Folder Include="Controllers" />
     </ItemGroup>
 
 

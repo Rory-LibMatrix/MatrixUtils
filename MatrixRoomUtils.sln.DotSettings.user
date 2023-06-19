@@ -1,5 +1,8 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/CodeInspection/Highlighting/SweaWarningsMode/@EntryValue">ShowAndRun</s:String>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=244e90fe_002Dee26_002D4f78_002D86eb_002D27529ae48905_0023MatrixRoomUtils/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=d38da95d_002Ddd83_002D4340_002D96a4_002D6f59fc6ae3d9_0023MatrixRoomUtils_002EWeb/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=f997f26f_002D2ec1_002D4d18_002Db3dd_002Dc46fb2ad65c0_0023MatrixRoomUtils_002EWeb_002EServer/@EntryIndexedValue">True</s:Boolean>
 	
 	
 	

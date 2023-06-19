@@ -4,24 +4,29 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Filters;
+using MatrixRoomUtils.Core.Helpers;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.Responses.Admin;
+using MatrixRoomUtils.Core.Services;
 
 namespace MatrixRoomUtils.Core;
 
 public class AuthenticatedHomeServer : IHomeServer {
+    private readonly TieredStorageService _storage;
     public readonly HomeserverAdminApi Admin;
+    public readonly SyncHelper SyncHelper;
 
-    public AuthenticatedHomeServer(string userId, string accessToken, string canonicalHomeServerDomain) {
-        UserId = userId;
+    public AuthenticatedHomeServer(string canonicalHomeServerDomain, string accessToken, TieredStorageService storage) {
+        _storage = storage;
         AccessToken = accessToken;
         HomeServerDomain = canonicalHomeServerDomain;
         Admin = new HomeserverAdminApi(this);
+        SyncHelper = new SyncHelper(this, storage);
         _httpClient = new MatrixHttpClient();
     }
 
-    public string UserId { get; set; }
+    public string UserId { get; }
     public string AccessToken { get; set; }
 
     public async Task<AuthenticatedHomeServer> Configure() {

@@ -33,7 +33,7 @@
 
         await _semaphoreSlim.WaitAsync();
 
-        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.UserId, RuntimeCache.CurrentHomeServer.AccessToken, RuntimeCache.CurrentHomeServer.HomeServerDomain).Configure();
+        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.HomeServerDomain, RuntimeCache.CurrentHomeServer.AccessToken, TODO).Configure();
 
         if (User == null) {
             if (UserId == null) {

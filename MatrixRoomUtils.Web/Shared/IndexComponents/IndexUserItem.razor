@@ -22,7 +22,7 @@
     private int _roomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync() {
-        var hs = await new AuthenticatedHomeServer(User.LoginResponse.UserId, User.AccessToken, User.LoginResponse.HomeServer).Configure();
+        var hs = await new AuthenticatedHomeServer(User.LoginResponse.HomeServer, User.AccessToken, TODO).Configure();
         if (User.Profile.AvatarUrl != null && User.Profile.AvatarUrl != "")
             _avatarUrl = hs.ResolveMediaUri(User.Profile.AvatarUrl);
         else _avatarUrl = "https://api.dicebear.com/6.x/identicon/svg?seed=" + User.LoginResponse.UserId;

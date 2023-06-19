@@ -10,19 +10,18 @@ public class LocalStorageWrapper {
     //some basic logic
     public static async Task InitialiseRuntimeVariables(ILocalStorageService localStorage) {
         //RuntimeCache stuff
-        async Task Save() => await SaveToLocalStorage(localStorage);
-        async Task SaveObject(string key, object obj) => await localStorage.SetItemAsync(key, obj);
-        async Task RemoveObject(string key) => await localStorage.RemoveItemAsync(key);
-        
-        RuntimeCache.Save = Save;
-        RuntimeCache.SaveObject = SaveObject;
-        RuntimeCache.RemoveObject = RemoveObject;
+        // async Task Save() => await SaveToLocalStorage(localStorage);
+        // async Task SaveObject(string key, object obj) => await localStorage.SetItemAsync(key, obj);
+        // async Task RemoveObject(string key) => await localStorage.RemoveItemAsync(key);
+        //
+        // RuntimeCache.Save = Save;
+        // RuntimeCache.SaveObject = SaveObject;
+        // RuntimeCache.RemoveObject = RemoveObject;
         if (RuntimeCache.LastUsedToken != null) {
             Console.WriteLine("Access token is not null, creating authenticated home server");
             Console.WriteLine($"Homeserver cache: {RuntimeCache.HomeserverResolutionCache.Count} entries");
             // Console.WriteLine(RuntimeCache.HomeserverResolutionCache.ToJson());
-            RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.UserId, RuntimeCache.LastUsedToken,
-                RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer).Configure();
+            RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer, RuntimeCache.LastUsedToken, TODO).Configure();
             Console.WriteLine("Created authenticated home server");
         }
     }

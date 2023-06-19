@@ -10,7 +10,7 @@ public class IHomeServer {
     public string HomeServerDomain { get; set; }
     public string FullHomeServerDomain { get; set; }
 
-    private protected MatrixHttpClient _httpClient { get; set; } = new();
+    protected internal MatrixHttpClient _httpClient { get; set; } = new();
 
     public async Task<string> ResolveHomeserverFromWellKnown(string homeserver) {
         var res = await _resolveHomeserverFromWellKnown(homeserver);

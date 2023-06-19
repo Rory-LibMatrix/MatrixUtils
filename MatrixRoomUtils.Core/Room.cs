@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
@@ -148,11 +149,57 @@ public class Room {
         if (res.Value.TryGetProperty("type", out var type)) return type.GetString();
         return null;
     }
+    
+    public async Task ForgetAsync() {
+        var res = await _httpClient.PostAsync($"/_matrix/client/r0/rooms/{RoomId}/forget", null);
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to forget room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to forget room {RoomId} - got status: {res.StatusCode}");
+        }
+    }
+    
+    public async Task LeaveAsync(string? reason = null) {
+        var res = await _httpClient.PostAsync($"/_matrix/client/r0/rooms/{RoomId}/leave", string.IsNullOrWhiteSpace(reason) ? null : new StringContent($"{{\"reason\":\"{reason}\"}}", Encoding.UTF8, "application/json"));
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to leave room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to leave room {RoomId} - got status: {res.StatusCode}");
+        }
+    }
+    
+    public async Task KickAsync(string userId, string? reason = null) {
+       
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/r0/rooms/{RoomId}/kick", new UserIdAndReason() { user_id = userId, reason = reason });
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to kick {userId} from room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to kick {userId} from room {RoomId} - got status: {res.StatusCode}");
+        }
+    }
+    
+    public async Task BanAsync(string userId, string? reason = null) {
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/r0/rooms/{RoomId}/ban", new UserIdAndReason() { user_id = userId, reason = reason });
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to ban {userId} from room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to ban {userId} from room {RoomId} - got status: {res.StatusCode}");
+        }
+    }
+    
+    public async Task UnbanAsync(string userId) {
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/r0/rooms/{RoomId}/unban", new UserIdAndReason() { user_id = userId });
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to unban {userId} from room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to unban {userId} from room {RoomId} - got status: {res.StatusCode}");
+        }
+    }
+    
 
 
-    public SpaceRoom AsSpace;
+    public readonly SpaceRoom AsSpace;
 }
 
+internal class UserIdAndReason {
+    public string user_id { get; set; }
+    public string? reason { get; set; }
+}
 public class MessagesResponse {
     [JsonPropertyName("start")]
     public string Start { get; set; }

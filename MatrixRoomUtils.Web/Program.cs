@@ -32,12 +32,10 @@ builder.Services.AddBlazoredSessionStorage(config => {
     config.JsonSerializerOptions.WriteIndented = false;
 });
 
-builder.Services.AddScoped<LocalStorageProviderService>();
-builder.Services.AddSingleton<SessionStorageProviderService>();
-builder.Services.AddSingleton<TieredStorageService>(x =>
+builder.Services.AddScoped<TieredStorageService>(x =>
     new(
-        x.GetRequiredService<SessionStorageProviderService>(),
-        x.GetRequiredService<LocalStorageProviderService>()
+        cacheStorageProvider: new SessionStorageProviderService(x.GetRequiredService<ISessionStorageService>()),
+        dataStorageProvider: new LocalStorageProviderService(x.GetRequiredService<ILocalStorageService>())
     )
 );
 

@@ -1,8 +1,11 @@
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core.StateEventTypes; 
 
-public class PresenceStateEventData {
+[MatrixEvent(EventName = "m.presence")]
+public class PresenceStateEventData : IStateEventType {
     [JsonPropertyName("presence")]
     public string Presence { get; set; }
     [JsonPropertyName("last_active_ago")]

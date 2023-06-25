@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core.Responses;
 
@@ -26,7 +27,7 @@ public class StateEventResponse : StateEvent {
 
     [JsonPropertyName("prev_content")]
     public dynamic PrevContent { get; set; }
-
+    
     public class UnsignedData {
         [JsonPropertyName("age")]
         public ulong Age { get; set; }
@@ -40,9 +41,4 @@ public class StateEventResponse : StateEvent {
         [JsonPropertyName("transaction_id")]
         public string? TransactionId { get; set; }
     }
-}
-
-public class StateEventResponse<T> : StateEventResponse where T : class {
-    [JsonPropertyName("content")]
-    public T Content { get; set; }
 }

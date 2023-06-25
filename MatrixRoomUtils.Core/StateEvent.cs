@@ -1,12 +1,20 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core;
 
 public class StateEvent {
-    [JsonPropertyName("content")]
-    public dynamic Content { get; set; } = new { };
+    public static List<Type> KnownStateEventTypes =
+        new ClassCollector<IStateEventType>().ResolveFromAllAccessibleAssemblies();
+
+    public object TypedContent {
+        get => RawContent.Deserialize(GetType)!;
+        set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value));
+    }
 
     [JsonPropertyName("state_key")]
     public string StateKey { get; set; } = "";
@@ -17,35 +25,40 @@ public class StateEvent {
     [JsonPropertyName("replaces_state")]
     public string? ReplacesState { get; set; }
 
-    //extra properties
-    [JsonIgnore]
-    public JsonNode ContentAsJsonNode {
-        get => JsonSerializer.SerializeToNode(Content);
-        set => Content = value;
+    [JsonPropertyName("content")]
+    public JsonObject? RawContent { get; set; }
+
+    public T1 GetContent<T1>() where T1 : IStateEventType {
+        return RawContent.Deserialize<T1>();
     }
 
+    [JsonIgnore]
+    public Type GetType {
+        get {
+            var type = StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
+                x.GetCustomAttribute<MatrixEventAttribute>()?.EventName == Type);
+            if (type == null) {
+                Console.WriteLine($"Warning: unknown event type '{Type}'!");
+                Console.WriteLine(RawContent.ToJson());
+                return typeof(object);
+            }
+
+            RawContent.FindExtraJsonObjectFields(type);
+            
+            return type;
+        }
+    }
+
+    //debug
     public string dtype {
         get {
             var res = GetType().Name switch {
-                "StateEvent`1" => $"StateEvent<{Content.GetType().Name}>",
+                "StateEvent`1" => $"StateEvent",
                 _ => GetType().Name
             };
             return res;
         }
     }
 
-    public StateEvent<T> As<T>() where T : class => (StateEvent<T>)this;
-}
-
-public class StateEvent<T> : StateEvent where T : class {
-    public StateEvent() {
-        //import base content if not an empty object
-        if (base.Content.GetType() == typeof(T)) {
-            Console.WriteLine($"StateEvent<{typeof(T)}> created with base content of type {base.Content.GetType()}. Importing base content.");
-            Content = base.Content;
-        }
-    }
-
-    [JsonPropertyName("content")]
-    public new T Content { get; set; }
+    public string cdtype => TypedContent.GetType().Name;
 }

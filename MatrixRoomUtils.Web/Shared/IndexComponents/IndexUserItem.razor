@@ -22,12 +22,13 @@
     private int _roomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync() {
-        var hs = await new AuthenticatedHomeServer(User.LoginResponse.HomeServer, User.AccessToken, TODO).Configure();
+        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+
         if (User.Profile.AvatarUrl != null && User.Profile.AvatarUrl != "")
-            _avatarUrl = hs.ResolveMediaUri(User.Profile.AvatarUrl);
+            _avatarUrl = RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.Profile.AvatarUrl);
         else _avatarUrl = "https://api.dicebear.com/6.x/identicon/svg?seed=" + User.LoginResponse.UserId;
         try {
-            _roomCount = (await hs.GetJoinedRooms()).Count;
+            _roomCount = (await RuntimeCache.CurrentHomeServer.GetJoinedRooms()).Count;
         }
         catch {
             _roomCount = -1;

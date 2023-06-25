@@ -63,7 +63,7 @@
         using var client = new HttpClient();
     //TODO: can this be improved?
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
-        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/r0/rooms/{RoomId}/state");
+        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/v3/rooms/{RoomId}/state");
     // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
     //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
         var _data = await response.Content.ReadAsStreamAsync();

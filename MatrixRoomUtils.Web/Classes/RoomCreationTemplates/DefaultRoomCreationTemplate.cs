@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using MatrixRoomUtils.Core;
 using MatrixRoomUtils.Core.Responses;
+using MatrixRoomUtils.Core.StateEventTypes;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
 
@@ -18,9 +19,9 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                         history_visibility = "world_readable"
                     }
                 },
-                new StateEvent<Pages.RoomManager.RoomManagerCreateRoom.GuestAccessContent> {
+                new StateEvent<GuestAccessData> {
                     Type = "m.room.guest_access",
-                    Content = new Pages.RoomManager.RoomManagerCreateRoom.GuestAccessContent {
+                    Content = new GuestAccessData {
                         GuestAccess = "can_join"
                     }
                 },

@@ -1,5 +1,4 @@
 @page "/PolicyListEditor/{RoomId}"
-@using MatrixRoomUtils.Core.Extensions
 @using MatrixRoomUtils.Core.StateEventTypes
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Responses
@@ -210,7 +209,7 @@ else {
     private async Task LoadStatesAsync() {
     // using var client = new HttpClient();
     // client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", LocalStorageWrapper.AccessToken);
-    // var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/r0/rooms/{RoomId}/state");
+    // var response = await client.GetAsync($"{LocalStorageWrapper.CurrentHomeserver}/_matrix/client/v3/rooms/{RoomId}/state");
     // var Content = await response.Content.ReadAsStringAsync();
     // Console.WriteLine(JsonSerializer.Deserialize<object>(Content).ToJson());
     // var stateEvents = JsonSerializer.Deserialize<List<StateEventResponse>>(Content);

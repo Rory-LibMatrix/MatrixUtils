@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
-using MatrixRoomUtils.Core.Responses;
+using MatrixRoomUtils.Core.StateEventTypes;
 
 namespace MatrixRoomUtils.Core.Interfaces;
 
@@ -91,7 +91,7 @@ public class IHomeServer {
         }
 
         _profileCache.Add(mxid, null);
-        var resp = await _httpClient.GetAsync($"/_matrix/client/r0/profile/{mxid}");
+        var resp = await _httpClient.GetAsync($"/_matrix/client/v3/profile/{mxid}");
         var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data);
         var profile = data.Deserialize<ProfileResponse>();
@@ -99,5 +99,5 @@ public class IHomeServer {
         return profile;
     }
 
-    public string? ResolveMediaUri(string mxc) => mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/r0/download/");
+    public string? ResolveMediaUri(string mxc) => mxc.Replace("mxc://", $"{FullHomeServerDomain}/_matrix/media/v3/download/");
 }

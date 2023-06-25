@@ -1,5 +1,7 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using MatrixRoomUtils.Core.Interfaces;
+using MatrixRoomUtils.Core.Responses;
 
 namespace MatrixRoomUtils.Core.Extensions;
 

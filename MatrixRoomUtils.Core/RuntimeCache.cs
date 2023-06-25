@@ -1,5 +1,6 @@
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Responses;
+using MatrixRoomUtils.Core.StateEventTypes;
 
 namespace MatrixRoomUtils.Core;
 

@@ -1,5 +1,3 @@
-using MatrixRoomUtils.Core.Attributes;
-
 namespace MatrixRoomUtils.Core.Services;
 
 public class HomeserverProviderService {
@@ -13,6 +11,6 @@ public class HomeserverProviderService {
     }
 
     public async Task<AuthenticatedHomeServer> GetAuthenticatedWithToken(string homeserver, string accessToken) {
-        return await new AuthenticatedHomeServer(homeserver, accessToken, _tieredStorageService).Configure();
+        return await new AuthenticatedHomeServer(_tieredStorageService, homeserver, accessToken).Configure();
     }
 }

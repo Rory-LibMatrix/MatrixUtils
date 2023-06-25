@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Filters;
 using MatrixRoomUtils.Core.Helpers;
@@ -17,15 +18,16 @@ public class AuthenticatedHomeServer : IHomeServer {
     public readonly HomeserverAdminApi Admin;
     public readonly SyncHelper SyncHelper;
 
-    public AuthenticatedHomeServer(string canonicalHomeServerDomain, string accessToken, TieredStorageService storage) {
+    public AuthenticatedHomeServer(TieredStorageService storage, string canonicalHomeServerDomain, string accessToken) {
         _storage = storage;
-        AccessToken = accessToken;
-        HomeServerDomain = canonicalHomeServerDomain;
+        AccessToken = accessToken.Trim();
+        HomeServerDomain = canonicalHomeServerDomain.Trim();
         Admin = new HomeserverAdminApi(this);
         SyncHelper = new SyncHelper(this, storage);
         _httpClient = new MatrixHttpClient();
     }
 
+    public WhoAmIResponse WhoAmI { get; set; } = null!;
     public string UserId { get; }
     public string AccessToken { get; set; }
 
@@ -35,6 +37,7 @@ public class AuthenticatedHomeServer : IHomeServer {
         _httpClient = new MatrixHttpClient { BaseAddress = new Uri(FullHomeServerDomain) };
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
         Console.WriteLine("[AHS] Finished setting up http client");
+        WhoAmI = (await _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
 
         return this;
     }
@@ -54,7 +57,7 @@ public class AuthenticatedHomeServer : IHomeServer {
     }
 
     public async Task<string> UploadFile(string fileName, Stream fileStream, string contentType = "application/octet-stream") {
-        var res = await _httpClient.PostAsync($"/_matrix/media/r0/upload?filename={fileName}", new StreamContent(fileStream));
+        var res = await _httpClient.PostAsync($"/_matrix/media/v3/upload?filename={fileName}", new StreamContent(fileStream));
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to upload file: {await res.Content.ReadAsStringAsync()}");
@@ -65,7 +68,7 @@ public class AuthenticatedHomeServer : IHomeServer {
     }
 
     public async Task<Room> CreateRoom(CreateRoomRequest creationEvent) {
-        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/r0/createRoom", creationEvent);
+        var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
             throw new InvalidDataException($"Failed to create room: {await res.Content.ReadAsStringAsync()}");
@@ -168,4 +171,14 @@ public class AuthenticatedHomeServer : IHomeServer {
             } while (i < Math.Min(limit, totalRooms ?? limit));
         }
     }
+}
+
+public class WhoAmIResponse {
+    [JsonPropertyName("user_id")]
+    public string UserId { get; set; } = null!;
+
+    [JsonPropertyName("device_id")]
+    public string? DeviceId { get; set; }
+    [JsonPropertyName("is_guest")]
+    public bool? IsGuest { get; set; }
 }

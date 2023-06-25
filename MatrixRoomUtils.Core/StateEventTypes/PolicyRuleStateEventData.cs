@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core.StateEventTypes;
 
-public class PolicyRuleStateEventData {
+public class PolicyRuleStateEventData : IStateEventType {
     /// <summary>
     ///     Entity this ban applies to, can use * and ? as globs.
     /// </summary>

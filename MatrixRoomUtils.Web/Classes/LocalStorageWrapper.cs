@@ -21,7 +21,7 @@ public class LocalStorageWrapper {
             Console.WriteLine("Access token is not null, creating authenticated home server");
             Console.WriteLine($"Homeserver cache: {RuntimeCache.HomeserverResolutionCache.Count} entries");
             // Console.WriteLine(RuntimeCache.HomeserverResolutionCache.ToJson());
-            RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer, RuntimeCache.LastUsedToken, TODO).Configure();
+            RuntimeCache.CurrentHomeServer = await new AuthenticatedHomeServer(RuntimeCache.LoginSessions[RuntimeCache.LastUsedToken].LoginResponse.HomeServer, RuntimeCache.LastUsedToken, null).Configure();
             Console.WriteLine("Created authenticated home server");
         }
     }

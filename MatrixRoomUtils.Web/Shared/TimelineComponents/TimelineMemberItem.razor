@@ -1,22 +1,21 @@
-@using MatrixRoomUtils.Core.Extensions
-@if (Event.ContentAsJsonNode["membership"]!.GetValue<string>() == "ban") {
+@if (Event.membership"]!.GetValue<string>() == "ban") {
     <i>@Event.StateKey was banned</i>
 }
-else if (Event.ContentAsJsonNode["membership"]!.GetValue<string>() == "invite") {
+else if (Event.membership"]!.GetValue<string>() == "invite") {
     <i>@Event.StateKey was invited</i>
 }
-else if (Event.ContentAsJsonNode["membership"]!.GetValue<string>() == "join") {
+else if (Event.membership"]!.GetValue<string>() == "join") {
     @if (Event.ReplacesState != null) {
-        <i>@Event.StateKey changed their display name to @(Event.ContentAsJsonNode["displayname"]!.GetValue<string>())</i>
+        <i>@Event.StateKey changed their display name to @(Event.displayname"]!.GetValue<string>())</i>
     }
     else {
         <i><InlineUserItem UserId="@Event.StateKey"></InlineUserItem> joined</i>
     }
 }
-else if (Event.ContentAsJsonNode["membership"]!.GetValue<string>() == "leave") {
+else if (Event.membership"]!.GetValue<string>() == "leave") {
     <i>@Event.StateKey left</i>
 }
-else if (Event.ContentAsJsonNode["membership"]!.GetValue<string>() == "knock") {
+else if (Event.membership"]!.GetValue<string>() == "knock") {
     <i>@Event.StateKey knocked</i>
 }
 else {

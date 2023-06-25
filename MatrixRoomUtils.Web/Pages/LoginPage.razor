@@ -52,7 +52,7 @@
             var userinfo = new UserInfo {
                 LoginResponse = result
             };
-            userinfo.Profile = await (await new AuthenticatedHomeServer(result.HomeServer, result.AccessToken, TODO).Configure()).GetProfile(result.UserId);
+            userinfo.Profile = await RuntimeCache.CurrentHomeServer.GetProfile(result.UserId);
             RuntimeCache.LastUsedToken = result.AccessToken;
 
             RuntimeCache.LoginSessions.Add(result.AccessToken, userinfo);

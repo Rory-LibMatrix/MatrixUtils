@@ -61,7 +61,7 @@
             await sem.WaitAsync();
             var httpClient = new HttpClient { BaseAddress = new Uri(hs) };
             httpClient.Timeout = TimeSpan.FromSeconds(5);
-            var rmu = mxcUrl.Replace("mxc://", $"{hs}/_matrix/media/r0/download/");
+            var rmu = mxcUrl.Replace("mxc://", $"{hs}/_matrix/media/v3/download/");
             try {
                 var res = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, rmu));
                 if (res.IsSuccessStatusCode) {

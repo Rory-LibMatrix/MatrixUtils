@@ -7,20 +7,16 @@ using Microsoft.Extensions.Hosting;
 
 Console.WriteLine("Hello, World!");
 
-using IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((_, services) => {
-        services.AddScoped<TieredStorageService>(x =>
-            new(
-                cacheStorageProvider: new FileStorageProvider("data/cache/"),
-                dataStorageProvider: new FileStorageProvider("data/data/")
-            )
-        );
-
-        services.AddRoryLibMatrixServices();
-
-        services.AddHostedService<MRUBot>();
-    })
-    .Build();
-
+var host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) => {
+    services.AddScoped<TieredStorageService>(x =>
+        new(
+            cacheStorageProvider: new FileStorageProvider("bot_data/cache/"),
+            dataStorageProvider: new FileStorageProvider("bot_data/data/")
+        )
+    );
+    services.AddScoped<MRUBotConfiguration>();
+    services.AddRoryLibMatrixServices();
+    services.AddHostedService<MRUBot>();
+}).UseConsoleLifetime().Build();
 
 await host.RunAsync();

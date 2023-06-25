@@ -36,13 +36,11 @@
 
         await _semaphoreSlim.WaitAsync();
 
-        var hs = await new AuthenticatedHomeServer(RuntimeCache.CurrentHomeServer.HomeServerDomain, RuntimeCache.CurrentHomeServer.AccessToken, TODO).Configure();
-
         if (User == null) {
             if (UserId == null) {
                 throw new ArgumentNullException(nameof(UserId));
             }
-            User = await hs.GetProfile(UserId);
+            User = await RuntimeCache.CurrentHomeServer.GetProfile(UserId);
         }
 
     // UserId = User.;

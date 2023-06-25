@@ -52,6 +52,6 @@ public class MatrixException : Exception {
             "M_EXCLUSIVE" => "The resource being requested is reserved by an application service, or the application service making the request has not created the resource: " + Error,
             "M_RESOURCE_LIMIT_EXCEEDED" => "Exceeded resource limit: " + Error,
             "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM" => "Cannot leave server notice room: " + Error,
-            _ => "Unknown error: " + new { ErrorCode, Error, SoftLogout, RetryAfterMs }.ToJson()
+            _ => "Unknown error: " + new { ErrorCode, Error, SoftLogout, RetryAfterMs }.ToJson(ignoreNull: true)
         };
 }

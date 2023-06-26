@@ -20,22 +20,6 @@ public class IHomeServer {
     }
 
     private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
-        if (RuntimeCache.HomeserverResolutionCache.Count == 0) {
-            // Console.WriteLine("No cached homeservers, resolving...");
-            await Task.Delay(Random.Shared.Next(1000, 5000));
-        }
-
-        if (RuntimeCache.HomeserverResolutionCache.ContainsKey(homeserver)) {
-            if (RuntimeCache.HomeserverResolutionCache[homeserver].ResolutionTime < DateTime.Now.AddHours(1)) {
-                Console.WriteLine($"Found cached homeserver: {RuntimeCache.HomeserverResolutionCache[homeserver].Result}");
-                return RuntimeCache.HomeserverResolutionCache[homeserver].Result;
-            }
-
-            Console.WriteLine($"Cached homeserver expired, removing: {RuntimeCache.HomeserverResolutionCache[homeserver].Result}");
-            RuntimeCache.HomeserverResolutionCache.Remove(homeserver);
-        }
-        //throw new NotImplementedException();
-
         string result = null;
         Console.WriteLine($"Resolving homeserver: {homeserver}");
         if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
@@ -67,10 +51,6 @@ public class IHomeServer {
 
         if (result != null) {
             Console.WriteLine($"Resolved homeserver: {homeserver} -> {result}");
-            RuntimeCache.HomeserverResolutionCache.TryAdd(homeserver, new HomeServerResolutionResult {
-                Result = result,
-                ResolutionTime = DateTime.Now
-            });
             return result;
         }
 

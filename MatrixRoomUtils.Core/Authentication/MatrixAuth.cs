@@ -10,7 +10,7 @@ public class MatrixAuth {
     public static async Task<LoginResponse> Login(string homeserver, string username, string password) {
         Console.WriteLine($"Logging in to {homeserver} as {username}...");
         homeserver = (await new RemoteHomeServer(homeserver).Configure()).FullHomeServerDomain;
-        var hc = new HttpClient();
+        var hc = new MatrixHttpClient();
         var payload = new {
             type = "m.login.password",
             identifier = new {
@@ -25,11 +25,6 @@ public class MatrixAuth {
         Console.WriteLine($"Login: {resp.StatusCode}");
         var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Login: " + data);
-        if (data.TryGetProperty("retry_after_ms", out var retryAfter)) {
-            Console.WriteLine($"Login: Waiting {retryAfter.GetInt32()}ms before retrying");
-            await Task.Delay(retryAfter.GetInt32());
-            return await Login(homeserver, username, password);
-        }
 
         Console.WriteLine($"Login: {data.ToJson()}");
         return data.Deserialize<LoginResponse>();

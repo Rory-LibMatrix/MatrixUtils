@@ -1,8 +1,12 @@
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core.StateEventTypes;
 
+[MatrixEvent(EventName = "m.policy.rule.user")]
+[MatrixEvent(EventName = "m.policy.rule.server")]
+[MatrixEvent(EventName = "org.matrix.mjolnir.rule.server")]
 public class PolicyRuleStateEventData : IStateEventType {
     /// <summary>
     ///     Entity this ban applies to, can use * and ? as globs.

@@ -27,10 +27,10 @@ public class StateEventResponse : StateEvent {
 
     [JsonPropertyName("prev_content")]
     public dynamic PrevContent { get; set; }
-    
+
     public class UnsignedData {
         [JsonPropertyName("age")]
-        public ulong Age { get; set; }
+        public ulong? Age { get; set; }
 
         [JsonPropertyName("prev_content")]
         public dynamic? PrevContent { get; set; }

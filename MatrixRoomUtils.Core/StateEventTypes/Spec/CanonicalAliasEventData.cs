@@ -8,4 +8,6 @@ namespace MatrixRoomUtils.Core.StateEventTypes;
 public class CanonicalAliasEventData : IStateEventType {
     [JsonPropertyName("alias")]
     public string? Alias { get; set; }
+    [JsonPropertyName("alt_aliases")]
+    public string[]? AltAliases { get; set; }
 }

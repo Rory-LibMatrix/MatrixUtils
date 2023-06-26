@@ -8,4 +8,5 @@ public class MRUBotConfiguration {
     }
     public string Homeserver { get; set; } = "";
     public string AccessToken { get; set; } = "";
+    public string Prefix { get; set; }
 }

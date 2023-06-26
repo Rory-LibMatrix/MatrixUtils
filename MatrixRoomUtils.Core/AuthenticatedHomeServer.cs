@@ -42,14 +42,14 @@ public class AuthenticatedHomeServer : IHomeServer {
         return this;
     }
 
-    public async Task<Room> GetRoom(string roomId) => new Room(_httpClient, roomId);
+    public async Task<GenericRoom> GetRoom(string roomId) => new(this, roomId);
 
-    public async Task<List<Room>> GetJoinedRooms() {
-        var rooms = new List<Room>();
+    public async Task<List<GenericRoom>> GetJoinedRooms() {
+        var rooms = new List<GenericRoom>();
         var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
 
         var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
-        foreach (var room in roomsJson.GetProperty("joined_rooms").EnumerateArray()) rooms.Add(new Room(_httpClient, room.GetString()));
+        foreach (var room in roomsJson.GetProperty("joined_rooms").EnumerateArray()) rooms.Add(new GenericRoom(this, room.GetString()));
 
         Console.WriteLine($"Fetched {rooms.Count} rooms");
 
@@ -67,7 +67,7 @@ public class AuthenticatedHomeServer : IHomeServer {
         return resJson.GetProperty("content_uri").GetString()!;
     }
 
-    public async Task<Room> CreateRoom(CreateRoomRequest creationEvent) {
+    public async Task<GenericRoom> CreateRoom(CreateRoomRequest creationEvent) {
         var res = await _httpClient.PostAsJsonAsync("/_matrix/client/v3/createRoom", creationEvent);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to create room: {await res.Content.ReadAsStringAsync()}");

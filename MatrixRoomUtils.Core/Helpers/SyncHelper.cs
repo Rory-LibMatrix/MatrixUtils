@@ -38,6 +38,7 @@ public class SyncHelper {
         catch (Exception e) {
             Console.WriteLine(e);
         }
+
         return null;
     }
 
@@ -48,6 +49,7 @@ public class SyncHelper {
             sync = await Sync(sync?.NextBatch, cancellationToken);
             Console.WriteLine($"Got sync, next batch: {sync?.NextBatch}!");
             if (sync == null) continue;
+
             if (sync.Rooms is { Invite.Count: > 0 }) {
                 foreach (var roomInvite in sync.Rooms.Invite) {
                     Console.WriteLine(roomInvite.Value.GetType().Name);
@@ -81,7 +83,8 @@ public class SyncHelper {
     /// <summary>
     /// Event fired when a room invite is received
     /// </summary>
-    public event EventHandler<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>>? InviteReceived;
+    public event EventHandler<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>>?
+        InviteReceived;
 
     public event EventHandler<StateEventResponse>? TimelineEventReceived;
     public event EventHandler<StateEventResponse>? AccountDataReceived;

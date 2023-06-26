@@ -36,6 +36,11 @@ public class PowerLevelEvent : IStateEventType {
     [JsonPropertyName("users_default")]
     public int UsersDefault { get; set; } // = 0;
     
+    [Obsolete("Historical was a key related to MSC2716, a spec change on backfill that was dropped!", true)]
+    [JsonIgnore]
+    [JsonPropertyName("historical")]
+    public int Historical { get; set; } // = 50;
+    
     public class NotificationsPL {
         [JsonPropertyName("room")]
         public int Room { get; set; } = 50;

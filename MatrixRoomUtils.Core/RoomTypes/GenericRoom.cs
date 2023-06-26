@@ -7,14 +7,16 @@ using MatrixRoomUtils.Core.RoomTypes;
 
 namespace MatrixRoomUtils.Core;
 
-public class Room {
-    private readonly HttpClient _httpClient;
+public class GenericRoom {
+    internal readonly AuthenticatedHomeServer _homeServer;
+    internal readonly HttpClient _httpClient;
 
-    public Room(HttpClient httpClient, string roomId) {
-        _httpClient = httpClient;
+    public GenericRoom(AuthenticatedHomeServer homeServer, string roomId) {
+        _homeServer = homeServer;
+        _httpClient = homeServer._httpClient;
         RoomId = roomId;
-        if(GetType() != typeof(SpaceRoom))
-            AsSpace = new SpaceRoom(_httpClient, RoomId);
+        if (GetType() != typeof(SpaceRoom))
+            AsSpace = new SpaceRoom(homeServer, RoomId);
     }
 
     public string RoomId { get; set; }
@@ -40,7 +42,8 @@ public class Room {
         return res.Value.Deserialize<T>();
     }
 
-    public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b", string filter = "") {
+    public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b",
+        string filter = "") {
         var url = $"/_matrix/client/v3/rooms/{RoomId}/messages?from={from}&limit={limit}&dir={dir}";
         if (!string.IsNullOrEmpty(filter)) url += $"&filter={filter}";
         var res = await _httpClient.GetAsync(url);
@@ -83,7 +86,8 @@ public class Room {
             if (member.GetProperty("type").GetString() != "m.room.member") continue;
             if (joinedOnly && member.GetProperty("content").GetProperty("membership").GetString() != "join") continue;
             var memberId = member.GetProperty("state_key").GetString();
-            members.Add(memberId ?? throw new InvalidOperationException("Event type was member but state key was null!"));
+            members.Add(
+                memberId ?? throw new InvalidOperationException("Event type was member but state key was null!"));
         }
 
         return members;
@@ -116,10 +120,10 @@ public class Room {
         return res.Value.GetProperty("url").GetString() ?? "";
     }
 
-    public async Task<JoinRules> GetJoinRuleAsync() {
+    public async Task<JoinRulesEventData> GetJoinRuleAsync() {
         var res = await GetStateAsync("m.room.join_rules");
-        if (!res.HasValue) return new JoinRules();
-        return res.Value.Deserialize<JoinRules>() ?? new JoinRules();
+        if (!res.HasValue) return new JoinRulesEventData();
+        return res.Value.Deserialize<JoinRulesEventData>() ?? new JoinRulesEventData();
     }
 
     public async Task<string> GetHistoryVisibilityAsync() {
@@ -149,7 +153,7 @@ public class Room {
         if (res.Value.TryGetProperty("type", out var type)) return type.GetString();
         return null;
     }
-    
+
     public async Task ForgetAsync() {
         var res = await _httpClient.PostAsync($"/_matrix/client/v3/rooms/{RoomId}/forget", null);
         if (!res.IsSuccessStatusCode) {
@@ -157,7 +161,7 @@ public class Room {
             throw new Exception($"Failed to forget room {RoomId} - got status: {res.StatusCode}");
         }
     }
-    
+
     public async Task LeaveAsync(string? reason = null) {
         var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/leave", new {
             reason
@@ -167,50 +171,73 @@ public class Room {
             throw new Exception($"Failed to leave room {RoomId} - got status: {res.StatusCode}");
         }
     }
-    
+
     public async Task KickAsync(string userId, string? reason = null) {
-       
-        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/kick", new UserIdAndReason() { UserId = userId, Reason = reason });
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/kick",
+            new UserIdAndReason() { UserId = userId, Reason = reason });
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to kick {userId} from room {RoomId} - got status: {res.StatusCode}");
             throw new Exception($"Failed to kick {userId} from room {RoomId} - got status: {res.StatusCode}");
         }
     }
-    
+
     public async Task BanAsync(string userId, string? reason = null) {
-        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/ban", new UserIdAndReason() { UserId = userId, Reason = reason });
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/ban",
+            new UserIdAndReason() { UserId = userId, Reason = reason });
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to ban {userId} from room {RoomId} - got status: {res.StatusCode}");
             throw new Exception($"Failed to ban {userId} from room {RoomId} - got status: {res.StatusCode}");
         }
     }
-    
+
     public async Task UnbanAsync(string userId) {
-        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban", new UserIdAndReason() { UserId = userId });
+        var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/unban",
+            new UserIdAndReason() { UserId = userId });
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to unban {userId} from room {RoomId} - got status: {res.StatusCode}");
             throw new Exception($"Failed to unban {userId} from room {RoomId} - got status: {res.StatusCode}");
         }
     }
-    
+
     public async Task<EventIdResponse> SendStateEventAsync(string eventType, object content) {
         var res = await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content);
         if (!res.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to send state event {eventType} to room {RoomId} - got status: {res.StatusCode}");
-            throw new Exception($"Failed to send state event {eventType} to room {RoomId} - got status: {res.StatusCode}");
+            Console.WriteLine(
+                $"Failed to send state event {eventType} to room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception(
+                $"Failed to send state event {eventType} to room {RoomId} - got status: {res.StatusCode}");
         }
+
         return await res.Content.ReadFromJsonAsync<EventIdResponse>();
     }
-    
-    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, object content) {
-        var res = await _httpClient.PutAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/"+new Guid(), content);
+
+    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, MessageEventData content) {
+        var url = $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid();
+        var res = await _httpClient.PutAsJsonAsync(url, content);
         if (!res.IsSuccessStatusCode) {
             Console.WriteLine($"Failed to send event {eventType} to room {RoomId} - got status: {res.StatusCode}");
             throw new Exception($"Failed to send event {eventType} to room {RoomId} - got status: {res.StatusCode}");
         }
-        return await res.Content.ReadFromJsonAsync<EventIdResponse>();
+
+        var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();
+
+        return resu;
     }
 
+    public async Task<EventIdResponse> SendFileAsync(string eventType, string fileName, Stream fileStream) {
+        var url = $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid();
+        var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(fileStream), "file", fileName);
+        var res = await _httpClient.PutAsync(url, content);
+        if (!res.IsSuccessStatusCode) {
+            Console.WriteLine($"Failed to send event {eventType} to room {RoomId} - got status: {res.StatusCode}");
+            throw new Exception($"Failed to send event {eventType} to room {RoomId} - got status: {res.StatusCode}");
+        }
+
+        var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();
+
+        return resu;
+    }
 
     public readonly SpaceRoom AsSpace;
 }

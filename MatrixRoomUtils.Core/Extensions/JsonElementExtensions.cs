@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace MatrixRoomUtils.Core.Extensions;
 
 public static class JsonElementExtensions {
-    public static void FindExtraJsonElementFields([DisallowNull] this JsonElement? res, Type t) {
+    public static bool FindExtraJsonElementFields([DisallowNull] this JsonElement? res, Type t) {
         var props = t.GetProperties();
         var unknownPropertyFound = false;
         foreach (var field in res.Value.EnumerateObject()) {
@@ -17,8 +17,10 @@ public static class JsonElementExtensions {
         }
 
         if (unknownPropertyFound) Console.WriteLine(res.Value.ToJson());
+
+        return unknownPropertyFound;
     }
-    public static void FindExtraJsonObjectFields([DisallowNull] this JsonObject? res, Type t) {
+    public static bool FindExtraJsonObjectFields([DisallowNull] this JsonObject? res, Type t) {
         var props = t.GetProperties();
         var unknownPropertyFound = false;
         foreach (var field in res) {
@@ -31,5 +33,7 @@ public static class JsonElementExtensions {
         }
 
         if (unknownPropertyFound) Console.WriteLine(res.ToJson());
+
+        return unknownPropertyFound;
     }
 }

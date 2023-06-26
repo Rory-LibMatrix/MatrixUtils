@@ -21,20 +21,4 @@ public class RemoteHomeServer : IHomeServer {
 
         return this;
     }
-
-    public async Task<Room> GetRoom(string roomId) => new Room(_httpClient, roomId);
-
-    public async Task<List<Room>> GetJoinedRooms() {
-        var rooms = new List<Room>();
-        var roomQuery = await _httpClient.GetAsync("/_matrix/client/v3/joined_rooms");
-        if (!roomQuery.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to get rooms: {await roomQuery.Content.ReadAsStringAsync()}");
-            throw new InvalidDataException($"Failed to get rooms: {await roomQuery.Content.ReadAsStringAsync()}");
-        }
-
-        var roomsJson = await roomQuery.Content.ReadFromJsonAsync<JsonElement>();
-        foreach (var room in roomsJson.GetProperty("joined_rooms").EnumerateArray()) rooms.Add(new Room(_httpClient, room.GetString()));
-
-        return rooms;
-    }
 }

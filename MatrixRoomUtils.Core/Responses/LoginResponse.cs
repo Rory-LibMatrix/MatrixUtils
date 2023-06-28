@@ -1,7 +1,4 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using MatrixRoomUtils.Core.StateEventTypes;
 
 namespace MatrixRoomUtils.Core.Responses;
 
@@ -17,14 +14,4 @@ public class LoginResponse {
 
     [JsonPropertyName("user_id")]
     public string UserId { get; set; }
-
-    public async Task<ProfileResponse> GetProfile() {
-        var hc = new HttpClient();
-        var resp = await hc.GetAsync($"{HomeServer}/_matrix/client/v3/profile/{UserId}");
-        var data = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data);
-        return data.Deserialize<ProfileResponse>();
-    }
-
-    public async Task<string> GetCanonicalHomeserverUrl() => (await new RemoteHomeServer(HomeServer).Configure()).FullHomeServerDomain;
 }

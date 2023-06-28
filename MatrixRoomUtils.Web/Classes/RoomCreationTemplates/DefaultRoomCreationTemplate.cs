@@ -55,7 +55,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 Redact = 50,
                 Kick = 50,
                 Ban = 50,
-                NotificationsPl = new NotificationsPL {
+                NotificationsPl = new PowerLevelEvent.NotificationsPL {
                     Room = 50
                 },
                 Events = new Dictionary<string, int> {

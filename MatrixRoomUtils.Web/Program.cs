@@ -39,4 +39,6 @@ builder.Services.AddScoped<TieredStorageService>(x =>
     )
 );
 
+builder.Services.AddRoryLibMatrixServices();
+
 await builder.Build().RunAsync();

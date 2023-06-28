@@ -4,11 +4,11 @@ using MatrixRoomUtils.Core;
 namespace MatrixRoomUtils.Web.Classes;
 
 public class LocalStorageWrapper {
-    private static readonly SemaphoreSlim _semaphoreSlim = new(1);
-    public static Settings Settings { get; set; } = new();
+    private readonly SemaphoreSlim _semaphoreSlim = new(1);
+    public Settings Settings { get; set; } = new();
 
     //some basic logic
-    public static async Task InitialiseRuntimeVariables(ILocalStorageService localStorage) {
+    public async Task InitialiseRuntimeVariables(ILocalStorageService localStorage) {
         //RuntimeCache stuff
         // async Task Save() => await SaveToLocalStorage(localStorage);
         // async Task SaveObject(string key, object obj) => await localStorage.SetItemAsync(key, obj);
@@ -26,7 +26,7 @@ public class LocalStorageWrapper {
         }
     }
 
-    public static async Task LoadFromLocalStorage(ILocalStorageService localStorage) {
+    public async Task LoadFromLocalStorage(ILocalStorageService localStorage) {
         await _semaphoreSlim.WaitAsync();
         if (RuntimeCache.WasLoaded) {
             _semaphoreSlim.Release();
@@ -53,14 +53,14 @@ public class LocalStorageWrapper {
         _semaphoreSlim.Release();
     }
 
-    public static async Task SaveToLocalStorage(ILocalStorageService localStorage) {
+    public async Task SaveToLocalStorage(ILocalStorageService localStorage) {
         Console.WriteLine("Saving to local storage...");
         await localStorage.SetItemAsync("rory.matrixroomutils.settings", Settings);
         if (RuntimeCache.LoginSessions != null) await localStorage.SetItemAsync("rory.matrixroomutils.login_sessions", RuntimeCache.LoginSessions);
         if (RuntimeCache.LastUsedToken != null) await localStorage.SetItemAsync("rory.matrixroomutils.last_used_token", RuntimeCache.LastUsedToken);
     }
 
-    public static async Task SaveCacheToLocalStorage(ILocalStorageService localStorage, bool awaitSave = true, bool saveGenericCache = true) {
+    public async Task SaveCacheToLocalStorage(ILocalStorageService localStorage, bool awaitSave = true, bool saveGenericCache = true) {
         await localStorage.SetItemAsync("rory.matrixroomutils.homeserver_resolution_cache",
             RuntimeCache.HomeserverResolutionCache.DistinctBy(x => x.Key)
                 .ToDictionary(x => x.Key, x => x.Value));

@@ -31,16 +31,6 @@ public class AuthenticatedHomeServer : IHomeServer {
     public string UserId { get; }
     public string AccessToken { get; set; }
 
-    public async Task<AuthenticatedHomeServer> Configure() {
-        FullHomeServerDomain = await ResolveHomeserverFromWellKnown(HomeServerDomain);
-        _httpClient.Dispose();
-        _httpClient = new MatrixHttpClient { BaseAddress = new Uri(FullHomeServerDomain) };
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
-        Console.WriteLine("[AHS] Finished setting up http client");
-        WhoAmI = (await _httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
-
-        return this;
-    }
 
     public async Task<GenericRoom> GetRoom(string roomId) => new(this, roomId);
 

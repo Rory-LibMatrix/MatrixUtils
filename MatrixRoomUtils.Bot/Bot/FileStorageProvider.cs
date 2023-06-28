@@ -1,10 +1,13 @@
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 
 namespace MatrixRoomUtils.Bot; 
 
 public class FileStorageProvider : IStorageProvider {
+    private readonly ILogger<FileStorageProvider> _logger;
+
     public string TargetPath { get; }
 
     /// <summary>
@@ -12,6 +15,7 @@ public class FileStorageProvider : IStorageProvider {
     /// </summary>
     /// <param name="targetPath"></param>
     public FileStorageProvider(string targetPath) {
+        new Logger<FileStorageProvider>(new LoggerFactory()).LogInformation("test");
         Console.WriteLine($"Initialised FileStorageProvider with path {targetPath}");
         TargetPath = targetPath;
         if(!Directory.Exists(targetPath)) {

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.Responses;
+using MatrixRoomUtils.Core.Responses.Admin;
 using MatrixRoomUtils.Core.Services;
 using MatrixRoomUtils.Core.StateEventTypes;
 
@@ -45,21 +46,24 @@ public class SyncHelper {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     public async Task RunSyncLoop(CancellationToken? cancellationToken = null, bool skipInitialSyncEvents = true) {
         SyncResult? sync = null;
+        string? nextBatch = null;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
-            sync = await Sync(sync?.NextBatch, cancellationToken);
-            Console.WriteLine($"Got sync, next batch: {sync?.NextBatch}!");
-            if (sync == null) continue;
+            sync = await Sync(nextBatch, cancellationToken);
+            nextBatch = sync?.NextBatch ?? nextBatch;
+            if(sync is null) continue;
+            Console.WriteLine($"Got sync, next batch: {nextBatch}!");
 
             if (sync.Rooms is { Invite.Count: > 0 }) {
                 foreach (var roomInvite in sync.Rooms.Invite) {
-                    Console.WriteLine(roomInvite.Value.GetType().Name);
-                    InviteReceived?.Invoke(this, roomInvite);
+                    var tasks = InviteReceivedHandlers.Select(x => x(roomInvite)).ToList();
+                    await Task.WhenAll(tasks);
                 }
             }
 
             if (sync.AccountData is { Events: { Count: > 0 } }) {
                 foreach (var accountDataEvent in sync.AccountData.Events) {
-                    AccountDataReceived?.Invoke(this, accountDataEvent);
+                    var tasks = AccountDataReceivedHandlers.Select(x => x(accountDataEvent)).ToList();
+                    await Task.WhenAll(tasks);
                 }
             }
 
@@ -73,7 +77,8 @@ public class SyncHelper {
                 foreach (var updatedRoom in sync.Rooms.Join) {
                     foreach (var stateEventResponse in updatedRoom.Value.Timeline.Events) {
                         stateEventResponse.RoomId = updatedRoom.Key;
-                        TimelineEventReceived?.Invoke(this, stateEventResponse);
+                        var tasks = TimelineEventHandlers.Select(x => x(stateEventResponse)).ToList();
+                        await Task.WhenAll(tasks);
                     }
                 }
             }
@@ -83,11 +88,10 @@ public class SyncHelper {
     /// <summary>
     /// Event fired when a room invite is received
     /// </summary>
-    public event EventHandler<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>>?
-        InviteReceived;
-
-    public event EventHandler<StateEventResponse>? TimelineEventReceived;
-    public event EventHandler<StateEventResponse>? AccountDataReceived;
+    public List<Func<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>, Task>> 
+        InviteReceivedHandlers { get; }  = new();
+    public List<Func<StateEventResponse, Task>> TimelineEventHandlers { get; }  = new();
+    public List<Func<StateEventResponse, Task>> AccountDataReceivedHandlers { get; }  = new();
 }
 
 public class SyncResult {

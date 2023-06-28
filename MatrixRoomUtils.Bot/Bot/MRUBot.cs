@@ -19,13 +19,13 @@ public class MRUBot : IHostedService {
 
     public MRUBot(HomeserverProviderService homeserverProviderService, ILogger<MRUBot> logger,
         MRUBotConfiguration configuration, IServiceProvider services) {
-        Console.WriteLine("MRUBot hosted service instantiated!");
+        logger.LogInformation("MRUBot hosted service instantiated!");
         _homeserverProviderService = homeserverProviderService;
         _logger = logger;
         _configuration = configuration;
-        Console.WriteLine("Getting commands...");
+        _logger.LogInformation("Getting commands...");
         _commands = services.GetServices<ICommand>();
-        Console.WriteLine($"Got {_commands.Count()} commands!");
+        _logger.LogInformation($"Got {_commands.Count()} commands!");
     }
 
     /// <summary>Triggered when the application host is ready to start the service.</summary>
@@ -50,31 +50,31 @@ public class MRUBot : IHostedService {
         //     foreach (var stateEvent in await room.GetStateAsync<List<StateEvent>>("")) {
         //         var _ = stateEvent.GetType;
         //     }
-        //     Console.WriteLine($"Got room state for {room.RoomId}!");
+        //     _logger.LogInformation($"Got room state for {room.RoomId}!");
         // }
 
-        hs.SyncHelper.InviteReceived += async (_, args) => {
+        hs.SyncHelper.InviteReceivedHandlers.Add(async Task (args) => {
             var inviteEvent =
                 args.Value.InviteState.Events.FirstOrDefault(x =>
                     x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
-            Console.WriteLine(
+            _logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventData).Reason}");
             if (inviteEvent.Sender == "@emma:rory.gay") {
                 try {
                     await (await hs.GetRoom(args.Key)).JoinAsync(reason: "I was invited by Emma (Rory&)!");
                 }
                 catch (Exception e) {
-                    Console.WriteLine(e);
+                    _logger.LogError(e.ToString());
                     await (await hs.GetRoom(args.Key)).LeaveAsync(reason: "I was unable to join the room: " + e);
                 }
             }
-        };
-        hs.SyncHelper.TimelineEventReceived += async (_, @event) => {
-            Console.WriteLine(
+        });
+        hs.SyncHelper.TimelineEventHandlers.Add(async @event => {
+            _logger.LogInformation(
                 $"Got timeline event in {@event.RoomId}: {@event.ToJson(indent: false, ignoreNull: true)}");
 
             var room = await hs.GetRoom(@event.RoomId);
-            // Console.WriteLine(eventResponse.ToJson(indent: false));
+            // _logger.LogInformation(eventResponse.ToJson(indent: false));
             if (@event is { Type: "m.room.message", TypedContent: MessageEventData message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
                     
@@ -103,13 +103,13 @@ public class MRUBot : IHostedService {
                         }
                 }
             }
-        };
+        });
         await hs.SyncHelper.RunSyncLoop(cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>
     /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
     public async Task StopAsync(CancellationToken cancellationToken) {
-        Console.WriteLine("Shutting down bot!");
+        _logger.LogInformation("Shutting down bot!");
     }
 }

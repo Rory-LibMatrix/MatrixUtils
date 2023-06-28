@@ -7,9 +7,10 @@ using MatrixRoomUtils.Core.StateEventTypes;
 namespace MatrixRoomUtils.Core.Authentication;
 
 public class MatrixAuth {
+    [Obsolete("This is possibly broken and should not be used.", true)]
     public static async Task<LoginResponse> Login(string homeserver, string username, string password) {
         Console.WriteLine($"Logging in to {homeserver} as {username}...");
-        homeserver = (await new RemoteHomeServer(homeserver).Configure()).FullHomeServerDomain;
+        homeserver = (new RemoteHomeServer(homeserver)).FullHomeServerDomain;
         var hc = new MatrixHttpClient();
         var payload = new {
             type = "m.login.password",
@@ -30,21 +31,5 @@ public class MatrixAuth {
         return data.Deserialize<LoginResponse>();
         //var token = data.GetProperty("access_token").GetString();
         //return token;
-    }
-
-    [Obsolete("Migrate to IHomeServer instance")]
-    public static async Task<ProfileResponse> GetProfile(string homeserver, string mxid) => await (await new RemoteHomeServer(homeserver).Configure()).GetProfile(mxid);
-
-    private static async Task<bool> CheckSuccessStatus(string url) {
-        //cors causes failure, try to catch
-        try {
-            using var hc = new HttpClient();
-            var resp = await hc.GetAsync(url);
-            return resp.IsSuccessStatusCode;
-        }
-        catch (Exception e) {
-            Console.WriteLine($"Failed to check success status: {e.Message}");
-            return false;
-        }
     }
 }

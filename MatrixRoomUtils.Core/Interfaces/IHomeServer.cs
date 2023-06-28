@@ -12,50 +12,6 @@ public class IHomeServer {
 
     protected internal MatrixHttpClient _httpClient { get; set; } = new();
 
-    public async Task<string> ResolveHomeserverFromWellKnown(string homeserver) {
-        var res = await _resolveHomeserverFromWellKnown(homeserver);
-        if (!res.StartsWith("http")) res = "https://" + res;
-        if (res.EndsWith(":443")) res = res.Substring(0, res.Length - 4);
-        return res;
-    }
-
-    private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
-        string result = null;
-        Console.WriteLine($"Resolving homeserver: {homeserver}");
-        if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
-        if (await _httpClient.CheckSuccessStatus($"{homeserver}/.well-known/matrix/client")) {
-            Console.WriteLine("Got successful response for client well-known...");
-            var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/client");
-            Console.WriteLine($"Response: {resp.ToString()}");
-            var hs = resp.GetProperty("m.homeserver").GetProperty("base_url").GetString();
-            result = hs;
-        }
-        else {
-            Console.WriteLine("No client well-known...");
-            if (await _httpClient.CheckSuccessStatus($"{homeserver}/.well-known/matrix/server")) {
-                var resp = await _httpClient.GetFromJsonAsync<JsonElement>($"{homeserver}/.well-known/matrix/server");
-                var hs = resp.GetProperty("m.server").GetString();
-                result = hs;
-            }
-            else {
-                Console.WriteLine("No server well-known...");
-                if (await _httpClient.CheckSuccessStatus($"{homeserver}/_matrix/client/versions"))
-                    result = homeserver;
-                else {
-                    Console.WriteLine("No homeserver on shortname...");
-                    if (await _httpClient.CheckSuccessStatus($"{homeserver.Replace("//", "//matrix.")}/_matrix/client/versions")) result = homeserver.Replace("//", "//matrix.");
-                    else Console.WriteLine($"Failed to resolve homeserver, not on {homeserver}, nor do client or server well-knowns exist!");
-                }
-            }
-        }
-
-        if (result != null) {
-            Console.WriteLine($"Resolved homeserver: {homeserver} -> {result}");
-            return result;
-        }
-
-        throw new InvalidDataException($"Failed to resolve homeserver, not on {homeserver}, nor do client or server well-knowns exist!");
-    }
 
     public async Task<ProfileResponse> GetProfile(string mxid, bool debounce = false, bool cache = true) {
         if (cache) {

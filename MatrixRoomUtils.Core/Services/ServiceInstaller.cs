@@ -16,6 +16,8 @@ public static class ServiceInstaller {
         }
         //Add services
         services.AddScoped<HomeserverProviderService>();
+        services.AddScoped<HomeserverResolverService>();
+        services.AddScoped<HttpClient>();
         return services;
     }
     

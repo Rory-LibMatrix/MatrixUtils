@@ -9,14 +9,14 @@ public static class ServiceInstaller {
         if (!services.Any(x => x.ServiceType == typeof(TieredStorageService)))
             throw new Exception("[MRUCore/DI] No TieredStorageService has been registered!");
         //Add config
-        if(config != null)
+        if(config is not null)
             services.AddSingleton(config);
         else {
             services.AddSingleton(new RoryLibMatrixConfiguration());
         }
         //Add services
         services.AddScoped<HomeserverProviderService>();
-        services.AddScoped<HomeserverResolverService>();
+        services.AddSingleton<HomeserverResolverService>();
         services.AddScoped<HttpClient>();
         return services;
     }

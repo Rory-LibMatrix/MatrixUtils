@@ -14,7 +14,7 @@
 @code {
 
     [Parameter]
-    public Room Space { get; set; }
+    public GenericRoom Space { get; set; }
 
     [Parameter, CascadingParameter]
     public string? Breadcrumbs {
@@ -22,7 +22,7 @@
         set => _breadcrumbs = value;
     }
 
-    private List<Room> Children { get; set; } = new();
+    private List<GenericRoom> Children { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
         if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));

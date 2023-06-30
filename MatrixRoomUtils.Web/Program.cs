@@ -40,5 +40,5 @@ builder.Services.AddScoped<TieredStorageService>(x =>
 );
 
 builder.Services.AddRoryLibMatrixServices();
-
+builder.Services.AddScoped<MRUStorageWrapper>();
 await builder.Build().RunAsync();

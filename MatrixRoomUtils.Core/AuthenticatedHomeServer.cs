@@ -28,7 +28,7 @@ public class AuthenticatedHomeServer : IHomeServer {
     }
 
     public WhoAmIResponse WhoAmI { get; set; } = null!;
-    public string UserId { get; }
+    public string UserId => WhoAmI.UserId;
     public string AccessToken { get; set; }
 
 
@@ -80,7 +80,7 @@ public class AuthenticatedHomeServer : IHomeServer {
                 var url = $"/_synapse/admin/v1/rooms?limit={Math.Min(limit, 100)}&dir={dir}&order_by={orderBy}";
                 if (!string.IsNullOrEmpty(searchTerm)) url += $"&search_term={searchTerm}";
 
-                if (res?.NextBatch != null) url += $"&from={res.NextBatch}";
+                if (res?.NextBatch is not null) url += $"&from={res.NextBatch}";
 
                 Console.WriteLine($"--- ADMIN Querying Room List with URL: {url} - Already have {i} items... ---");
 
@@ -88,7 +88,7 @@ public class AuthenticatedHomeServer : IHomeServer {
                 totalRooms ??= res?.TotalRooms;
                 Console.WriteLine(res.ToJson(false));
                 foreach (var room in res.Rooms) {
-                    if (localFilter != null) {
+                    if (localFilter is not null) {
                         if (!room.RoomId.Contains(localFilter.RoomIdContains)) {
                             totalRooms--;
                             continue;
@@ -144,7 +144,7 @@ public class AuthenticatedHomeServer : IHomeServer {
                             continue;
                         }
                     }
-                    // if (contentSearch != null && !string.IsNullOrEmpty(contentSearch) &&
+                    // if (contentSearch is not null && !string.IsNullOrEmpty(contentSearch) &&
                     //     !(
                     //         room.Name?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||
                     //         room.CanonicalAlias?.Contains(contentSearch, StringComparison.InvariantCultureIgnoreCase) == true ||

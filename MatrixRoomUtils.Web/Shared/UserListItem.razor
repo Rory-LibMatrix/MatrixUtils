@@ -1,11 +1,12 @@
 @using MatrixRoomUtils.Core.Responses
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.Helpers
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
-    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
+    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
 
     <div style="display: inline-block;">
-        @if (ChildContent != null) {
+        @if (ChildContent is not null) {
             @ChildContent
         }
     </div>
@@ -30,24 +31,24 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        
         await _semaphoreSlim.WaitAsync();
 
         if (User == null) {
             if (UserId == null) {
                 throw new ArgumentNullException(nameof(UserId));
             }
-            User = await RuntimeCache.CurrentHomeServer.GetProfile(UserId);
+            User = await hs.GetProfile(UserId);
         }
 
     // UserId = User.;
-        profileAvatar = RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
+        profileAvatar = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
         profileName = User.DisplayName;
 
         _semaphoreSlim.Release();
-        if (Random.Shared.Next(100) == 1)
-            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
 
 }

@@ -1,11 +1,12 @@
 @using MatrixRoomUtils.Core.Responses
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.Helpers
 <div style="background-color: #ffffff11; border-radius: 0.5em; height: 1em; display: inline-block; vertical-align: middle;" alt="@UserId">
-    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "vertical-align: top;") width: 1em; height: 1em; border-radius: 50%;" src="@ProfileAvatar"/>
+    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "vertical-align: top;") width: 1em; height: 1em; border-radius: 50%;" src="@ProfileAvatar"/>
     <span style="position: relative; top: -5px;">@ProfileName</span>
 
     <div style="display: inline-block;">
-        @if (ChildContent != null) {
+        @if (ChildContent is not null) {
             @ChildContent
         }
     </div>
@@ -21,7 +22,7 @@
     public ProfileResponse User { get; set; }
 
     [Parameter]
-    public string UserId { get; set; }
+    public string? UserId { get; set; }
 
     [Parameter]
     public string? ProfileAvatar { get; set; } = null;
@@ -33,19 +34,16 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-
+        var hs = await MRUStorage.GetCurrentSession();
+    
         await _semaphoreSlim.WaitAsync();
 
-        if (User == null) {
-            if (UserId == null) {
-                throw new ArgumentNullException(nameof(UserId));
-            }
-            User = await RuntimeCache.CurrentHomeServer.GetProfile(UserId);
-        }
+        if (User == null && UserId == null)
+            throw new ArgumentNullException(nameof(UserId));
+        User ??= await hs.GetProfile(UserId);
+ 
 
-    // UserId = User.;
-        ProfileAvatar ??= RuntimeCache.CurrentHomeServer.ResolveMediaUri(User.AvatarUrl);
+        ProfileAvatar ??= MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
         ProfileName ??= User.DisplayName;
 
         _semaphoreSlim.Release();

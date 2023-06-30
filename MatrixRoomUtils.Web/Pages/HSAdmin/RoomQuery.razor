@@ -165,7 +165,9 @@
 
     private async Task Search() {
         Results.Clear();
-        var searchRooms = RuntimeCache.CurrentHomeServer.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var searchRooms = hs.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
         while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
             Console.WriteLine("Hit: " + room.ToJson(false));

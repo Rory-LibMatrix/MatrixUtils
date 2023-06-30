@@ -34,25 +34,22 @@ else {
 <LogView></LogView>
 
 @code {
-    public List<Room> Rooms { get; set; } = new();
-    public List<Room> Spaces { get; set; } = new();
+    public List<GenericRoom> Rooms { get; set; } = new();
+    public List<GenericRoom> Spaces { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("Initializing room manager");
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         Console.WriteLine("Loaded from local storage");
         await base.OnInitializedAsync();
         Console.WriteLine("Initialized base");
-        if (RuntimeCache.CurrentHomeServer == null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
         Console.WriteLine("Fetching joined rooms");
-        var _rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+        var _rooms = await hs.GetJoinedRooms();
         StateHasChanged();
         Console.WriteLine($"Got {_rooms.Count} rooms");
         var semaphore = new SemaphoreSlim(10);
-        var tasks = new List<Task<Room?>>();
+        var tasks = new List<Task<GenericRoom?>>();
         foreach (var room in _rooms) {
             tasks.Add(CheckIfSpace(room, semaphore));
         }
@@ -61,14 +58,14 @@ else {
         Console.WriteLine("Fetched joined rooms!");
     }
 
-    private async Task<Room?> CheckIfSpace(Room room, SemaphoreSlim semaphore) {
+    private async Task<GenericRoom?> CheckIfSpace(GenericRoom room, SemaphoreSlim semaphore) {
         await semaphore.WaitAsync();
     // Console.WriteLine($"Checking if {room.RoomId} is a space");
         try {
             var state = await room.GetStateAsync<CreateEvent>("m.room.create");
-            if (state != null) {
+            if (state is not null) {
     //Console.WriteLine(state.Value.ToJson());
-                if (state.Type != null) {
+                if (state.Type is not null) {
                     if (state.Type == "m.space") {
                         Console.WriteLine($"Room {room.RoomId} is a space!");
                         Spaces.Add(room);

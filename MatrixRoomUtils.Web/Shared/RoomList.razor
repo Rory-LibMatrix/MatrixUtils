@@ -1,4 +1,5 @@
 @using MatrixRoomUtils.Web.Shared.RoomListComponents;
+@using MatrixRoomUtils.Core.StateEventTypes
 <p>@Rooms.Count rooms total, @RoomsWithTypes.Sum(x=>x.Value.Count) fetched so far...</p>
 @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
     <RoomListCategory Category="@category"></RoomListCategory>
@@ -7,14 +8,12 @@
 @code {
 
     [Parameter]
-    public List<Room> Rooms { get; set; }
+    public List<GenericRoom> Rooms { get; set; }
 
-    Dictionary<string, List<Room>> RoomsWithTypes = new();
+    Dictionary<string, List<GenericRoom>> RoomsWithTypes = new();
 
     protected override async Task OnInitializedAsync() {
         if (RoomsWithTypes.Any()) return;
-
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
         var tasks = Rooms.Select(AddRoom);
         await Task.WhenAll(tasks);
@@ -31,17 +30,17 @@
 
     
     private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(8, 8);
-    private async Task AddRoom(Room room) {
+    private async Task AddRoom(GenericRoom room) {
         await _semaphoreSlim.WaitAsync();
-        var roomType = GetRoomTypeName(await room.GetRoomType());
+        var roomType = GetRoomTypeName((await room.GetCreateEventAsync()).Type);
 
         if (roomType == "Room") {
-            var shortcodeState = await room.GetStateAsync("org.matrix.mjolnir.shortcode");
-            if (shortcodeState.HasValue) roomType = "Legacy policy room";
+            var shortcodeState = await room.GetStateAsync<MjolnirShortcodeEventData>("org.matrix.mjolnir.shortcode");
+            if (shortcodeState is not null) roomType = "Legacy policy room";
         }
         
         if (!RoomsWithTypes.ContainsKey(roomType)) {
-            RoomsWithTypes.Add(roomType, new List<Room>());
+            RoomsWithTypes.Add(roomType, new List<GenericRoom>());
         }
         RoomsWithTypes[roomType].Add(room);
 

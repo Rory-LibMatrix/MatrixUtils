@@ -15,25 +15,25 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
             InitialState = new List<StateEvent> {
                 new() {
                     Type = "m.room.history_visibility",
-                    Content = new {
+                    TypedContent = new {
                         history_visibility = "world_readable"
                     }
                 },
-                new StateEvent<GuestAccessData> {
+                new() {
                     Type = "m.room.guest_access",
-                    Content = new GuestAccessData {
+                    TypedContent = new GuestAccessData {
                         GuestAccess = "can_join"
                     }
                 },
                 new() {
                     Type = "m.room.join_rules",
-                    Content = new {
-                        join_rule = "public"
+                    TypedContent = new JoinRulesEventData() {
+                        JoinRule = "public"
                     }
                 },
                 new() {
                     Type = "m.room.server_acl",
-                    Content = new {
+                    TypedContent = new {
                         allow = new[] { "*" },
                         deny = Array.Empty<string>(),
                         allow_ip_literals = false
@@ -41,8 +41,8 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 },
                 new() {
                     Type = "m.room.avatar",
-                    Content = new {
-                        url = "mxc://feline.support/UKNhEyrVsrAbYteVvZloZcFj"
+                    TypedContent = new RoomAvatarEventData() {
+                        Url = "mxc://feline.support/UKNhEyrVsrAbYteVvZloZcFj"
                     }
                 }
             },
@@ -78,7 +78,8 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                     { "org.matrix.msc3401.call.member", 50 }
                 },
                 Users = new Dictionary<string, int> {
-                    { RuntimeCache.CurrentHomeServer.UserId, 100 }
+                    // { RuntimeCache.CurrentHomeServer.UserId, 100 }
+                    //TODO: re-implement this
                 }
             },
             CreationContent = new JsonObject {

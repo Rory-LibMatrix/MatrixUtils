@@ -1,4 +1,7 @@
 @page "/PolicyListEditor"
+@using System.Text.Json.Serialization
+@using MatrixRoomUtils.Core.Interfaces
+@using MatrixRoomUtils.Core.StateEventTypes
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Policy list editor - Room list</h3>
@@ -39,28 +42,26 @@ else {
     private int totalRoomCount { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer == null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
         await EnumeratePolicyRooms();
         Console.WriteLine("Policy list editor initialized!");
     }
 
     private async Task EnumeratePolicyRooms() {
-        var xxxrooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
-        totalRoomCount = xxxrooms.Count;
+        var hs = await MRUStorage.GetCurrentSession();
+        var rooms = await hs.GetJoinedRooms();
+        totalRoomCount = rooms.Count;
         StateHasChanged();
 
-        var xxxsemaphore = new SemaphoreSlim(1000);
-        var xxxtasks = new List<Task<PolicyRoomInfo?>>();
-        foreach (var room in xxxrooms) {
-            xxxtasks.Add(GetPolicyRoomInfo(room.RoomId, xxxsemaphore));
+        var semaphore = new SemaphoreSlim(8);
+        var tasks = new List<Task<PolicyRoomInfo?>>();
+        foreach (var room in rooms) {
+            tasks.Add(GetPolicyRoomInfo(room.RoomId, semaphore));
         }
-        var xxxresults = await Task.WhenAll(xxxtasks);
-        PolicyRoomList.AddRange(xxxresults.Where(x => x != null).Select(x => x.Value));
+        var results = await Task.WhenAll(tasks);
+        PolicyRoomList.AddRange(results.Where(x => x is not null).Select(x => x.Value));
 
         Console.WriteLine($"Detected policy lists: {PolicyRoomList.ToJson()}");
     }
@@ -68,15 +69,15 @@ else {
     private async Task<PolicyRoomInfo?> GetPolicyRoomInfo(string room, SemaphoreSlim semaphore) {
         try {
             await semaphore.WaitAsync();
+            var hs = await MRUStorage.GetCurrentSession();
             PolicyRoomInfo roomInfo = new() {
                 RoomId = room
             };
-            var r = await RuntimeCache.CurrentHomeServer.GetRoom(room);
-            var shortcodeState = await r.GetStateAsync("org.matrix.mjolnir.shortcode");
-            if (!shortcodeState.HasValue) return null;
-            roomInfo.Shortcode = shortcodeState.Value.TryGetProperty("shortcode", out var shortcode) ? shortcode.GetString() : null;
+            var r = await hs.GetRoom(room);
+            var shortcodeState = await r.GetStateAsync<MjolnirShortcodeEventData>("org.matrix.mjolnir.shortcode");
+            roomInfo.Shortcode = shortcodeState.Shortcode;
 
-            if (roomInfo.Shortcode != null) {
+            if (roomInfo.Shortcode is not null) {
                 roomInfo.Name = await r.GetNameAsync();
                 return roomInfo;
             }
@@ -89,6 +90,8 @@ else {
             semaphore.Release();
         }
     }
+
+    
 
     public struct PolicyRoomInfo {
         public

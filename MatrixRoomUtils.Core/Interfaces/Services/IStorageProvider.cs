@@ -2,45 +2,45 @@ namespace MatrixRoomUtils.Core.Interfaces.Services;
 
 public interface IStorageProvider {
     // save all children of a type with reflection
-    public Task SaveAllChildren<T>(string key, T value) {
+    public Task SaveAllChildrenAsync<T>(string key, T value) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement SaveAllChildren<T>(key, value)!");
-        return Task.CompletedTask;
+        throw new NotImplementedException();
     }
     
     // load all children of a type with reflection
-    public Task<T?> LoadAllChildren<T>(string key) {
+    public Task<T?> LoadAllChildrenAsync<T>(string key) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement LoadAllChildren<T>(key)!");
-        return Task.FromResult(default(T));
+        throw new NotImplementedException();
     }
 
 
-    public Task SaveObject<T>(string key, T value) {
+    public Task SaveObjectAsync<T>(string key, T value) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement SaveObject<T>(key, value)!");
-        return Task.CompletedTask;
+        throw new NotImplementedException();
     }
     
     // load
-    public Task<T?> LoadObject<T>(string key) {
+    public Task<T?> LoadObjectAsync<T>(string key) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement LoadObject<T>(key)!");
-        return Task.FromResult(default(T));
+        throw new NotImplementedException();
     }
     
     // check if exists
-    public Task<bool> ObjectExists(string key) {
+    public Task<bool> ObjectExistsAsync(string key) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement ObjectExists(key)!");
-        return Task.FromResult(false);
+        throw new NotImplementedException();
     }
     
     // get all keys
-    public Task<List<string>> GetAllKeys() {
+    public Task<List<string>> GetAllKeysAsync() {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement GetAllKeys()!");
-        return Task.FromResult(new List<string>());
+        throw new NotImplementedException();
     }
     
 
     // delete
-    public Task DeleteObject(string key) {
+    public Task DeleteObjectAsync(string key) {
         Console.WriteLine($"StorageProvider<{GetType().Name}> does not implement DeleteObject(key)!");
-        return Task.CompletedTask;
+        throw new NotImplementedException();
     }
 }

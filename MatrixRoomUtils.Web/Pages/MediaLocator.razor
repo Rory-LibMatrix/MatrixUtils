@@ -82,7 +82,6 @@
     }
 
     async Task addMoreHomeservers() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         var res = await Http.GetAsync("/homeservers.txt");
         var content = await res.Content.ReadAsStringAsync();
         homeservers.Clear();
@@ -93,10 +92,8 @@
         lines.ToList().ForEach(async line => {
             await sem.WaitAsync();
             try {
-                homeservers.Add(await rhs.ResolveHomeserverFromWellKnown(line));
+                homeservers.Add(await HomeserverResolver.ResolveHomeserverFromWellKnown(line));
                 StateHasChanged();
-                if (Random.Shared.Next(0, 101) == 50)
-                    await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
             }
             catch (Exception e) {
                 Console.WriteLine(e);

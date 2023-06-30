@@ -22,13 +22,10 @@ else {
     public List<string> Rooms { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer == null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
-        Rooms = (await RuntimeCache.CurrentHomeServer.GetJoinedRooms()).Select(x => x.RoomId).ToList();
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        Rooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
         Console.WriteLine("Fetched joined rooms!");
     }
 

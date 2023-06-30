@@ -31,20 +31,6 @@
         double _y = 0;
         double multiplier = 1;
 
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-        //var rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
-        
-        //rooms.ForEach(async room => {
-        //    var name = await room.GetNameAsync();
-        //    _windowInfos.Add(_windowInfos.Count, new WindowInfo() { X = _x, Y = _y, Title = name});
-        //    _x += 20;
-        //    _y += 20;
-        //    var dimension = await JsRuntime.InvokeAsync<WindowDimension>("getWindowDimensions");
-        //    if (_x > dimension.Width - 100) _x %= dimension.Width - 100;
-        //    if (_y > dimension.Height - 50) _y %= dimension.Height - 50;
-        //    StateHasChanged();
-        //});
-
         for (int i = 0; i < 200; i++) {
             var i1 = i;
             _windowInfos.Add(_windowInfos.Count, new WindowInfo() {

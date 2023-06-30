@@ -20,7 +20,7 @@ public class SyncHelper {
 
     public async Task<SyncResult?> Sync(string? since = null, CancellationToken? cancellationToken = null) {
         var outFileName = "sync-" +
-                          (await _storageService.CacheStorageProvider.GetAllKeys()).Count(x => x.StartsWith("sync")) +
+                          (await _storageService.CacheStorageProvider.GetAllKeysAsync()).Count(x => x.StartsWith("sync")) +
                           ".json";
         var url = "/_matrix/client/v3/sync?timeout=30000&set_presence=online";
         if (!string.IsNullOrWhiteSpace(since)) url += $"&since={since}";
@@ -29,7 +29,7 @@ public class SyncHelper {
         try {
             var res = await _homeServer._httpClient.GetFromJsonAsync<SyncResult>(url,
                 cancellationToken: cancellationToken ?? CancellationToken.None);
-            await _storageService.CacheStorageProvider.SaveObject(outFileName, res);
+            await _storageService.CacheStorageProvider.SaveObjectAsync(outFileName, res);
             Console.WriteLine($"Wrote file: {outFileName}");
             return res;
         }

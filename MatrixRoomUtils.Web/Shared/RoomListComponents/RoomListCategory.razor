@@ -16,9 +16,9 @@
 @code {
 
     [Parameter]
-    public KeyValuePair<string, List<Room>> Category { get; set; }
+    public KeyValuePair<string, List<GenericRoom>> Category { get; set; }
 
     private string roomType => Category.Key;
-    private List<Room> rooms => Category.Value;
+    private List<GenericRoom> rooms => Category.Value;
     
 }

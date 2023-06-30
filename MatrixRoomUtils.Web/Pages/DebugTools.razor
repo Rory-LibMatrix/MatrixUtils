@@ -37,13 +37,10 @@ else {
     public List<string> Rooms { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer == null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
-        Rooms = (await RuntimeCache.CurrentHomeServer.GetJoinedRooms()).Select(x => x.RoomId).ToList();
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs == null) return;
+        Rooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
         Console.WriteLine("Fetched joined rooms!");
     }
 
@@ -53,7 +50,9 @@ else {
 
     private async Task SendGetRequest() {
         var field = typeof(IHomeServer).GetRuntimeFields().First(x => x.ToString().Contains("<_httpClient>k__BackingField"));
-        var httpClient = field.GetValue(RuntimeCache.CurrentHomeServer) as HttpClient;
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs == null) return;
+        var httpClient = field.GetValue(hs) as MatrixHttpClient;
         try {
             var res = await httpClient.GetAsync(get_request_url);
             if (res.IsSuccessStatusCode) {

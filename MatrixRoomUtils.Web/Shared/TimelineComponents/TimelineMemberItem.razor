@@ -1,23 +1,24 @@
-@using MatrixRoomUtils.Core
-@using Microsoft.AspNetCore.Components
-@if (Event.membership"]!.GetValue<string>() == "ban") {
+@using MatrixRoomUtils.Core.Responses
+@using MatrixRoomUtils.Core.StateEventTypes
+
+@if (roomMemberData.Membership == "ban") {
     <i>@Event.StateKey was banned</i>
 }
-else if (Event.membership"]!.GetValue<string>() == "invite") {
+else if (roomMemberData.Membership == "invite") {
     <i>@Event.StateKey was invited</i>
 }
-else if (Event.membership"]!.GetValue<string>() == "join") {
-    @if (Event.ReplacesState != null) {
-        <i>@Event.StateKey changed their display name to @(Event.displayname"]!.GetValue<string>())</i>
+else if (roomMemberData.Membership == "join") {
+    @if (Event.ReplacesState is not null) {
+        <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
     }
     else {
         <i><InlineUserItem UserId="@Event.StateKey"></InlineUserItem> joined</i>
     }
 }
-else if (Event.membership"]!.GetValue<string>() == "leave") {
+else if (roomMemberData.Membership == "leave") {
     <i>@Event.StateKey left</i>
 }
-else if (Event.membership"]!.GetValue<string>() == "knock") {
+else if (roomMemberData.Membership == "knock") {
     <i>@Event.StateKey knocked</i>
 }
 else {
@@ -30,6 +31,8 @@ else {
 @code {
 
     [Parameter]
-    public StateEvent Event { get; set; }
+    public StateEventResponse Event { get; set; }
+
+    private RoomMemberEventData? roomMemberData => Event.TypedContent as RoomMemberEventData;
 
 }

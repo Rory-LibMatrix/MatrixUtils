@@ -13,21 +13,12 @@
 @using MatrixRoomUtils.Web.Shared
 @using MatrixRoomUtils.Core.RoomTypes
 @using MatrixRoomUtils.Core.Extensions
+@using MatrixRoomUtils.Core.Services
 
 @using LinkButton = MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton
 
-
-
-@inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
-
-@code
-{
-    protected override async Task OnInitializedAsync() {
-        if (!RuntimeCache.WasLoaded) {
-            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-            Console.WriteLine("Loaded from local storage");
-            StateHasChanged();
-        }
-    }
-}
+@inject MRUStorageWrapper MRUStorage
+@inject HomeserverProviderService HomeserverProvider
+@inject TieredStorageService TieredStorage
+@inject HomeserverResolverService HomeserverResolver

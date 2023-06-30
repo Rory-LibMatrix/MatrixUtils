@@ -29,14 +29,14 @@
         using var hc = new HttpClient();
         var hr = await hc.SendAsync(new HttpRequestMessage(HttpMethod.Head, NavigationManager.ToAbsoluteUri("/MRU-BIN.tar.xz").AbsoluteUri));
         showDownload = hr.StatusCode == HttpStatusCode.OK;
-
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-        if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging) {
-            Console.WriteLine("Console logging disabled!");
-            var sw = new StringWriter();
-            Console.SetOut(sw);
-            Console.SetError(sw);
-        }
+        
+        // TODO: fix console logging toggle
+        // if (!LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging) {
+        //     Console.WriteLine("Console logging disabled!");
+        //     var sw = new StringWriter();
+        //     Console.SetOut(sw);
+        //     Console.SetError(sw);
+        // }
 
         await base.OnInitializedAsync();
     }

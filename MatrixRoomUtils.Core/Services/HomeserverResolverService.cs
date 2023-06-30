@@ -6,11 +6,12 @@ using Microsoft.Extensions.Logging;
 namespace MatrixRoomUtils.Core.Services; 
 
 public class HomeserverResolverService {
-    private readonly HttpClient _httpClient;
+    private readonly MatrixHttpClient _httpClient = new MatrixHttpClient();
     private readonly ILogger<HomeserverResolverService> _logger;
 
-    public HomeserverResolverService(HttpClient httpClient, ILogger<HomeserverResolverService> logger) {
-        _httpClient = httpClient;
+    private static Dictionary<string, object> _wellKnownCache = new();
+    
+    public HomeserverResolverService(ILogger<HomeserverResolverService> logger) {
         _logger = logger;
     }
 
@@ -22,6 +23,12 @@ public class HomeserverResolverService {
     }
 
     private async Task<string> _resolveHomeserverFromWellKnown(string homeserver) {
+        if(homeserver is null) throw new ArgumentNullException(nameof(homeserver));
+        if (_wellKnownCache.ContainsKey(homeserver)) {
+            if (_wellKnownCache[homeserver] is SemaphoreSlim s) await s.WaitAsync();
+            if (_wellKnownCache[homeserver] is string p) return p;
+        }
+        _wellKnownCache[homeserver] = new SemaphoreSlim(1);
         string? result = null;
         _logger.LogInformation($"Attempting to resolve homeserver: {homeserver}");
         if (!homeserver.StartsWith("http")) homeserver = "https://" + homeserver;
@@ -34,6 +41,7 @@ public class HomeserverResolverService {
 
         if(result is not null) {
             _logger.LogInformation($"Resolved homeserver: {homeserver} -> {result}");
+            _wellKnownCache.TryAdd(homeserver, result);
             return result;
         }
         

@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using System.Diagnostics
 @using MatrixRoomUtils.Core.Responses
+@using MatrixRoomUtils.Core.StateEventTypes
 <h3>Known Homeserver List</h3>
 <hr/>
 
@@ -33,10 +34,10 @@ else {
     List<HomeServerInfo> HomeServers = new();
     bool IsFinished { get; set; }
     HomeServerInfoQueryProgress QueryProgress { get; set; } = new();
-
+    AuthenticatedHomeServer hs { get; set; }
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-
+        hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
         var sw = Stopwatch.StartNew();
         HomeServers = await GetHomeservers(progressCallback: async progress => {
             if (sw.ElapsedMilliseconds > 1000) {
@@ -61,7 +62,8 @@ else {
     private async Task<List<HomeServerInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeServerInfoQueryProgress, Task<bool>>? progressCallback = null) {
         HomeServerInfoQueryProgress progress = new();
         List<HomeServerInfo> homeServers = new();
-        var rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+        
+        var rooms = await hs.GetJoinedRooms();
         progress.TotalRooms = rooms.Count;
 
         var semaphore = new SemaphoreSlim(4);
@@ -70,53 +72,69 @@ else {
             await semaphore.WaitAsync();
             progress.ProcessedUsers.Add(room, new HomeServerInfoQueryProgress.State());
             Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
-            var states = (await room.GetStateAsync("")).Value.Deserialize<List<StateEventResponse>>();
-            states.RemoveAll(x => x.Type != "m.room.member" || x.Content.GetProperty("membership").GetString() != "join");
-            Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
-            if (states.Count > memberLimit) {
-                Console.WriteLine("Skipping!");
-                semaphore.Release();
-                progress.ProcessedUsers.Remove(room);
-                progress.TotalRooms--;
-                return;
-            }
-            progress.ProcessedUsers[room].Total = states.Count;
-            var updateInterval = progress.ProcessedUsers[room].Total >= 1000 ? 1000 : 100;
-            while (progress.ProcessedUsers.Any(x => x.Value.Total == 0) && progress.ProcessedUsers[room].Total >= 1000) {
-                progress.ProcessedUsers[room].Blocked = true;
-                await Task.Delay(1000);
-    // if(progressCallback != null)
-    //     await progressCallback.Invoke(progress);
-            }
-            progress.ProcessedUsers[room].Blocked = false;
-            var processedStates = 0;
-            foreach (var state in states) {
-                await semLock.WaitAsync();
-                semLock.Release();
-                if (progress.ProcessedUsers.Count(x => x.Value.Total == 0) > 5 && progress.ProcessedUsers[room].Total >= 200) {
-                    progress.ProcessedUsers[room].Slowmode = true;
-                    await Task.Delay(progress.ProcessedUsers[room].Total >= 500 ? 1000 : 100);
-                }
-                else {
-                    progress.ProcessedUsers[room].Slowmode = false;
-                }
+            var states = room.GetFullStateAsync();
+            await foreach (var state in states) {
+                if (state.Type is not "m.room.member") continue;
+                progress.ProcessedUsers[room].Total++;
                 if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) {
                     homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
-                }
-                var hs = homeServers.First(x => x.Server == state.StateKey.Split(':')[1]);
-                if (!hs.KnownUsers.Contains(state.StateKey.Split(':')[0]))
-                    hs.KnownUsers.Add(state.StateKey.Split(':')[0]);
-                if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback != null) {
-                    await semLock.WaitAsync();
-                    var _ = await progressCallback.Invoke(progress);
-                    semLock.Release();
+                    Console.WriteLine($"Added new homeserver {state.StateKey.Split(':')[1]}");
                 }
             }
-            Console.WriteLine("Collected states!");
-            progress.ProcessedRooms++;
-            progress.ProcessedUsers[room].IsFinished = true;
-            progressCallback?.Invoke(progress);
             semaphore.Release();
+            progress.ProcessedUsers[room].IsFinished = true;
+            progress.ProcessedRooms++;
+            if (progressCallback is not null)
+                await progressCallback.Invoke(progress);
+
+
+
+    //         states.RemoveAll(x => x.Type != "m.room.member" || (x.TypedContent as RoomMemberEventData).Membership != "join");
+    //         Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
+    //         if (states.Count > memberLimit) {
+    //             Console.WriteLine("Skipping!");
+    //             semaphore.Release();
+    //             progress.ProcessedUsers.Remove(room);
+    //             progress.TotalRooms--;
+    //             return;
+    //         }
+    //         progress.ProcessedUsers[room].Total = states.Count;
+    //         var updateInterval = progress.ProcessedUsers[room].Total >= 1000 ? 1000 : 100;
+    //         while (progress.ProcessedUsers.Any(x => x.Value.Total == 0) && progress.ProcessedUsers[room].Total >= 1000) {
+    //             progress.ProcessedUsers[room].Blocked = true;
+    //             await Task.Delay(1000);
+    // // if(progressCallback is not null)
+    // //     await progressCallback.Invoke(progress);
+    //         }
+    //         progress.ProcessedUsers[room].Blocked = false;
+    //         var processedStates = 0;
+    //         foreach (var state in states) {
+    //             await semLock.WaitAsync();
+    //             semLock.Release();
+    //             if (progress.ProcessedUsers.Count(x => x.Value.Total == 0) > 5 && progress.ProcessedUsers[room].Total >= 200) {
+    //                 progress.ProcessedUsers[room].Slowmode = true;
+    //                 await Task.Delay(progress.ProcessedUsers[room].Total >= 500 ? 1000 : 100);
+    //             }
+    //             else {
+    //                 progress.ProcessedUsers[room].Slowmode = false;
+    //             }
+    //             if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) {
+    //                 homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
+    //             }
+    //             var hs = homeServers.First(x => x.Server == state.StateKey.Split(':')[1]);
+    //             if (!hs.KnownUsers.Contains(state.StateKey.Split(':')[0]))
+    //                 hs.KnownUsers.Add(state.StateKey.Split(':')[0]);
+    //             if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback is not null) {
+    //                 await semLock.WaitAsync();
+    //                 var _ = await progressCallback.Invoke(progress);
+    //                 semLock.Release();
+    //             }
+    //         }
+            // Console.WriteLine("Collected states!");
+            // progress.ProcessedRooms++;
+            // progress.ProcessedUsers[room].IsFinished = true;
+            // progressCallback?.Invoke(progress);
+            // semaphore.Release();
         });
         await Task.WhenAll(tasks);
 
@@ -136,7 +154,7 @@ else {
     class HomeServerInfoQueryProgress {
         public int ProcessedRooms { get; set; }
         public int TotalRooms { get; set; }
-        public Dictionary<Room, State> ProcessedUsers { get; } = new();
+        public Dictionary<GenericRoom, State> ProcessedUsers { get; } = new();
         public List<HomeServerInfo> CurrentState { get; set; } = new();
 
         public class State {

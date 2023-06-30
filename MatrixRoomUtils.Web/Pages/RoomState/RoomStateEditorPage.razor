@@ -45,12 +45,9 @@
     public string status = "";
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer != null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
         RoomId = RoomId.Replace('~', '.');
         await LoadStatesAsync();
         Console.WriteLine("Policy list editor initialized!");
@@ -59,25 +56,20 @@
     private DateTime _lastUpdate = DateTime.Now;
 
     private async Task LoadStatesAsync() {
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+
         var StateLoaded = 0;
-        using var client = new HttpClient();
-    //TODO: can this be improved?
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
-        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/v3/rooms/{RoomId}/state");
-    // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
-    //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
-        var _data = await response.Content.ReadAsStreamAsync();
-        var __events = JsonSerializer.DeserializeAsyncEnumerable<StateEventResponse>(_data);
-        await foreach (var _ev in __events) {
-            var e = new StateEventResponse {
-                Type = _ev.Type,
-                StateKey = _ev.StateKey,
-                OriginServerTs = _ev.OriginServerTs,
-                Content = _ev.Content
-            };
-            Events.Add(e);
-            if (string.IsNullOrEmpty(e.StateKey)) {
-                FilteredEvents.Add(e);
+        var response = (await hs.GetRoom(RoomId)).GetFullStateAsync();
+        await foreach (var _ev in response) {
+            // var e = new StateEventResponse {
+            //     Type = _ev.Type,
+            //     StateKey = _ev.StateKey,
+            //     OriginServerTs = _ev.OriginServerTs,
+            //     Content = _ev.Content
+            // };
+            Events.Add(_ev);
+            if (string.IsNullOrEmpty(_ev.StateKey)) {
+                FilteredEvents.Add(_ev);
             }
             StateLoaded++;
             if ((DateTime.Now - _lastUpdate).TotalMilliseconds > 100) {
@@ -104,8 +96,8 @@
         await Task.Delay(1);
         FilteredEvents = _FilteredEvents;
 
-        if (_shownType != null)
-            shownEventJson = _FilteredEvents.Where(x => x.Type == _shownType).First().Content.ToJson(indent: true, ignoreNull: true);
+        if (_shownType is not null)
+            shownEventJson = _FilteredEvents.Where(x => x.Type == _shownType).First().RawContent.ToJson(indent: true, ignoreNull: true);
 
         StateHasChanged();
     }

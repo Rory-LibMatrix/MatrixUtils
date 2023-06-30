@@ -1,7 +1,7 @@
 ﻿@page "/"
-@using MatrixRoomUtils.Web.Shared.IndexComponents
-@inject NavigationManager NavigationManager
-@inject ILocalStorageService LocalStorage
+@using MatrixRoomUtils.Core.Helpers
+@using MatrixRoomUtils.Core.Responses
+@using MatrixRoomUtils.Web.Shared.SimpleComponents
 
 <PageTitle>Index</PageTitle>
 
@@ -12,18 +12,67 @@ Small collection of tools to do not-so-everyday things.
 <h5>Signed in accounts - <a href="/Login">Add new account</a></h5>
 <hr/>
 <form>
-    @foreach (var (token, user) in RuntimeCache.LoginSessions) {
-        <IndexUserItem User="@user"/>
+    @foreach (var (auth, user) in _users.OrderByDescending(x=>x.Value.RoomCount)) {
+        var _auth = auth;
+        var _user = user;
+        <div style="margin-bottom: 1em;">
+            <img style="border-radius: 50%; height: 3em; width: 3em;" src="@_user.AvatarUrl"/>
+            <p style="margin-left: 1em; margin-top: -0.5em; display: inline-block;">
+                <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(()=>SwitchSession(_auth))" style="text-decoration-line: unset;"/>
+                <b>@_user.DisplayName</b> on <b>@_auth.Homeserver</b>
+                <a role="button" @onclick="@(() => RemoveUser(_auth))">Remove</a>
+                
+            </p>
+            <p style="margin-top: -1.5em; margin-left: 4em;">Member of @_user.RoomCount rooms</p>
+        
+        </div>
     }
 </form>
 
 @code
 {
+    private Dictionary<LoginResponse, UserInfo> _users = new();
+
     protected override async Task OnInitializedAsync() {
-        if (!RuntimeCache.WasLoaded) {
-            Console.WriteLine("[INDEX] !!! LOCALSTORAGE WAS NOT LOADED !!!");
-            await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-        }
+        _currentSession = await MRUStorage.GetCurrentToken();
+        _users.Clear();
+        var tokens = await MRUStorage.GetAllTokens();
+        var profileTasks = tokens.Select(async token => {
+            UserInfo userInfo = new();
+            var hs = await HomeserverProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+            var roomCountTask = hs.GetJoinedRooms();
+            var profile = await hs.GetProfile(hs.WhoAmI.UserId);
+            userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;
+            userInfo.AvatarUrl = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain,
+                profile.AvatarUrl
+                ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId
+                );
+            userInfo.RoomCount = (await roomCountTask).Count;
+            _users.Add(token, userInfo);
+    // StateHasChanged();
+        });
+        await Task.WhenAll(profileTasks);
         await base.OnInitializedAsync();
+    }
+
+    private class UserInfo {
+        internal string AvatarUrl { get; set; }
+        internal string DisplayName { get; set; }
+        internal int RoomCount { get; set; } = 0;
+    }
+
+    private async Task RemoveUser(LoginResponse auth) {
+        await MRUStorage.RemoveToken(auth);
+        if ((await MRUStorage.GetCurrentToken()).AccessToken == auth.AccessToken)
+            MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens()).FirstOrDefault());
+        await OnInitializedAsync();
+    }
+
+    private LoginResponse _currentSession;
+
+    private async Task SwitchSession(LoginResponse auth) {
+        Console.WriteLine($"Switching to {auth.Homeserver} {auth.AccessToken} {auth.UserId}");
+        await MRUStorage.SetCurrentToken(auth);
+        await OnInitializedAsync();
     }
 }

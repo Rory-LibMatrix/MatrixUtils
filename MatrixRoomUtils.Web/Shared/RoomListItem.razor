@@ -1,15 +1,17 @@
 @using MatrixRoomUtils.Core.Extensions
 @using System.Text.Json
+@using MatrixRoomUtils.Core.Helpers
+@using MatrixRoomUtils.Core.StateEventTypes
 <div class="roomListItem" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (ShowOwnProfile) {
-        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(profileAvatar) ? "" : "imageLoaded")" style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@(profileAvatar ?? "/icon-192.png")" />
+        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(profileAvatar) ? "" : "imageLoaded")" style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(hasCustomProfileAvatar ? "border-color: red; border-width: 3px; border-style: dashed;" : "")" src="@(profileAvatar ?? "/icon-192.png")"/>
         <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(hasCustomProfileName ? "background-color: red;" : "")">@(profileName ?? "Loading...")</span>
         <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
     }
-    <img style="@(ChildContent != null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
+    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@roomIcon"/>
     <div style="display: inline-block;">
         <span style="vertical-align: middle; padding-right: 8px;">@RoomName</span>
-        @if (ChildContent != null) {
+        @if (ChildContent is not null) {
             @ChildContent
         }
     </div>
@@ -22,7 +24,7 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public Room Room { get; set; }
+    public GenericRoom Room { get; set; }
 
     [Parameter]
     public string RoomId { get; set; }
@@ -47,11 +49,11 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
 
         await _semaphoreSlim.WaitAsync();
 
-        var hs = RuntimeCache.CurrentHomeServer;
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
 
         if (Room == null) {
             if (RoomId == null) {
@@ -66,7 +68,7 @@
         RoomName ??= await Room.GetNameAsync() ?? "Unnamed room: " + RoomId;
 
         var ce = await Room.GetCreateEventAsync();
-        if (ce != null) {
+        if (ce is not null) {
             if (int.TryParse(ce.RoomVersion, out var rv) && rv < 10) {
                 hasOldRoomVersion = true;
             }
@@ -76,47 +78,37 @@
             }
         }
 
-        var state = await Room.GetStateAsync("m.room.avatar");
-        if (state != null) {
+        var state = await Room.GetStateAsync<RoomAvatarEventData>("m.room.avatar");
+        if (state is not null) {
             try {
-                var url = state.Value.GetProperty("url").GetString();
-                if (url != null) {
-                    roomIcon = hs.ResolveMediaUri(url);
+                var url = state.Url;
+                if (url is not null) {
+                    roomIcon = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
                     Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
                 }
             }
             catch (InvalidOperationException e) {
-                Console.WriteLine($"Failed to get avatar for room {RoomId}: {e.Message}\n{state.Value.ToJson()}");
+                Console.WriteLine($"Failed to get avatar for room {RoomId}: {e.Message}\n{state.ToJson()}");
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
             }
         }
 
         if (ShowOwnProfile) {
             var profile = await hs.GetProfile(hs.UserId, true);
 
-            var memberState = await Room.GetStateAsync("m.room.member", hs.UserId);
-            if (memberState.HasValue) {
-                memberState.Value.TryGetProperty("avatar_url", out var _avatar);
-                if (_avatar.ValueKind == JsonValueKind.String) {
-                    hasCustomProfileAvatar = _avatar.GetString() != profile.AvatarUrl;
-                    profileAvatar = hs.ResolveMediaUri(_avatar.GetString());
-                }
-                else {
-                    profileAvatar = "/icon-192.png";
-                }
-                memberState.Value.TryGetProperty("displayname", out var _name);
-                if (_name.ValueKind == JsonValueKind.String) {
-                    hasCustomProfileName = _name.GetString() != profile.DisplayName;
-                    profileName = _name.GetString();
-    // Console.WriteLine($"{profile.DisplayName} - {_name.GetString()}: {hasCustomProfileName}");
-                }
-                else {
-                    profileName = "Unnamed user";
-                }
+            var memberState = await Room.GetStateAsync<RoomMemberEventData>("m.room.member", hs.UserId);
+            if (memberState is not null) {
+                
+                hasCustomProfileAvatar = memberState.AvatarUrl != profile.AvatarUrl;
+                profileAvatar = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, memberState.AvatarUrl ?? profile.AvatarUrl ?? "/icon-192.png");
+                
+                hasCustomProfileName = memberState.Displayname != profile.DisplayName;
+                profileName = memberState.Displayname;
             }
         }
         _semaphoreSlim.Release();
-        if (Random.Shared.Next(100) == 1)
-            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
     }
 
 }

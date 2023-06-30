@@ -10,7 +10,7 @@ public class LoginResponse {
     public string DeviceId { get; set; }
 
     [JsonPropertyName("home_server")]
-    public string HomeServer { get; set; }
+    public string Homeserver { get; set; }
 
     [JsonPropertyName("user_id")]
     public string UserId { get; set; }

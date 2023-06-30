@@ -1,20 +1,19 @@
 @page "/Rooms"
 <h3>Room list</h3>
 
-@if (Rooms != null) {
+@if (Rooms is not null) {
     <RoomList Rooms="Rooms"></RoomList>
 }
 
 
 @code {
 
-    private List<Room> Rooms { get; set; }
+    private List<GenericRoom> Rooms { get; set; }
     
-    protected override async Task OnInitializedAsync()
-    {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
-
-        Rooms = await RuntimeCache.CurrentHomeServer.GetJoinedRooms();
+    protected override async Task OnInitializedAsync() {
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        Rooms = await hs.GetJoinedRooms();
 
         await base.OnInitializedAsync();
     }

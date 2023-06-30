@@ -7,69 +7,23 @@
 <h3>Rory&::MatrixUtils - Developer options</h3>
 <hr/>
 
-<InputCheckbox @bind-Value="@LocalStorageWrapper.Settings.DeveloperSettings.EnableLogViewers" @oninput="@LogStuff"></InputCheckbox><label> Enable log views</label><br/>
-<InputCheckbox @bind-Value="@LocalStorageWrapper.Settings.DeveloperSettings.EnableConsoleLogging" @oninput="@LogStuff"></InputCheckbox><label> Enable console logging</label><br/>
-<InputCheckbox @bind-Value="@LocalStorageWrapper.Settings.DeveloperSettings.EnablePortableDevtools" @oninput="@LogStuff"></InputCheckbox><label> Enable portable devtools</label><br/>
-<button @onclick="@DropCaches">Drop caches</button>
-<button @onclick="@RandomiseCacheTimers">Randomise cache timers</button>
+<InputCheckbox @bind-Value="@settings.DeveloperSettings.EnableLogViewers" @oninput="@LogStuff"></InputCheckbox><label> Enable log views</label><br/>
+<InputCheckbox @bind-Value="@settings.DeveloperSettings.EnableConsoleLogging" @oninput="@LogStuff"></InputCheckbox><label> Enable console logging</label><br/>
+<InputCheckbox @bind-Value="@settings.DeveloperSettings.EnablePortableDevtools" @oninput="@LogStuff"></InputCheckbox><label> Enable portable devtools</label><br/>
 <br/>
-
-<details open>
-    <summary>View caches</summary>
-    <p>Generic cache:</p>
-    <ul>
-        @foreach (var item in RuntimeCache.GenericResponseCache) {
-            <li>
-                @item.Key: @item.Value.Cache.Count entries<br/>
-                @if (item.Value.Cache.Count > 0) {
-                    <p>Earliest expiry: @(item.Value.Cache.Min(x => x.Value.ExpiryTime)) (@string.Format("{0:g}", item.Value.Cache.Min(x => x.Value.ExpiryTime).Value.Subtract(DateTime.Now)) from now)</p>
-                    @* <p>Average expiry: @(item.Value.Cache.Average(x => x.Value.ExpiryTime.Value))(@item.Value.Cache.Average(x => x.Value.ExpiryTime).Value.Subtract(DateTime.Now) from now)</p> *@
-                    <p>Last expiry: @(item.Value.Cache.Max(x => x.Value.ExpiryTime)) (@string.Format("{0:g}", item.Value.Cache.Max(x => x.Value.ExpiryTime).Value.Subtract(DateTime.Now)) from now)</p>
-                }
-            </li>
-        }
-    </ul>
-</details>
 
 @code {
 
+    MRUStorageWrapper.Settings settings { get; set; } = new();
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
+        settings = await TieredStorage.DataStorageProvider.LoadObjectAsync<MRUStorageWrapper.Settings>("mru.settings");
         await base.OnInitializedAsync();
-        Task.Run(async () => {
-            while (true) {
-                await Task.Delay(1000);
-                StateHasChanged();
-            }
-        });
     }
 
-    protected async Task LogStuff() {
+    private async Task LogStuff() {
         await Task.Delay(100);
-        Console.WriteLine($"Settings: {LocalStorageWrapper.Settings.ToJson()}");
-
-        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
-    }
-
-    protected async Task DropCaches() {
-        foreach (var (key, value) in RuntimeCache.GenericResponseCache) {
-            value.Cache.Clear();
-        }
-
-    //RuntimeCache.GenericResponseCache.Clear();
-        RuntimeCache.HomeserverResolutionCache.Clear();
-        await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
-    }
-
-    protected async Task RandomiseCacheTimers() {
-        foreach (var keyValuePair in RuntimeCache.GenericResponseCache) {
-            Console.WriteLine($"Randomising cache timer for {keyValuePair.Key}");
-            foreach (var cacheItem in keyValuePair.Value.Cache) {
-                cacheItem.Value.ExpiryTime = DateTime.Now.AddSeconds(Random.Shared.Next(15, 120));
-            }
-
-            await LocalStorageWrapper.SaveCacheToLocalStorage(LocalStorage);
-        }
+        Console.WriteLine($"Settings: {settings.ToJson()}");
+        await TieredStorage.DataStorageProvider.SaveObjectAsync("mru.settings", settings);
     }
 
 }

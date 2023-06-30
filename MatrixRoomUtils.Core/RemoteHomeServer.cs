@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
+using MatrixRoomUtils.Core.Services;
 
 namespace MatrixRoomUtils.Core;
 

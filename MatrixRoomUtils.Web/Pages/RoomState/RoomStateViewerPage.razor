@@ -1,6 +1,7 @@
 @page "/RoomStateViewer/{RoomId}"
 @using System.Net.Http.Headers
 @using System.Text.Json
+@using MatrixRoomUtils.Core.Responses
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 <h3>Room state viewer - Viewing @RoomId</h3>
@@ -18,18 +19,18 @@
     </tr>
     </thead>
     <tbody>
-    @foreach (var stateEvent in FilteredEvents.Where(x => x.state_key == "").OrderBy(x => x.origin_server_ts)) {
+    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey == "").OrderBy(x => x.OriginServerTs)) {
         <tr>
-            <td>@stateEvent.type</td>
+            <td>@stateEvent.Type</td>
             <td style="max-width: fit-Content;">
-                <pre>@stateEvent.content</pre>
+                <pre>@stateEvent.RawContent.ToJson()</pre>
             </td>
         </tr>
     }
     </tbody>
 </table>
 
-@foreach (var group in FilteredEvents.GroupBy(x => x.state_key).OrderBy(x => x.Key).Where(x => x.Key != "")) {
+@foreach (var group in FilteredEvents.GroupBy(x => x.StateKey).OrderBy(x => x.Key).Where(x => x.Key != "")) {
     <details>
         <summary>@group.Key</summary>
         <table class="table table-striped table-hover" style="width: fit-Content;">
@@ -40,11 +41,11 @@
             </tr>
             </thead>
             <tbody>
-            @foreach (var stateEvent in group.OrderBy(x => x.origin_server_ts)) {
+            @foreach (var stateEvent in group.OrderBy(x => x.OriginServerTs)) {
                 <tr>
-                    <td>@stateEvent.type</td>
+                    <td>@stateEvent.Type</td>
                     <td style="max-width: fit-Content;">
-                        <pre>@stateEvent.content</pre>
+                        <pre>@stateEvent.RawContent.ToJson()</pre>
                     </td>
                 </tr>
             }
@@ -64,17 +65,14 @@
     [Parameter]
     public string? RoomId { get; set; }
 
-    public List<PreRenderedStateEvent> FilteredEvents { get; set; } = new();
-    public List<PreRenderedStateEvent> Events { get; set; } = new();
+    public List<StateEventResponse> FilteredEvents { get; set; } = new();
+    public List<StateEventResponse> Events { get; set; } = new();
     public string status = "";
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         await base.OnInitializedAsync();
-        if (RuntimeCache.CurrentHomeServer == null) {
-            NavigationManager.NavigateTo("/Login");
-            return;
-        }
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
         RoomId = RoomId.Replace('~', '.');
         await LoadStatesAsync();
         Console.WriteLine("Policy list editor initialized!");
@@ -84,24 +82,13 @@
 
     private async Task LoadStatesAsync() {
         var StateLoaded = 0;
-    //TODO: can we improve this?
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeCache.CurrentHomeServer.AccessToken);
-        var response = await client.GetAsync($"{RuntimeCache.CurrentHomeServer.FullHomeServerDomain}/_matrix/client/v3/rooms/{RoomId}/state");
-    // var response = await client.GetAsync($"http://localhost:5117/matrix-hq-state.json");
-    //var _events = await response.Content.ReadFromJsonAsync<Queue<StateEventStruct>>();
-        var _data = await response.Content.ReadAsStreamAsync();
-        var __events = JsonSerializer.DeserializeAsyncEnumerable<StateEventStruct>(_data);
-        await foreach (var _ev in __events) {
-            var e = new PreRenderedStateEvent {
-                type = _ev.type,
-                state_key = _ev.state_key,
-                origin_server_ts = _ev.origin_server_ts,
-                content = _ev.content.ToJson(true, true)
-            };
-            Events.Add(e);
-            if (string.IsNullOrEmpty(e.state_key)) {
-                FilteredEvents.Add(e);
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var response = (await hs.GetRoom(RoomId)).GetFullStateAsync();
+        await foreach (var _ev in response) {
+            Events.Add(_ev);
+            if (string.IsNullOrEmpty(_ev.StateKey)) {
+                FilteredEvents.Add(_ev);
             }
             StateLoaded++;
             if ((DateTime.Now - _lastUpdate).TotalMilliseconds > 100) {
@@ -121,24 +108,13 @@
         await Task.Delay(1);
         var _FilteredEvents = Events;
         if (!ShowMembershipEvents)
-            _FilteredEvents = _FilteredEvents.Where(x => x.type != "m.room.member").ToList();
+            _FilteredEvents = _FilteredEvents.Where(x => x.Type != "m.room.member").ToList();
 
         status = "Done, rerendering!";
         StateHasChanged();
         await Task.Delay(1);
         FilteredEvents = _FilteredEvents;
         StateHasChanged();
-    }
-
-    public struct PreRenderedStateEvent {
-        public string content { get; set; }
-        public long origin_server_ts { get; set; }
-        public string state_key { get; set; }
-        public string type { get; set; }
-    // public string Sender { get; set; }
-    // public string EventId { get; set; }
-    // public string UserId { get; set; }
-    // public string ReplacesState { get; set; }
     }
 
     public bool ShowMembershipEvents {

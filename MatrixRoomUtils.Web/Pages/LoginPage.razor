@@ -1,6 +1,6 @@
 @page "/Login"
-@using MatrixRoomUtils.Core.Authentication
 @using System.Text.Json
+@using MatrixRoomUtils.Core.Responses
 @using MatrixRoomUtils.Web.Shared.SimpleComponents
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
@@ -22,20 +22,25 @@
 
 <InputFile OnChange="@FileChanged" accept=".tsv"></InputFile>
 <br/>
-<button @onclick="Login">Login</button>
 <br/><br/>
 <h4>Parsed records</h4>
 <hr/>
 <table border="1">
+    <thead>
+        <td>Username</td>
+        <td>Homeserver</td>
+    </thead>
     @foreach (var (homeserver, username, password) in records) {
-        <tr style="background-color: @(RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
+        var record = (homeserver, username, password);
+        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
             <td style="border-width: 1px;">@username</td>
             <td style="border-width: 1px;">@homeserver</td>
-            <td style="border-width: 1px;">@password.Length chars</td>
+            <td><a role="button" @onclick="() => records.Remove(record)">Remove</a></td>
         </tr>
     }
 </table>
 <br/>
+<button @onclick="Login">Login</button>
 <br/>
 <LogView></LogView>
 
@@ -43,26 +48,34 @@
     readonly List<(string homeserver, string username, string password)> records = new();
     (string homeserver, string username, string password) newRecordInput = ("", "", "");
 
+    List<LoginResponse> LoggedInSessions { get; set; } = new();
+    
     async Task Login() {
-        foreach (var (homeserver, username, password) in records) {
-            if (RuntimeCache.LoginSessions.Any(x => x.Value.LoginResponse.UserId == $"@{username}:{homeserver}")) continue;
-            var result = await MatrixAuth.Login(homeserver, username, password);
-            Console.WriteLine($"Obtained access token for {result.UserId}!");
+        var loginTasks = records.Select(async record => {
+            var (homeserver, username, password) = record;
+            if (LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}")) return;
+            try {
+                var result = await HomeserverProvider.Login(homeserver, username, password);
+                if (result == null) {
+                    Console.WriteLine($"Failed to login to {homeserver} as {username}!");
+                    return;
+                }
+                Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-            var userinfo = new UserInfo {
-                LoginResponse = result
-            };
-            userinfo.Profile = await RuntimeCache.CurrentHomeServer.GetProfile(result.UserId);
-            RuntimeCache.LastUsedToken = result.AccessToken;
-
-            RuntimeCache.LoginSessions.Add(result.AccessToken, userinfo);
+                await MRUStorage.AddToken(result);
+                LoggedInSessions = await MRUStorage.GetAllTokens();
+            }
+            catch (Exception e) {
+                Console.WriteLine($"Failed to login to {homeserver} as {username}!");
+                Console.WriteLine(e);
+            }
             StateHasChanged();
-        }
-
-        await LocalStorageWrapper.SaveToLocalStorage(LocalStorage);
+        });
+        await Task.WhenAll(loginTasks);
     }
 
     private async Task FileChanged(InputFileChangeEventArgs obj) {
+        LoggedInSessions = await MRUStorage.GetAllTokens();
         Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions {
             WriteIndented = true
         }));
@@ -78,7 +91,8 @@
         }
     }
 
-    private void AddRecord() {
+    private async Task AddRecord() {
+        LoggedInSessions = await MRUStorage.GetAllTokens();
         records.Add(newRecordInput);
         newRecordInput = ("", "", "");
     }

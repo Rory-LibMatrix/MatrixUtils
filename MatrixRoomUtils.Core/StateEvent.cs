@@ -29,7 +29,7 @@ public class StateEvent {
         get => _type;
         set {
             _type = value;
-            if (RawContent != null && this is StateEventResponse stateEventResponse) {
+            if (RawContent is not null && this is StateEventResponse stateEventResponse) {
                 if (File.Exists($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json")) return;
                 var x = GetType.Name;
             }
@@ -46,7 +46,7 @@ public class StateEvent {
         get => _rawContent;
         set {
             _rawContent = value;
-            if (Type != null && this is StateEventResponse stateEventResponse) {
+            if (Type is not null && this is StateEventResponse stateEventResponse) {
                 if (File.Exists($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json")) return;
                 var x = GetType.Name;
             }

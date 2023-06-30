@@ -20,10 +20,11 @@
     private List<StateEventResponse> Events { get; } = new();
 
     protected override async Task OnInitializedAsync() {
-        await LocalStorageWrapper.LoadFromLocalStorage(LocalStorage);
         RoomId = RoomId.Replace('~', '.');
         Console.WriteLine("RoomId: " + RoomId);
-        var room = await RuntimeCache.CurrentHomeServer.GetRoom(RoomId);
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var room = await hs.GetRoom(RoomId);
         MessagesResponse? msgs = null;
         do {
             msgs = await room.GetMessagesAsync(limit: 250, from: msgs?.End, dir: "b");
@@ -32,7 +33,7 @@
             msgs.Chunk.Reverse();
             Events.InsertRange(0, msgs.Chunk);
             StateHasChanged();
-        } while (msgs.End != null);
+        } while (msgs.End is not null);
 
         await base.OnInitializedAsync();
     }

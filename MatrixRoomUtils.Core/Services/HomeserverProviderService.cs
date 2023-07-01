@@ -30,9 +30,9 @@ public class HomeserverProviderService {
                                   await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
         hs._httpClient.Dispose();
         hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
-        hs._httpClient.Timeout = TimeSpan.FromSeconds(5);
+        hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
         hs._httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        
+
         hs.WhoAmI = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
         return hs;
     }
@@ -43,7 +43,7 @@ public class HomeserverProviderService {
                                   await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
         hs._httpClient.Dispose();
         hs._httpClient = new MatrixHttpClient { BaseAddress = new Uri(hs.FullHomeServerDomain) };
-        hs._httpClient.Timeout = TimeSpan.FromSeconds(5);
+        hs._httpClient.Timeout = TimeSpan.FromSeconds(120);
         return hs;
     }
 

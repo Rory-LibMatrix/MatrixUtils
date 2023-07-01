@@ -39,7 +39,7 @@ public class CmdCommand : ICommand {
             if ((output.Count > 0 && (msg + output[0]).Length > 64000) || output.Count == 0) {
                 await ctx.Room.SendMessageEventAsync("m.room.message", new() {
                     FormattedBody = $"```ansi\n{msg}\n```",
-                    Body = Markdig.Markdown.ToHtml(msg),
+                    // Body = Markdig.Markdown.ToHtml(msg),
                     Format = "org.matrix.custom.html"
                 });
                 msg = "";

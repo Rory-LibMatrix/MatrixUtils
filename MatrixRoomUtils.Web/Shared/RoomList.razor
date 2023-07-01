@@ -1,18 +1,29 @@
 @using MatrixRoomUtils.Web.Shared.RoomListComponents;
 @using MatrixRoomUtils.Core.StateEventTypes
 <p>@Rooms.Count rooms total, @RoomsWithTypes.Sum(x=>x.Value.Count) fetched so far...</p>
-@foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
-    <RoomListCategory Category="@category"></RoomListCategory>
+@if(Rooms.Count != RoomsWithTypes.Sum(x=>x.Value.Count)) {
+    <p>Fetching more rooms...</p>
+    @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
+        <p>@category.Key (@category.Value.Count)</p>
+    }
+}
+else {
+    @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
+        <RoomListCategory Category="@category" GlobalProfile="@GlobalProfile"></RoomListCategory>
+    }
 }
 
 @code {
 
     [Parameter]
     public List<GenericRoom> Rooms { get; set; }
+    [Parameter]
+    public ProfileResponse? GlobalProfile { get; set; }
 
     Dictionary<string, List<GenericRoom>> RoomsWithTypes = new();
-
+    
     protected override async Task OnInitializedAsync() {
+        GlobalProfile ??= await (await MRUStorage.GetCurrentSession()!).GetProfile((await MRUStorage.GetCurrentSession()!).WhoAmI.UserId);
         if (RoomsWithTypes.Any()) return;
 
         var tasks = Rooms.Select(AddRoom);
@@ -29,27 +40,32 @@
         };
 
     
-    private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(8, 8);
+    private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(4, 4);
     private async Task AddRoom(GenericRoom room) {
         await _semaphoreSlim.WaitAsync();
-        var roomType = GetRoomTypeName((await room.GetCreateEventAsync()).Type);
+        string roomType;
+        try {
+            var createEvent = await room.GetCreateEventAsync();
+            roomType = GetRoomTypeName(createEvent.Type);
 
-        if (roomType == "Room") {
-            var shortcodeState = await room.GetStateAsync<MjolnirShortcodeEventData>("org.matrix.mjolnir.shortcode");
-            if (shortcodeState is not null) roomType = "Legacy policy room";
+            if (roomType == "Room") {
+                var shortcodeState = await room.GetStateAsync<MjolnirShortcodeEventData>("org.matrix.mjolnir.shortcode");
+                if (shortcodeState is not null) roomType = "Legacy policy room";
+            }
+        }
+        catch (MatrixException e) {
+            roomType = $"Error: {e.ErrorCode}";
         }
         
         if (!RoomsWithTypes.ContainsKey(roomType)) {
             RoomsWithTypes.Add(roomType, new List<GenericRoom>());
         }
         RoomsWithTypes[roomType].Add(room);
-
+        
     // if (RoomsWithTypes.Count % 10 == 0)
         StateHasChanged();
-        await Task.Delay(100);
+        // await Task.Delay(100);
         _semaphoreSlim.Release();
     }
-
-    private bool _isSpaceChildrenOpen = false;
 
 }

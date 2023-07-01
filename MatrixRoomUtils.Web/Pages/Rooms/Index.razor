@@ -1,18 +1,21 @@
 @page "/Rooms"
+@using MatrixRoomUtils.Core.StateEventTypes
 <h3>Room list</h3>
 
 @if (Rooms is not null) {
-    <RoomList Rooms="Rooms"></RoomList>
+    <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile"></RoomList>
 }
 
 
 @code {
 
     private List<GenericRoom> Rooms { get; set; }
+    private ProfileResponse GlobalProfile { get; set; }
     
     protected override async Task OnInitializedAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
+        GlobalProfile = await hs.GetProfile(hs.WhoAmI.UserId);
         Rooms = await hs.GetJoinedRooms();
 
         await base.OnInitializedAsync();

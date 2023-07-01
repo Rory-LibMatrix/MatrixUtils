@@ -44,7 +44,17 @@ public class GenericRoom {
         var url = $"/_matrix/client/v3/rooms/{RoomId}/state";
         if (!string.IsNullOrEmpty(type)) url += $"/{type}";
         if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
-        return await _httpClient.GetFromJsonAsync<T>(url);
+        try {
+            var resp = await _httpClient.GetFromJsonAsync<T>(url);
+            return resp;
+        }
+        catch (MatrixException e) {
+            if (e is not { ErrorCode: "M_NOT_FOUND" }) {
+                throw;
+            }
+            Console.WriteLine(e);
+            return default;
+        }
     }
 
     public async Task<MessagesResponse> GetMessagesAsync(string from = "", int limit = 10, string dir = "b",
@@ -56,8 +66,13 @@ public class GenericRoom {
     }
 
     public async Task<string> GetNameAsync() {
-        var res = await GetStateAsync<RoomNameEventData>("m.room.name");
-        return res.Name ?? RoomId;
+        try {
+            var res = await GetStateAsync<RoomNameEventData>("m.room.name");
+            return res?.Name ?? RoomId;
+        }
+        catch (MatrixException e) {
+            return $"{RoomId} ({e.ErrorCode})";
+        }
     }
 
     public async Task JoinAsync(string[]? homeservers = null, string? reason = null) {

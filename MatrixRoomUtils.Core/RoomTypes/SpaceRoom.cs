@@ -13,15 +13,16 @@ public class SpaceRoom : GenericRoom {
         _homeServer = homeServer;
     }
 
-    public async Task<List<GenericRoom>> GetRoomsAsync(bool includeRemoved = false) {
+    private static SemaphoreSlim _semaphore = new(1, 1);
+    public async IAsyncEnumerable<GenericRoom> GetRoomsAsync(bool includeRemoved = false) {
+        await _semaphore.WaitAsync();
         var rooms = new List<GenericRoom>();
-        var state = GetFullStateAsync().ToBlockingEnumerable().ToList();
-        var childStates = state.Where(x => x.Type == "m.space.child");
-        foreach (var stateEvent in childStates) {
-            if (stateEvent.TypedContent.ToJson() != "{}" || includeRemoved)
-                rooms.Add(await _homeServer.GetRoom(stateEvent.StateKey));
+        var state = GetFullStateAsync();
+        await foreach (var stateEvent in state) {
+            if (stateEvent.Type != "m.space.child") continue;
+            if (stateEvent.RawContent.ToJson() != "{}" || includeRemoved)
+                yield return await _homeServer.GetRoom(stateEvent.StateKey);
         }
-
-        return rooms;
+        _semaphore.Release();
     }
 }

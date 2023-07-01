@@ -1,4 +1,4 @@
-@page "/RoomStateViewer/{RoomId}"
+@page "/Rooms/{RoomId}/State/View"
 @using System.Net.Http.Headers
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Responses
@@ -73,7 +73,6 @@
         await base.OnInitializedAsync();
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        RoomId = RoomId.Replace('~', '.');
         await LoadStatesAsync();
         Console.WriteLine("Policy list editor initialized!");
     }

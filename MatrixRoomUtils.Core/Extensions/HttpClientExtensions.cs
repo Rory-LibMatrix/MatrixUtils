@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 
@@ -19,6 +20,7 @@ public static class HttpClientExtensions {
 
 public class MatrixHttpClient : HttpClient {
     public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+    Console.WriteLine($"Sending request to {request.RequestUri}");
         try
         {
             HttpRequestOptionsKey<bool> WebAssemblyEnableStreamingResponseKey = new HttpRequestOptionsKey<bool>("WebAssemblyEnableStreamingResponse");
@@ -35,10 +37,10 @@ public class MatrixHttpClient : HttpClient {
         }
         var a = await base.SendAsync(request, cancellationToken);
         if (!a.IsSuccessStatusCode) {
-            Console.WriteLine($"Failed to send request: {a.StatusCode}");
             var content = await a.Content.ReadAsStringAsync(cancellationToken);
             if (content.StartsWith('{')) {
                 var ex = JsonSerializer.Deserialize<MatrixException>(content);
+            Console.WriteLine($"Failed to send request: {ex}");
                 if (ex?.RetryAfterMs is not null) {
                     await Task.Delay(ex.RetryAfterMs.Value, cancellationToken);
                     typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(request, 0);
@@ -49,5 +51,14 @@ public class MatrixHttpClient : HttpClient {
             throw new InvalidDataException("Encountered invalid data:\n" + content);
         }
         return a;
+    }
+    // GetFromJsonAsync
+    public async Task<T> GetFromJsonAsync<T>(string requestUri, CancellationToken cancellationToken = default) {
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken);
     }
 }

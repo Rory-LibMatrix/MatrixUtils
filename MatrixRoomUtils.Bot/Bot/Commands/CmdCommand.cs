@@ -1,9 +1,6 @@
-using System.Runtime.InteropServices;
-using System.Text;
-using MatrixRoomUtils.Bot.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
+using MatrixRoomUtils.Bot.Bot.Interfaces;
 
-namespace MatrixRoomUtils.Bot.Commands;
+namespace MatrixRoomUtils.Bot.Bot.Commands;
 
 public class CmdCommand : ICommand {
     public string Name { get; } = "cmd";

@@ -1,4 +1,4 @@
-namespace MatrixRoomUtils.Bot.Interfaces; 
+namespace MatrixRoomUtils.Bot.Bot.Interfaces; 
 
 public interface ICommand {
     public string Name { get; }

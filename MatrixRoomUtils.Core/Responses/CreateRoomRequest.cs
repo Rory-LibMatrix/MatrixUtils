@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.StateEventTypes;
+using MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 namespace MatrixRoomUtils.Core.Responses;
 
@@ -28,7 +29,7 @@ public class CreateRoomRequest {
     public string Visibility { get; set; } = null!;
 
     [JsonPropertyName("power_level_content_override")]
-    public PowerLevelEvent PowerLevelContentOverride { get; set; } = null!;
+    public PowerLevelEventData PowerLevelContentOverride { get; set; } = null!;
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();

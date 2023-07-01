@@ -3,11 +3,9 @@ using System.Text.Json;
 using System.Web;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Responses;
-using MatrixRoomUtils.Core.RoomTypes;
-using MatrixRoomUtils.Core.StateEventTypes;
-using Microsoft.Extensions.Logging;
+using MatrixRoomUtils.Core.StateEventTypes.Spec;
 
-namespace MatrixRoomUtils.Core;
+namespace MatrixRoomUtils.Core.RoomTypes;
 
 public class GenericRoom {
     internal readonly AuthenticatedHomeServer _homeServer;
@@ -111,14 +109,14 @@ public class GenericRoom {
     public async Task<JoinRulesEventData> GetJoinRuleAsync() =>
         await GetStateAsync<JoinRulesEventData>("m.room.join_rules");
 
-    public async Task<HistoryVisibilityData?> GetHistoryVisibilityAsync() =>
-        await GetStateAsync<HistoryVisibilityData>("m.room.history_visibility");
+    public async Task<HistoryVisibilityEventData?> GetHistoryVisibilityAsync() =>
+        await GetStateAsync<HistoryVisibilityEventData>("m.room.history_visibility");
 
-    public async Task<GuestAccessData?> GetGuestAccessAsync() =>
-        await GetStateAsync<GuestAccessData>("m.room.guest_access");
+    public async Task<GuestAccessEventData?> GetGuestAccessAsync() =>
+        await GetStateAsync<GuestAccessEventData>("m.room.guest_access");
 
-    public async Task<CreateEvent> GetCreateEventAsync() =>
-        await GetStateAsync<CreateEvent>("m.room.create");
+    public async Task<RoomCreateEventData> GetCreateEventAsync() =>
+        await GetStateAsync<RoomCreateEventData>("m.room.create");
 
     public async Task<string?> GetRoomType() {
         var res = await GetStateAsync<RoomCreateEventData>("m.room.create");
@@ -149,7 +147,7 @@ public class GenericRoom {
         await (await _httpClient.PostAsJsonAsync($"/_matrix/client/v3/rooms/{RoomId}/state/{eventType}", content))
             .Content.ReadFromJsonAsync<EventIdResponse>();
 
-    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, MessageEventData content) {
+    public async Task<EventIdResponse> SendMessageEventAsync(string eventType, RoomMessageEventData content) {
         var res = await _httpClient.PutAsJsonAsync(
             $"/_matrix/client/v3/rooms/{RoomId}/send/{eventType}/" + Guid.NewGuid(), content);
         var resu = await res.Content.ReadFromJsonAsync<EventIdResponse>();

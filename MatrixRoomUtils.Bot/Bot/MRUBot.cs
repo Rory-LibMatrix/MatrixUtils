@@ -1,15 +1,14 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using MatrixRoomUtils.Bot;
-using MatrixRoomUtils.Bot.Interfaces;
+using MatrixRoomUtils.Bot.Bot.Interfaces;
 using MatrixRoomUtils.Core;
 using MatrixRoomUtils.Core.Extensions;
-using MatrixRoomUtils.Core.Helpers;
 using MatrixRoomUtils.Core.Services;
-using MatrixRoomUtils.Core.StateEventTypes;
+using MatrixRoomUtils.Core.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+namespace MatrixRoomUtils.Bot.Bot; 
 
 public class MRUBot : IHostedService {
     private readonly HomeserverProviderService _homeserverProviderService;
@@ -75,32 +74,32 @@ public class MRUBot : IHostedService {
 
             var room = await hs.GetRoom(@event.RoomId);
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
-            if (@event is { Type: "m.room.message", TypedContent: MessageEventData message }) {
+            if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
                     
-                        var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
-                        if (command == null) {
-                            await room.SendMessageEventAsync("m.room.message",
-                                new MessageEventData() {
-                                    MessageType = "m.text",
-                                    Body = "Command not found!"
-                                });
-                            return;
-                        }
-                        var ctx = new CommandContext() {
-                            Room = room,
-                            MessageEvent = @event
-                        };
-                        if (await command.CanInvoke(ctx)) {
-                            await command.Invoke(ctx);
-                        }
-                        else {
-                            await room.SendMessageEventAsync("m.room.message",
-                                new MessageEventData() {
-                                    MessageType = "m.text",
-                                    Body = "You do not have permission to run this command!"
-                                });
-                        }
+                    var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
+                    if (command == null) {
+                        await room.SendMessageEventAsync("m.room.message",
+                            new RoomMessageEventData() {
+                                MessageType = "m.text",
+                                Body = "Command not found!"
+                            });
+                        return;
+                    }
+                    var ctx = new CommandContext() {
+                        Room = room,
+                        MessageEvent = @event
+                    };
+                    if (await command.CanInvoke(ctx)) {
+                        await command.Invoke(ctx);
+                    }
+                    else {
+                        await room.SendMessageEventAsync("m.room.message",
+                            new RoomMessageEventData() {
+                                MessageType = "m.text",
+                                Body = "You do not have permission to run this command!"
+                            });
+                    }
                 }
             }
         });

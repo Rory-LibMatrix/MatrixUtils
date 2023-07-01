@@ -9,6 +9,7 @@ using MatrixRoomUtils.Core.Helpers;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.Responses.Admin;
+using MatrixRoomUtils.Core.RoomTypes;
 using MatrixRoomUtils.Core.Services;
 
 namespace MatrixRoomUtils.Core;

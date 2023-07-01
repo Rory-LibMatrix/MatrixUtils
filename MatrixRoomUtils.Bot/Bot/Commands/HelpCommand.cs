@@ -1,8 +1,8 @@
 using System.Text;
-using MatrixRoomUtils.Bot.Interfaces;
+using MatrixRoomUtils.Bot.Bot.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MatrixRoomUtils.Bot.Commands; 
+namespace MatrixRoomUtils.Bot.Bot.Commands; 
 
 public class HelpCommand : ICommand {
     private readonly IServiceProvider _services;

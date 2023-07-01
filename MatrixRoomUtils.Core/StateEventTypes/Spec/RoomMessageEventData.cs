@@ -2,8 +2,10 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
+namespace MatrixRoomUtils.Core.StateEventTypes.Spec; 
+
 [MatrixEvent(EventName = "m.room.message")]
-public class MessageEventData : IStateEventType {
+public class RoomMessageEventData : IStateEventType {
     [JsonPropertyName("body")]
     public string Body { get; set; }
     [JsonPropertyName("msgtype")]

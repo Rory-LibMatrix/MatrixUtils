@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
-namespace MatrixRoomUtils.Core.StateEventTypes;
+namespace MatrixRoomUtils.Core.StateEventTypes.Common;
 
 [MatrixEvent(EventName = "org.matrix.mjolnir.shortcode")]
 public class MjolnirShortcodeEventData : IStateEventType {

@@ -14,13 +14,12 @@
 @code {
 
     [Parameter]
-    public string RoomId { get; set; } = "invalid!!!!!!";
+    public string RoomId { get; set; }
 
     private List<MessagesResponse> Messages { get; } = new();
     private List<StateEventResponse> Events { get; } = new();
 
     protected override async Task OnInitializedAsync() {
-        RoomId = RoomId.Replace('~', '.');
         Console.WriteLine("RoomId: " + RoomId);
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
@@ -46,10 +45,10 @@
         _ => typeof(TimelineUnknownItem)
         };
 
-    private Dictionary<string, object> ComponentParameters(Type ComponentType, StateEventResponse Event) => ComponentType switch {
-        Type t when t == typeof(TimelineMessageItem) => new Dictionary<string, object> { { "Event", Event }, { "Events", Events } },
-        Type t when t == typeof(TimelineMemberItem) => new Dictionary<string, object> { { "Event", Event }, { "Events", Events } },
-        _ => new Dictionary<string, object> { { "Event", Event }, { "Events", Events } }
+    private Dictionary<string, object> ComponentParameters(Type componentType, StateEventResponse @event) => componentType switch {
+        not null when componentType == typeof(TimelineMessageItem) => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } },
+        not null when componentType == typeof(TimelineMemberItem) => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } },
+        _ => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } }
         };
 
 }

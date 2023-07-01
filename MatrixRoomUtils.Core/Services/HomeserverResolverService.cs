@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace MatrixRoomUtils.Core.Services; 
 
 public class HomeserverResolverService {
-    private readonly MatrixHttpClient _httpClient = new MatrixHttpClient();
+    private readonly MatrixHttpClient _httpClient = new();
     private readonly ILogger<HomeserverResolverService> _logger;
 
     private static Dictionary<string, object> _wellKnownCache = new();

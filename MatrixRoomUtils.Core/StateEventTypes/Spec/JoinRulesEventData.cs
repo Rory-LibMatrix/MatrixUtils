@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
-namespace MatrixRoomUtils.Core;
+namespace MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.join_rules")]
 public class JoinRulesEventData : IStateEventType {

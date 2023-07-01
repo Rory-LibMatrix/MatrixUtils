@@ -53,10 +53,6 @@ public class StateEvent {
         }
     }
 
-    public T1 GetContent<T1>() where T1 : IStateEventType {
-        return RawContent.Deserialize<T1>();
-    }
-
     [JsonIgnore]
     public Type GetType {
         get {
@@ -81,7 +77,7 @@ public class StateEvent {
                         RawContent.ToJson());
                     Console.WriteLine($"Saved to unknown_state_events/{Type}/{stateEventResponse.EventId}.json");
                 }
-                else if (RawContent.FindExtraJsonObjectFields(type)) {
+                else if (RawContent is not null && RawContent.FindExtraJsonObjectFields(type)) {
                     Directory.CreateDirectory($"unknown_state_events/{Type}");
                     File.WriteAllText($"unknown_state_events/{Type}/{stateEventResponse.EventId}.json",
                         RawContent.ToJson());

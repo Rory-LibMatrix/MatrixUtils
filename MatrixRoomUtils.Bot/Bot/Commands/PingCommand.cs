@@ -1,8 +1,6 @@
-using System.Text;
-using MatrixRoomUtils.Bot.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
+using MatrixRoomUtils.Bot.Bot.Interfaces;
 
-namespace MatrixRoomUtils.Bot.Commands; 
+namespace MatrixRoomUtils.Bot.Bot.Commands; 
 
 public class PingCommand : ICommand {
     public PingCommand() {

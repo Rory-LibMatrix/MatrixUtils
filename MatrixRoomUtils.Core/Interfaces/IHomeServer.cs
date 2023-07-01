@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.StateEventTypes;
+using MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 namespace MatrixRoomUtils.Core.Interfaces;
 
@@ -12,27 +13,16 @@ public class IHomeServer {
 
     protected internal MatrixHttpClient _httpClient { get; set; } = new();
 
-    public async Task<ProfileResponse> GetProfile(string mxid, bool debounce = false, bool cache = true) {
-        // if (cache) {
-        //     if (debounce) await Task.Delay(Random.Shared.Next(100, 500));
-        //     if (_profileCache.ContainsKey(mxid)) {
-        //         while (_profileCache[mxid] == null) {
-        //             Console.WriteLine($"Waiting for profile cache for {mxid}, currently {_profileCache[mxid]?.ToJson() ?? "null"} within {_profileCache.Count} profiles...");
-        //             await Task.Delay(Random.Shared.Next(50, 500));
-        //         }
-        //
-        //         return _profileCache[mxid];
-        //     }
-        // }
+    public async Task<ProfileResponseEventData> GetProfile(string mxid) {
         if(mxid is null) throw new ArgumentNullException(nameof(mxid));
         if (_profileCache.ContainsKey(mxid)) {
             if (_profileCache[mxid] is SemaphoreSlim s) await s.WaitAsync();
-            if (_profileCache[mxid] is ProfileResponse p) return p;
+            if (_profileCache[mxid] is ProfileResponseEventData p) return p;
         }
         _profileCache[mxid] = new SemaphoreSlim(1);
         
         var resp = await _httpClient.GetAsync($"/_matrix/client/v3/profile/{mxid}");
-        var data = await resp.Content.ReadFromJsonAsync<ProfileResponse>();
+        var data = await resp.Content.ReadFromJsonAsync<ProfileResponseEventData>();
         if (!resp.IsSuccessStatusCode) Console.WriteLine("Profile: " + data);
         _profileCache[mxid] = data;
         

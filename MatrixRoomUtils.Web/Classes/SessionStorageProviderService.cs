@@ -1,7 +1,7 @@
 using Blazored.SessionStorage;
 using MatrixRoomUtils.Core.Interfaces.Services;
 
-namespace MatrixRoomUtils.Web; 
+namespace MatrixRoomUtils.Web.Classes; 
 
 public class SessionStorageProviderService : IStorageProvider {
     private readonly ISessionStorageService _sessionStorage;

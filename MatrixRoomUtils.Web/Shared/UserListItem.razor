@@ -1,6 +1,7 @@
 @using MatrixRoomUtils.Core.Responses
 @using MatrixRoomUtils.Core.StateEventTypes
 @using MatrixRoomUtils.Core.Helpers
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
     <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
@@ -19,7 +20,7 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public ProfileResponse User { get; set; }
+    public ProfileResponseEventData User { get; set; }
 
     [Parameter]
     public string UserId { get; set; }

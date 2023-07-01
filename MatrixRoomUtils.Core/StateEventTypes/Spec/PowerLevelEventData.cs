@@ -2,10 +2,10 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
-namespace MatrixRoomUtils.Core.StateEventTypes;
+namespace MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.power_levels")]
-public class PowerLevelEvent : IStateEventType {
+public class PowerLevelEventData : IStateEventType {
     [JsonPropertyName("ban")]
     public int Ban { get; set; } // = 50;
 

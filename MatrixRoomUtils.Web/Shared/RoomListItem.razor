@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using MatrixRoomUtils.Core.Helpers
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <div class="roomListItem" id="@RoomId" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (OwnMemberState != null) {
         <img class="imageUnloaded @(string.IsNullOrWhiteSpace(OwnMemberState?.AvatarUrl ?? GlobalProfile?.AvatarUrl) ? "" : "imageLoaded")"
@@ -30,6 +31,9 @@
 
     [Parameter]
     public GenericRoom? Room { get; set; }
+    
+    [Parameter]
+    public RoomInfo? RoomInfo { get; set; }
 
     [Parameter]
     public string? RoomId { get; set; }
@@ -40,8 +44,8 @@
     [Parameter]
     public RoomMemberEventData? OwnMemberState { get; set; }
 
-    [Parameter]
-    public ProfileResponse? GlobalProfile { get; set; }
+    [CascadingParameter]
+    public ProfileResponseEventData? GlobalProfile { get; set; }
 
     private string? roomName { get; set; }
 
@@ -62,11 +66,19 @@
         hs ??= await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        if (Room is null && RoomId is null) {
+        if (Room is null && RoomId is null && RoomInfo is null) {
             throw new ArgumentNullException(nameof(RoomId));
         }
-        Room ??= await hs.GetRoom(RoomId);
-        RoomId = Room.RoomId;
+        
+        // sweep from roominfo to id
+        if (RoomInfo is not null) Room = RoomInfo.Room;
+        if(Room is not null) RoomId = Room.RoomId;
+        
+        //sweep from id to roominfo
+        if(RoomId is not null) Room ??= await hs.GetRoom(RoomId);
+        if(Room is not null) RoomInfo ??= new RoomInfo() {
+            Room = Room
+        };
 
         await CheckRoomVersion();
         await GetRoomInfo();
@@ -77,8 +89,8 @@
     private async Task LoadOwnProfile() {
         if (!ShowOwnProfile) return;
         try {
-            OwnMemberState ??= await Room.GetStateAsync<RoomMemberEventData>("m.room.member", hs.UserId);
-            GlobalProfile ??= await hs.GetProfile(hs.UserId, true);
+            OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventData;
+            GlobalProfile ??= await hs.GetProfile(hs.UserId);
         }
         catch (MatrixException e) {
             if (e is { ErrorCode: "M_FORBIDDEN" }) {
@@ -93,7 +105,7 @@
 
     private async Task CheckRoomVersion() {
         try {
-            var ce = await Room.GetCreateEventAsync();
+            var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
             if (int.TryParse(ce.RoomVersion, out var rv)) {
                 if (rv < 10)
                     hasOldRoomVersion = true;
@@ -115,9 +127,9 @@
 
     private async Task GetRoomInfo() {
         try {
-            roomName ??= await Room.GetNameAsync();
+            roomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventData)?.Name ?? RoomId;
 
-            var state = await Room.GetStateAsync<RoomAvatarEventData>("m.room.avatar");
+            var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventData;
             if (state?.Url is { } url) {
                 roomIcon = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
                 Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");

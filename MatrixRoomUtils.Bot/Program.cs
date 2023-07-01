@@ -1,7 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using MatrixRoomUtils.Bot;
-using MatrixRoomUtils.Bot.Interfaces;
+using MatrixRoomUtils.Bot.Bot;
+using MatrixRoomUtils.Bot.Bot.Interfaces;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Services;
 using Microsoft.Extensions.DependencyInjection;

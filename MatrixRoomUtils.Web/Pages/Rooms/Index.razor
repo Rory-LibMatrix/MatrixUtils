@@ -1,5 +1,6 @@
 @page "/Rooms"
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <h3>Room list</h3>
 
 @if (Rooms is not null) {
@@ -9,14 +10,14 @@
 
 @code {
 
-    private List<GenericRoom> Rooms { get; set; }
-    private ProfileResponse GlobalProfile { get; set; }
-    
+    private List<RoomInfo> Rooms { get; set; }
+    private ProfileResponseEventData GlobalProfile { get; set; }
+
     protected override async Task OnInitializedAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         GlobalProfile = await hs.GetProfile(hs.WhoAmI.UserId);
-        Rooms = await hs.GetJoinedRooms();
+        Rooms = (await hs.GetJoinedRooms()).Select(x => new RoomInfo() { Room = x }).ToList();
 
         await base.OnInitializedAsync();
     }

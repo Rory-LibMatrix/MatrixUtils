@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
-namespace MatrixRoomUtils.Core.StateEventTypes; 
+namespace MatrixRoomUtils.Core.StateEventTypes.Spec; 
 
 [MatrixEvent(EventName = "m.room.topic")]
 [MatrixEvent(EventName = "org.matrix.msc3765.topic", Legacy = true)]

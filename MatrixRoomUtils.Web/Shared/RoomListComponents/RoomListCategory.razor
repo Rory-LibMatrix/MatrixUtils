@@ -1,12 +1,16 @@
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <details>
     <summary>@roomType (@rooms.Count)</summary>
     @foreach (var room in rooms) {
         <div class="room-list-item">
-            <RoomListItem Room="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.RoomId}/State/View")">View state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.RoomId}/State/Edit")">Edit state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
+            <RoomListItem RoomInfo="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
+            @if (room.StateEvents.Any(x => x.Type == "m.room.create")) {
+                
+            }
+            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
+            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
+            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
             
             @if (roomType == "Space") {
                 <RoomListSpace Space="@room"></RoomListSpace>
@@ -19,12 +23,12 @@
 @code {
 
     [Parameter]
-    public KeyValuePair<string, List<GenericRoom>> Category { get; set; }
+    public KeyValuePair<string, List<RoomInfo>> Category { get; set; }
     
     [Parameter]
-    public ProfileResponse? GlobalProfile { get; set; }
+    public ProfileResponseEventData? GlobalProfile { get; set; }
 
     private string roomType => Category.Key;
-    private List<GenericRoom> rooms => Category.Value;
+    private List<RoomInfo> rooms => Category.Value;
     
 }

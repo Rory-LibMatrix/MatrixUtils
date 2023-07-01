@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace MatrixRoomUtils.Bot; 
+namespace MatrixRoomUtils.Bot.Bot; 
 
 public class MRUBotConfiguration {
     public MRUBotConfiguration(IConfiguration config) {

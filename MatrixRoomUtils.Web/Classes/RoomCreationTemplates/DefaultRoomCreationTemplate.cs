@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using MatrixRoomUtils.Core;
 using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.StateEventTypes;
+using MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
 
@@ -9,7 +10,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
     public string Name => "Default";
 
     public CreateRoomRequest CreateRoomRequest =>
-        new CreateRoomRequest {
+        new() {
             Name = "My new room",
             RoomAliasName = "myroom",
             InitialState = new List<StateEvent> {
@@ -21,7 +22,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 },
                 new() {
                     Type = "m.room.guest_access",
-                    TypedContent = new GuestAccessData {
+                    TypedContent = new GuestAccessEventData {
                         GuestAccess = "can_join"
                     }
                 },
@@ -47,7 +48,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 }
             },
             Visibility = "public",
-            PowerLevelContentOverride = new PowerLevelEvent {
+            PowerLevelContentOverride = new PowerLevelEventData {
                 UsersDefault = 0,
                 EventsDefault = 100,
                 StateDefault = 50,
@@ -55,7 +56,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 Redact = 50,
                 Kick = 50,
                 Ban = 50,
-                NotificationsPl = new PowerLevelEvent.NotificationsPL {
+                NotificationsPl = new PowerLevelEventData.NotificationsPL {
                     Room = 50
                 },
                 Events = new Dictionary<string, int> {

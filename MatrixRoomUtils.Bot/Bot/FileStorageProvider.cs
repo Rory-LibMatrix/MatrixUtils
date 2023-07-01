@@ -3,7 +3,7 @@ using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
-namespace MatrixRoomUtils.Bot; 
+namespace MatrixRoomUtils.Bot.Bot; 
 
 public class FileStorageProvider : IStorageProvider {
     private readonly ILogger<FileStorageProvider> _logger;

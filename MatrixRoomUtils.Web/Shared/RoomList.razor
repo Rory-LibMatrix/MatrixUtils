@@ -1,5 +1,7 @@
 @using MatrixRoomUtils.Web.Shared.RoomListComponents;
 @using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.StateEventTypes.Common
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <p>@Rooms.Count rooms total, @RoomsWithTypes.Sum(x=>x.Value.Count) fetched so far...</p>
 @if(Rooms.Count != RoomsWithTypes.Sum(x=>x.Value.Count)) {
     <p>Fetching more rooms...</p>
@@ -16,14 +18,14 @@ else {
 @code {
 
     [Parameter]
-    public List<GenericRoom> Rooms { get; set; }
+    public List<RoomInfo> Rooms { get; set; }
     [Parameter]
-    public ProfileResponse? GlobalProfile { get; set; }
+    public ProfileResponseEventData? GlobalProfile { get; set; }
 
-    Dictionary<string, List<GenericRoom>> RoomsWithTypes = new();
+    Dictionary<string, List<RoomInfo>> RoomsWithTypes = new();
     
     protected override async Task OnInitializedAsync() {
-        GlobalProfile ??= await (await MRUStorage.GetCurrentSession()!).GetProfile((await MRUStorage.GetCurrentSession()!).WhoAmI.UserId);
+        GlobalProfile ??= await (await MRUStorage.GetCurrentSession())!.GetProfile((await MRUStorage.GetCurrentSession())!.WhoAmI.UserId);
         if (RoomsWithTypes.Any()) return;
 
         var tasks = Rooms.Select(AddRoom);
@@ -35,35 +37,42 @@ else {
     private string GetRoomTypeName(string? roomType) => roomType switch {
         "m.space" => "Space",
         "msc3588.stories.stories-room" => "Story room",
+        "support.feline.policy.lists.msc.v1" => "MSC3784 Policy list (v1)",
         null => "Room",
         _ => roomType
         };
 
     
-    private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(4, 4);
-    private async Task AddRoom(GenericRoom room) {
+    private static SemaphoreSlim _semaphoreSlim = new(8, 8);
+    private async Task AddRoom(RoomInfo room) {
         await _semaphoreSlim.WaitAsync();
         string roomType;
         try {
-            var createEvent = await room.GetCreateEventAsync();
+            RoomCreateEventData createEvent = (await room.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
             roomType = GetRoomTypeName(createEvent.Type);
 
             if (roomType == "Room") {
-                var shortcodeState = await room.GetStateAsync<MjolnirShortcodeEventData>("org.matrix.mjolnir.shortcode");
-                if (shortcodeState is not null) roomType = "Legacy policy room";
+                var mjolnirData = await room.GetStateEvent("org.matrix.mjolnir.shortcode");
+                if(mjolnirData?.RawContent?.ToJson(ignoreNull: true) is not null and not "{}")
+                    roomType = "Legacy policy room";
             }
+            //prefetch some stuff
+            await Task.WhenAll(
+                room.GetStateEvent("m.room.name"),
+                room.GetStateEvent("m.room.name")
+                );
         }
         catch (MatrixException e) {
             roomType = $"Error: {e.ErrorCode}";
         }
         
         if (!RoomsWithTypes.ContainsKey(roomType)) {
-            RoomsWithTypes.Add(roomType, new List<GenericRoom>());
+            RoomsWithTypes.Add(roomType, new List<RoomInfo>());
         }
         RoomsWithTypes[roomType].Add(room);
         
-    // if (RoomsWithTypes.Count % 10 == 0)
-        StateHasChanged();
+        // if (RoomsWithTypes[roomType].Count % 10 == 0)
+            StateHasChanged();
         // await Task.Delay(100);
         _semaphoreSlim.Release();
     }

@@ -6,7 +6,7 @@ namespace MatrixRoomUtils.Web.Classes;
 
 public class RoomInfo {
     public GenericRoom Room { get; set; }
-    public List<StateEventResponse?> StateEvents { get; } = new();
+    public List<StateEventResponse?> StateEvents { get; init; } = new();
     
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
         var @event = StateEvents.FirstOrDefault(x => x.Type == type && x.StateKey == stateKey);

@@ -103,7 +103,7 @@ public class MRUBot : IHostedService {
                 }
             }
         });
-        await hs.SyncHelper.RunSyncLoop(cancellationToken);
+        await hs.SyncHelper.RunSyncLoop(cancellationToken: cancellationToken);
     }
 
     /// <summary>Triggered when the application host is performing a graceful shutdown.</summary>

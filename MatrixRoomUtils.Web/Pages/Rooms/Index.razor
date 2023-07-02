@@ -1,25 +1,149 @@
 @page "/Rooms"
 @using MatrixRoomUtils.Core.StateEventTypes
 @using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using MatrixRoomUtils.Core.Filters
+@using MatrixRoomUtils.Core.Helpers
+@using MatrixRoomUtils.Core.Responses
 <h3>Room list</h3>
-
-@if (Rooms is not null) {
+<p>@Status</p>
+@if (RenderContents) {
     <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile"></RoomList>
 }
 
 
 @code {
 
-    private List<RoomInfo> Rooms { get; set; }
+    private List<RoomInfo> Rooms { get; set; } = new();
     private ProfileResponseEventData GlobalProfile { get; set; }
 
     protected override async Task OnInitializedAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         GlobalProfile = await hs.GetProfile(hs.WhoAmI.UserId);
-        Rooms = (await hs.GetJoinedRooms()).Select(x => new RoomInfo() { Room = x }).ToList();
+        var filter = new SyncFilter() {
+            AccountData = new() {
+                NotTypes = new() { "*" }
+            },
+            Presence = new() {
+                NotTypes = new() { "*" }
+            },
+            Room = new RoomFilter() {
+                AccountData = new() {
+                    NotTypes = new() { "*" }
+                },
+                Ephemeral = new() {
+                    NotTypes = new() { "*" }
+                },
+                State = new RoomFilter.StateFilter() {
+                    Types = new List<string>() {
+                        "m.room.name",
+                        "m.room.avatar",
+                        "m.room.create",
+                        "org.matrix.mjolnir.shortcode",
+                    }
+                },
+                Timeline = new() {
+                    NotTypes = new() { "*" },
+                    Limit = 1
+                }
+            }
+        };
+        Status = "Syncing...";
+        SyncResult? sync = null;
+        string? nextBatch = null;
+        while (sync is null or { Rooms.Join.Count: > 10}) {
+            sync = await hs.SyncHelper.Sync(since: nextBatch, filter: filter);
+            nextBatch = sync?.NextBatch ?? nextBatch;
+            if (sync is null) continue;
+            Console.WriteLine($"Got sync, next batch: {nextBatch}!");
 
+            if (sync.Rooms is null) continue;
+            if (sync.Rooms.Join is null) continue;
+            foreach (var (roomId, roomData) in sync.Rooms.Join) {
+                RoomInfo room;
+                if (Rooms.Any(x => x.Room.RoomId == roomId)) {
+                    room = Rooms.First(x => x.Room.RoomId == roomId);
+                }
+                else {
+                    room = new RoomInfo() {
+                        Room = await hs.GetRoom(roomId),
+                        StateEvents = new()
+                    };
+                    Rooms.Add(room);
+                }
+                room.StateEvents.AddRange(roomData.State.Events);
+            }
+            Status = $"Got {Rooms.Count} rooms so far!";
+            StateHasChanged();
+        }
+        Console.WriteLine("Sync done!");
+        Status = "Sync complete!";
+        foreach (var roomInfo in Rooms) {
+            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.name")) {
+                roomInfo.StateEvents.Add(new StateEventResponse() {
+                    Type = "m.room.name",
+                    TypedContent = new RoomNameEventData() {
+                        Name = roomInfo.Room.RoomId
+                    }
+                });
+            }
+            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.avatar")) {
+                roomInfo.StateEvents.Add(new StateEventResponse() {
+                    Type = "m.room.avatar",
+                    TypedContent = new RoomAvatarEventData() {
+                        
+                    }
+                });
+            }
+            if (!roomInfo.StateEvents.Any(x => x.Type == "org.matrix.mjolnir.shortcode")) {
+                roomInfo.StateEvents.Add(new StateEventResponse() {
+                    Type = "org.matrix.mjolnir.shortcode"
+                });
+            }
+        }
+        Console.WriteLine("Set stub data!");
+        Status = "Set stub data!";
+        var memberTasks = Rooms.Select(async roomInfo => {
+            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId)) {
+                roomInfo.StateEvents.Add(new StateEventResponse() {
+                    Type = "m.room.member",
+                    StateKey = hs.WhoAmI.UserId,
+                    TypedContent = await roomInfo.Room.GetStateAsync<RoomMemberEventData>("m.room.member", hs.WhoAmI.UserId) ?? new RoomMemberEventData() {
+                        Membership = "unknown"
+                    }
+                });
+            }
+        }).ToList();
+        await Task.WhenAll(memberTasks);
+        Console.WriteLine("Set all room member data!");
+        Status = "Set all room member data!";
+    // var res = await hs.SyncHelper.Sync(filter: filter);
+    // if (res is not null) {
+    //     foreach (var (roomId, roomData) in res.Rooms.Join) {
+    //         var room = new RoomInfo() {
+    //             Room = await hs.GetRoom(roomId),
+    //             StateEvents = roomData.State.Events.Where(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId).ToList()
+    //         };
+    //         Rooms.Add(room);
+    //     }
+    // }
+    // Rooms = (await hs.GetJoinedRooms()).Select(x => new RoomInfo() { Room = x }).ToList();
+
+        RenderContents = true;
+        Status = "";
         await base.OnInitializedAsync();
+    }
+
+    private bool RenderContents { get; set; } = false;
+    
+    private string _status;
+
+    public string Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
     }
 
 }

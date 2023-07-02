@@ -1,12 +1,13 @@
 @using MatrixRoomUtils.Core.StateEventTypes
 @using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using MatrixRoomUtils.Web.Classes.Constants
 <details>
     <summary>@roomType (@rooms.Count)</summary>
     @foreach (var room in rooms) {
         <div class="room-list-item">
             <RoomListItem RoomInfo="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
-            @if (room.StateEvents.Any(x => x.Type == "m.room.create")) {
-                
+            @if (RoomVersionDangerLevel(room) != 0) {
+                <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
             }
             <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
             <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
@@ -30,5 +31,15 @@
 
     private string roomType => Category.Key;
     private List<RoomInfo> rooms => Category.Value;
-    
+
+    private int RoomVersionDangerLevel(RoomInfo room) {
+        var roomVersion = room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.create");
+        if (roomVersion is null) return 0;
+        var roomVersionContent = roomVersion.TypedContent as RoomCreateEventData;
+        if (roomVersionContent is null) return 0;
+        if (RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion)) return 2;
+        if (roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion) return 1;
+        return 0;
+    }
+
 }

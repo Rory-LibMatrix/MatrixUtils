@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using MatrixRoomUtils.Core.Extensions;
+using MatrixRoomUtils.Core.Filters;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.Responses;
 using MatrixRoomUtils.Core.Responses.Admin;
@@ -18,19 +20,26 @@ public class SyncHelper {
         _storageService = storageService;
     }
 
-    public async Task<SyncResult?> Sync(string? since = null, CancellationToken? cancellationToken = null) {
+    public async Task<SyncResult?> Sync(
+        string? since = null,
+        int? timeout = 30000,
+        string? setPresence = "online",
+        SyncFilter? filter = null,
+        CancellationToken? cancellationToken = null) {
         var outFileName = "sync-" +
-                          (await _storageService.CacheStorageProvider.GetAllKeysAsync()).Count(x => x.StartsWith("sync")) +
+                          (await _storageService.CacheStorageProvider.GetAllKeysAsync()).Count(
+                              x => x.StartsWith("sync")) +
                           ".json";
-        var url = "/_matrix/client/v3/sync?timeout=30000&set_presence=online";
+        var url = $"/_matrix/client/v3/sync?timeout={timeout}&set_presence={setPresence}";
         if (!string.IsNullOrWhiteSpace(since)) url += $"&since={since}";
-        else url += "&full_state=true";
+        if (filter is not null) url += $"&filter={filter.ToJson(ignoreNull: true, indent: false)}";
+        // else url += "&full_state=true";
         Console.WriteLine("Calling: " + url);
         try {
             var res = await _homeServer._httpClient.GetFromJsonAsync<SyncResult>(url,
                 cancellationToken: cancellationToken ?? CancellationToken.None);
-            await _storageService.CacheStorageProvider.SaveObjectAsync(outFileName, res);
-            Console.WriteLine($"Wrote file: {outFileName}");
+            // await _storageService.CacheStorageProvider.SaveObjectAsync(outFileName, res);
+            // Console.WriteLine($"Wrote file: {outFileName}");
             return res;
         }
         catch (TaskCanceledException) {
@@ -44,13 +53,20 @@ public class SyncHelper {
     }
 
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
-    public async Task RunSyncLoop(CancellationToken? cancellationToken = null, bool skipInitialSyncEvents = true) {
+    public async Task RunSyncLoop(
+        bool skipInitialSyncEvents = true,
+        string? since = null,
+        int? timeout = 30000,
+        string? setPresence = "online",
+        SyncFilter? filter = null,
+        CancellationToken? cancellationToken = null
+    ) {
         SyncResult? sync = null;
-        string? nextBatch = null;
+        string? nextBatch = since;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
-            sync = await Sync(nextBatch, cancellationToken);
+            sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter, cancellationToken: cancellationToken);
             nextBatch = sync?.NextBatch ?? nextBatch;
-            if(sync is null) continue;
+            if (sync is null) continue;
             Console.WriteLine($"Got sync, next batch: {nextBatch}!");
 
             if (sync.Rooms is { Invite.Count: > 0 }) {
@@ -88,10 +104,11 @@ public class SyncHelper {
     /// <summary>
     /// Event fired when a room invite is received
     /// </summary>
-    public List<Func<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>, Task>> 
-        InviteReceivedHandlers { get; }  = new();
-    public List<Func<StateEventResponse, Task>> TimelineEventHandlers { get; }  = new();
-    public List<Func<StateEventResponse, Task>> AccountDataReceivedHandlers { get; }  = new();
+    public List<Func<KeyValuePair<string, SyncResult.RoomsDataStructure.InvitedRoomDataStructure>, Task>>
+        InviteReceivedHandlers { get; } = new();
+
+    public List<Func<StateEventResponse, Task>> TimelineEventHandlers { get; } = new();
+    public List<Func<StateEventResponse, Task>> AccountDataReceivedHandlers { get; } = new();
 }
 
 public class SyncResult {
@@ -109,6 +126,20 @@ public class SyncResult {
 
     [JsonPropertyName("rooms")]
     public RoomsDataStructure? Rooms { get; set; }
+    
+    [JsonPropertyName("to_device")]
+    public EventList? ToDevice { get; set; }
+    
+    [JsonPropertyName("device_lists")]
+    public DeviceListsDataStructure? DeviceLists { get; set; }
+
+    public class DeviceListsDataStructure {
+        [JsonPropertyName("changed")]
+        public List<string>? Changed { get; set; }
+        
+        [JsonPropertyName("left")]
+        public List<string>? Left { get; set; }
+    }
 
     // supporting classes
     public class PresenceDataStructure {

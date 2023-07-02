@@ -1,0 +1,322 @@
+@page "/Rooms/Create"
+@using MatrixRoomUtils.Core.Responses
+@using System.Text.Json
+@using System.Reflection
+@using MatrixRoomUtils.Core.Helpers
+@using MatrixRoomUtils.Core.StateEventTypes
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using MatrixRoomUtils.Web.Classes.RoomCreationTemplates
+@* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
+@using MatrixRoomUtils.Web.Shared.SimpleComponents
+
+<h3>Room Manager - Create Room</h3>
+
+@* <pre Contenteditable="true" @onkeypress="@JsonChanged" content="JsonString">@JsonString</pre> *@
+<style> 
+     table.table-top-first-tr tr td:first-child { 
+         vertical-align: top; 
+     } 
+ </style>
+<table class="table-top-first-tr">
+    <tr>
+        <td style="padding-bottom: 16px;">Preset:</td>
+        <td style="padding-bottom: 16px;">
+            <InputSelect @bind-Value="@RoomPreset">
+                @foreach (var createRoomRequest in Presets) {
+                    <option value="@createRoomRequest.Key">@createRoomRequest.Key</option>
+                }
+            </InputSelect>
+        </td>
+    </tr>
+    <tr>
+        <td>Room name:</td>
+        <td>
+            <FancyTextBox @bind-Value="@creationEvent.Name"></FancyTextBox>
+        </td>
+    </tr>
+    <tr>
+        <td>Room alias (localpart):</td>
+        <td>
+            <FancyTextBox @bind-Value="@creationEvent.RoomAliasName"></FancyTextBox>
+        </td>
+    </tr>
+    <tr>
+        <td>Room type:</td>
+        <td>
+            <InputSelect @bind-Value="@creationEvent._creationContentBaseType.Type">
+                <option value="">Room</option>
+                <option value="m.space">Space</option>
+            </InputSelect>
+            <FancyTextBox @bind-Value="@creationEvent._creationContentBaseType.Type"></FancyTextBox>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-top: 16px;">History visibility:</td>
+        <td style="padding-top: 16px;">
+            @{
+                var historyVisibility = creationEvent["m.room.history_visibility"].TypedContent as HistoryVisibilityEventData;
+            }
+            <InputSelect @bind-Value="@historyVisibility.HistoryVisibility">
+                <option value="invited">Invited</option>
+                <option value="joined">Joined</option>
+                <option value="shared">Shared</option>
+                <option value="world_readable">World readable</option>
+            </InputSelect>
+        </td>
+    </tr>
+    <tr>
+        <td>Guest access:</td>
+        <td>
+            @{
+                var guestAccessEvent = creationEvent["m.room.guest_access"].TypedContent as GuestAccessEventData;
+            }
+            <ToggleSlider @bind-Value="guestAccessEvent.IsGuestAccessEnabled">
+                @(guestAccessEvent.IsGuestAccessEnabled ? "Guests can join" : "Guests cannot join") (@guestAccessEvent.GuestAccess)
+            </ToggleSlider>
+            <InputSelect @bind-Value="@guestAccessEvent.GuestAccess">
+                <option value="can_join">Can join</option>
+                <option value="forbidden">Forbidden</option>
+            </InputSelect>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Room icon:</td>
+        <td>
+            @{
+                var roomAvatarEvent = creationEvent["m.room.avatar"].TypedContent as RoomAvatarEventData;
+            }
+            <img src="@MediaResolver.ResolveMediaUri(HomeServer.HomeServerDomain, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+            <div style="display: inline-block; vertical-align: middle;">
+                <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
+                <InputFile OnChange="RoomIconFilePicked"></InputFile>
+            </div>
+
+        </td>
+    </tr>
+    <tr>
+        <td>Permissions:</td>
+        <details>
+            <summary>@creationEvent.PowerLevelContentOverride.Users.Count members</summary>
+            @foreach (var user in creationEvent.PowerLevelContentOverride.Events.Keys) {
+                var _event = user;
+                <tr>
+                    <td>
+                        <FancyTextBox Formatter="@GetPermissionFriendlyName"
+                                      Value="@_event"
+                                      ValueChanged="val => { creationEvent.PowerLevelContentOverride.Events.ChangeKey(_event, val); }">
+                        </FancyTextBox>:
+                    </td>
+                    <td>
+                        <input type="number" value="@creationEvent.PowerLevelContentOverride.Events[_event]" @oninput="val => { creationEvent.PowerLevelContentOverride.Events[_event] = int.Parse(val.Value.ToString()); }" @onfocusout="() => { creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"/>
+                    </td>
+                </tr>
+            }
+            @foreach (var user in creationEvent.PowerLevelContentOverride.Users.Keys) {
+                var _user = user;
+                <tr>
+                    <td><FancyTextBox Value="@_user" ValueChanged="val => { creationEvent.PowerLevelContentOverride.Users.ChangeKey(_user, val); creationEvent.PowerLevelContentOverride.Users = creationEvent.PowerLevelContentOverride.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"></FancyTextBox>:</td>
+                    <td>
+                        <input type="number" value="@creationEvent.PowerLevelContentOverride.Users[_user]" @oninput="val => { creationEvent.PowerLevelContentOverride.Users[_user] = int.Parse(val.Value.ToString()); }"/>
+                    </td>
+                </tr>
+            }
+        </details>
+    </tr>
+    <tr>
+        <td>Server ACLs:</td>
+        <td>
+            @{
+                var serverAcl = creationEvent["m.room.server_acls"].TypedContent as ServerACLEventData;
+            }
+            <details>
+                <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventData).Allow.Count) allow rules</summary>
+                <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor>
+            </details>
+            <details>
+                <summary>@(creationEvent["m.room.server_acls"].TypedContent as ServerACLEventData).Deny.Count deny rules</summary>
+                <StringListEditor @bind-Items="@serverAcl.Deny"></StringListEditor>
+            </details>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Invited members:</td>
+        <td>
+            <details>
+                <summary>@creationEvent.InitialState.Count(x => x.Type == "m.room.member") members</summary>
+                @* <button @onclick="() => { RuntimeCache.LoginSessions.Select(x => x.Value.LoginResponse.UserId).ToList().ForEach(InviteMember); }">Invite all logged in accounts</button> *@
+                @foreach (var member in creationEvent.InitialState.Where(x => x.Type == "m.room.member" && x.StateKey != HomeServer.UserId)) {
+                    <UserListItem UserId="@member.StateKey"></UserListItem>
+                }
+            </details>
+        </td>
+    </tr>
+    @* Initial states, should remain at bottom *@
+    <tr>
+        <td style="vertical-align: top;">Initial states:</td>
+        <td>
+            <details>
+
+                @code
+                {
+                    private static readonly string[] ImplementedStates = { "m.room.avatar", "m.room.history_visibility", "m.room.guest_access", "m.room.server_acl" };
+                }
+
+                <summary> @creationEvent.InitialState.Count(x => !ImplementedStates.Contains(x.Type)) custom states</summary>
+                <table>
+                    @foreach (var initialState in creationEvent.InitialState.Where(x => !ImplementedStates.Contains(x.Type))) {
+                        <tr>
+                            <td style="vertical-align: top;">
+                                @(initialState.Type):
+                                @if (!string.IsNullOrEmpty(initialState.StateKey)) {
+                                    <br/>
+                                    <span>(@initialState.StateKey)</span>
+                                }
+
+                            </td>
+                            <td>
+                                <pre>@JsonSerializer.Serialize(initialState.RawContent, new JsonSerializerOptions { WriteIndented = true })</pre>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </details>
+            <details>
+                <summary> @creationEvent.InitialState.Count initial states</summary>
+                <table>
+                    @foreach (var initialState in creationEvent.InitialState) {
+                        var _state = initialState;
+                        <tr>
+                            <td style="vertical-align: top;">
+                                <span>@(_state.Type):</span><br/>
+                                <button @onclick="() => { creationEvent.InitialState.Remove(_state); StateHasChanged(); }">Remove</button>
+                            </td>
+
+                            <td>
+                                <pre>@JsonSerializer.Serialize(_state.RawContent, new JsonSerializerOptions { WriteIndented = true })</pre>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </details>
+        </td>
+    </tr>
+    }
+</table>
+<button @onclick="CreateRoom">Create room</button>
+<br/>
+<details>
+    <summary>Creation JSON</summary>
+    <pre>
+         @creationEvent.ToJson(ignoreNull: true) 
+     </pre>
+</details>
+<details open>
+    <summary>Creation JSON (with null values)</summary>
+    <pre>
+     @creationEvent.ToJson()
+     </pre>
+</details>
+
+
+@code {
+
+    private string RoomPreset {
+        get {
+            if (Presets.ContainsValue(creationEvent)) {
+                return Presets.First(x => x.Value == creationEvent).Key;
+            }
+            return "Not a preset";
+        }
+        set {
+            creationEvent = Presets[value];
+            JsonChanged();
+
+            creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            creationEvent.PowerLevelContentOverride.Users = creationEvent.PowerLevelContentOverride.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            guestAccessEvent = creationEvent["m.room.guest_access"].TypedContent as GuestAccessEventData;
+            StateHasChanged();
+        }
+    }
+
+    private Dictionary<string, string> creationEventValidationErrors { get; set; } = new();
+
+    private CreateRoomRequest creationEvent { get; set; }
+    GuestAccessEventData guestAccessEvent { get; set; }
+
+    private Dictionary<string, CreateRoomRequest> Presets { get; set; } = new();
+    private AuthenticatedHomeServer? HomeServer { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (HomeServer is null) return;
+
+        foreach (var x in Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IRoomCreationTemplate))).ToList()) {
+            Console.WriteLine($"Found room creation template in class: {x.FullName}");
+            var instance = (IRoomCreationTemplate)Activator.CreateInstance(x);
+            Presets[instance.Name] = instance.CreateRoomRequest;
+        }
+        Presets = Presets.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+
+        if (!Presets.ContainsKey("Default")) {
+            Console.WriteLine($"No default room found in {Presets.Count} presets: {string.Join(", ", Presets.Keys)}");
+        }
+        else RoomPreset = "Default";
+
+        await base.OnInitializedAsync();
+    }
+
+    private void JsonChanged() => Console.WriteLine(creationEvent.ToJson());
+
+    private async Task RoomIconFilePicked(InputFileChangeEventArgs obj) {
+        var res = await HomeServer.UploadFile(obj.File.Name, obj.File.OpenReadStream(), obj.File.ContentType);
+        Console.WriteLine(res);
+        (creationEvent["m.room.avatar"].TypedContent as RoomAvatarEventData).Url = res;
+        StateHasChanged();
+    }
+
+    private async Task CreateRoom() {
+        Console.WriteLine("Create room");
+        Console.WriteLine(creationEvent.ToJson());
+        creationEvent.CreationContent.Add("rory.gay.created_using", "Rory&::MatrixRoomUtils (https://mru.rory.gay)");
+        var id = await HomeServer.CreateRoom(creationEvent);
+    }
+
+    private void InviteMember(string mxid) {
+        if (!creationEvent.InitialState.Any(x => x.Type == "m.room.member" && x.StateKey == mxid) && HomeServer.UserId != mxid)
+            creationEvent.InitialState.Add(new StateEvent {
+                Type = "m.room.member",
+                StateKey = mxid,
+                TypedContent = new RoomMemberEventData() {
+                    Membership = "invite",
+                    Reason = "Automatically invited at room creation time."
+                }
+            });
+    }
+
+    private string GetStateFriendlyName(string key) => key switch { 
+        "m.room.history_visibility" => "History visibility", 
+        "m.room.guest_access" => "Guest access", 
+        "m.room.join_rules" => "Join rules", 
+        "m.room.server_acl" => "Server ACL", 
+        "m.room.avatar" => "Avatar", 
+        _ => key 
+        };
+
+    private string GetPermissionFriendlyName(string key) => key switch { 
+        "m.reaction" => "Send reaction", 
+        "m.room.avatar" => "Change room icon", 
+        "m.room.canonical_alias" => "Change room alias", 
+        "m.room.encryption" => "Enable encryption", 
+        "m.room.history_visibility" => "Change history visibility", 
+        "m.room.name" => "Change room name", 
+        "m.room.power_levels" => "Change power levels", 
+        "m.room.tombstone" => "Upgrade room", 
+        "m.room.topic" => "Change room topic", 
+        "m.room.pinned_events" => "Pin events", 
+        "m.room.server_acl" => "Change server ACLs", 
+        _ => key 
+        };
+
+}

@@ -2,9 +2,8 @@
 @using MatrixRoomUtils.Core.StateEventTypes
 @using MatrixRoomUtils.Core.StateEventTypes.Common
 @using MatrixRoomUtils.Core.StateEventTypes.Spec
-<p>@Rooms.Count rooms total, @RoomsWithTypes.Sum(x=>x.Value.Count) fetched so far...</p>
 @if(Rooms.Count != RoomsWithTypes.Sum(x=>x.Value.Count)) {
-    <p>Fetching more rooms...</p>
+    <p>Fetching room details... @RoomsWithTypes.Sum(x=>x.Value.Count) out of @Rooms.Count done!</p>
     @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
         <p>@category.Key (@category.Value.Count)</p>
     }
@@ -28,7 +27,7 @@ else {
         GlobalProfile ??= await (await MRUStorage.GetCurrentSession())!.GetProfile((await MRUStorage.GetCurrentSession())!.WhoAmI.UserId);
         if (RoomsWithTypes.Any()) return;
 
-        var tasks = Rooms.Select(AddRoom);
+        var tasks = Rooms.Select(ProcessRoom);
         await Task.WhenAll(tasks);
 
         await base.OnInitializedAsync();
@@ -44,7 +43,7 @@ else {
 
     
     private static SemaphoreSlim _semaphoreSlim = new(8, 8);
-    private async Task AddRoom(RoomInfo room) {
+    private async Task ProcessRoom(RoomInfo room) {
         await _semaphoreSlim.WaitAsync();
         string roomType;
         try {
@@ -56,11 +55,6 @@ else {
                 if(mjolnirData?.RawContent?.ToJson(ignoreNull: true) is not null and not "{}")
                     roomType = "Legacy policy room";
             }
-            //prefetch some stuff
-            await Task.WhenAll(
-                room.GetStateEvent("m.room.name"),
-                room.GetStateEvent("m.room.name")
-                );
         }
         catch (MatrixException e) {
             roomType = $"Error: {e.ErrorCode}";
@@ -71,9 +65,7 @@ else {
         }
         RoomsWithTypes[roomType].Add(room);
         
-        // if (RoomsWithTypes[roomType].Count % 10 == 0)
             StateHasChanged();
-        // await Task.Delay(100);
         _semaphoreSlim.Release();
     }
 

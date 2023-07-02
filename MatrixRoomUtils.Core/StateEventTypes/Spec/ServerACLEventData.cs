@@ -5,7 +5,7 @@ using MatrixRoomUtils.Core.Interfaces;
 namespace MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.server_acl")]
-public class ServerACLData : IStateEventType {
+public class ServerACLEventData : IStateEventType {
     [JsonPropertyName("allow")]
     public List<string> Allow { get; set; } // = null!;
 

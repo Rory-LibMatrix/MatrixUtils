@@ -1,7 +1,9 @@
 ﻿@page "/About"
 @using System.Net
+@using System.Net.Sockets
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
+@using XtermBlazor
 
 <PageTitle>About</PageTitle>
 
@@ -20,6 +22,9 @@
     <p>This deployment also serves a copy of the compiled, hosting-ready binaries at <a href="MRU-SRC.tar.xz">/MRU-SRC.tar.xz</a>!</p>
 }
 
+<Xterm @ref="_terminal" Options="_options" OnFirstRender="@OnFirstRender"  style="max-width: fit-content; overflow-x: hidden;"/>
+
+
 
 @code {
     private bool showBinDownload { get; set; }
@@ -34,4 +39,29 @@
         await base.OnInitializedAsync();
     }
 
+
+    private Xterm _terminal;
+
+    private TerminalOptions _options = new TerminalOptions
+    {
+        CursorBlink = true,
+        CursorStyle = CursorStyle.Block,
+        Theme =
+        {
+            Background = "#17615e",
+        },
+    };
+
+    private async Task OnFirstRender() {
+        var message = "Hello, World!\nThis is a terminal emulator!\n\nYou can type stuff here, and it will be sent to the server!\n\nThis is a test of the emergency broadcast system.\n\nThis is only a t";
+        _terminal.Options.RendererType = RendererType.Dom;
+        _terminal.Options.ScreenReaderMode = true;
+        TcpClient.
+        for (var i = 0; i < message.Length; i++) {
+            await _terminal.Write(message[i].ToString());
+
+            await Task.Delay(50);
+            _terminal.Options.Theme.Background = $"#{(i * 2):X6}";
+        }
+    }
 }

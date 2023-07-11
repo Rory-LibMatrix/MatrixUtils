@@ -1,6 +1,8 @@
+using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 using MatrixRoomUtils.Core.StateEventTypes;
 using MatrixRoomUtils.Core.StateEventTypes.Spec;
@@ -21,7 +23,7 @@ public class CreateRoomRequest {
     //we dont want to use this, we want more control
     // [JsonPropertyName("preset")]
     // public string Preset { get; set; } = null!;
-    
+
     [JsonPropertyName("initial_state")]
     public List<StateEvent> InitialState { get; set; } = null!;
 
@@ -39,7 +41,21 @@ public class CreateRoomRequest {
     /// </summary>
 
     public StateEvent this[string event_type, string event_key = ""] {
-        get => InitialState.First(x => x.Type == event_type && x.StateKey == event_key);
+        get {
+            var stateEvent = InitialState.FirstOrDefault(x => x.Type == event_type && x.StateKey == event_key);
+            if (stateEvent == null) {
+                InitialState.Add(stateEvent = new StateEvent {
+                    Type = event_type,
+                    StateKey = event_key,
+                    TypedContent = Activator.CreateInstance(
+                        StateEvent.KnownStateEventTypes.FirstOrDefault(x =>
+                            x.GetCustomAttributes<MatrixEventAttribute>()?
+                                .Any(y => y.EventName == event_type) ?? false) ?? typeof(object)
+                        )
+                });
+            }
+            return stateEvent;
+        }
         set {
             var stateEvent = InitialState.FirstOrDefault(x => x.Type == event_type && x.StateKey == event_key);
             if (stateEvent == null)

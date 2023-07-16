@@ -21,8 +21,10 @@ public class MRUStorageWrapper {
     }
 
     public async Task<List<LoginResponse>?> GetAllTokens() {
-        return await _storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ?? new List<LoginResponse>();
+        return await _storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ??
+               new List<LoginResponse>();
     }
+
     public async Task<LoginResponse?> GetCurrentToken() {
         var currentToken = await _storageService.DataStorageProvider.LoadObjectAsync<LoginResponse>("token");
         var allTokens = await GetAllTokens();
@@ -30,12 +32,15 @@ public class MRUStorageWrapper {
             await SetCurrentToken(null);
             return null;
         }
+
         if (currentToken is null) {
             await SetCurrentToken(currentToken = allTokens[0]);
         }
-        if(!allTokens.Any(x=>x.AccessToken == currentToken.AccessToken)) {
+
+        if (!allTokens.Any(x => x.AccessToken == currentToken.AccessToken)) {
             await SetCurrentToken(currentToken = allTokens[0]);
         }
+
         return currentToken;
     }
 
@@ -49,22 +54,39 @@ public class MRUStorageWrapper {
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    public async Task<AuthenticatedHomeServer?> GetCurrentSession() {
+    private async Task<AuthenticatedHomeServer?> GetCurrentSession() {
         var token = await GetCurrentToken();
         if (token == null) {
             return null;
         }
-        
-        return await _homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken); 
+
+        return await _homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
     }
 
     public async Task<AuthenticatedHomeServer?> GetCurrentSessionOrNavigate() {
-        var session = await GetCurrentSession();
-        if (session == null) {
+        AuthenticatedHomeServer? session = null;
+
+        try {
+            //catch if the token is invalid
+            session = await GetCurrentSession();
+        }
+        catch (MatrixException e) {
+            if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
+                var token = await GetCurrentToken();
+                _navigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
+                return null;
+            }
+
+            throw;
+        }
+
+        if (session is null) {
             _navigationManager.NavigateTo("/Login");
         }
+
         return session;
     }
+
     public class Settings {
         public DeveloperSettings DeveloperSettings { get; set; } = new();
     }
@@ -81,7 +103,7 @@ public class MRUStorageWrapper {
             return;
         }
 
-        tokens.RemoveAll(x=>x.AccessToken == auth.AccessToken);
+        tokens.RemoveAll(x => x.AccessToken == auth.AccessToken);
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 

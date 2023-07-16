@@ -34,9 +34,20 @@
         if (element instanceof HTMLElement) {
             console.log(element);
             element.focus();
-        } else if (element.__internalId) {
+        } else if (element.hasOwnProperty("__internalId")) {
             console.log("Element is not an HTMLElement", element);
         }
+    }
+    function getWidth(element) {
+        console.log("getWidth", element);
+        if (element == null) return 0;
+        if (element instanceof HTMLElement) {
+            return element.offsetWidth
+        } else if (element.hasOwnProperty("__internalId")) {
+            console.log("Element is not an HTMLElement", element);
+            return 0;
+        }
+        return 0;
     }
     function getWindowDimensions() {
         return {

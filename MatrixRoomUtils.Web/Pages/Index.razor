@@ -21,10 +21,10 @@ Small collection of tools to do not-so-everyday things.
                 <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(()=>SwitchSession(_auth))" style="text-decoration-line: unset;"/>
                 <b>@_user.DisplayName</b> on <b>@_auth.Homeserver</b>
                 <a role="button" @onclick="@(() => RemoveUser(_auth))">Remove</a>
-                
+
             </p>
             <p style="margin-top: -1.5em; margin-left: 4em;">Member of @_user.RoomCount rooms</p>
-        
+
         </div>
     }
 </form>
@@ -39,7 +39,17 @@ Small collection of tools to do not-so-everyday things.
         var tokens = await MRUStorage.GetAllTokens();
         var profileTasks = tokens.Select(async token => {
             UserInfo userInfo = new();
-            var hs = await HomeserverProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+            AuthenticatedHomeServer hs;
+            try {
+                hs = await HomeserverProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+            }
+            catch (MatrixException e) {
+                if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
+                    NavigationManager.NavigateTo("/InvalidSession?ctx="+token.AccessToken);
+                    return;
+                }
+                throw;
+            }
             var roomCountTask = hs.GetJoinedRooms();
             var profile = await hs.GetProfile(hs.WhoAmI.UserId);
             userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;

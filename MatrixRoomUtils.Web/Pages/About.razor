@@ -1,4 +1,4 @@
-﻿@page "/About"
+@page "/About"
 @using System.Net
 @using System.Net.Sockets
 @inject NavigationManager NavigationManager
@@ -56,7 +56,7 @@
         var message = "Hello, World!\nThis is a terminal emulator!\n\nYou can type stuff here, and it will be sent to the server!\n\nThis is a test of the emergency broadcast system.\n\nThis is only a t";
         _terminal.Options.RendererType = RendererType.Dom;
         _terminal.Options.ScreenReaderMode = true;
-        TcpClient.
+//        TcpClient.
         for (var i = 0; i < message.Length; i++) {
             await _terminal.Write(message[i].ToString());
 

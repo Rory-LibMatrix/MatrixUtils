@@ -207,7 +207,9 @@ else {
     }
 
     private async Task LoadStatesAsync() {
-        var hs = await MRUStorage.GetCurrentSession();
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
         var room = await hs.GetRoom(RoomId);
 
         var states = room.GetFullStateAsync();
@@ -215,8 +217,8 @@ else {
             if (!state.Type.StartsWith("m.policy.rule")) continue;
             PolicyEvents.Add(state);
         }
-        
-        
+
+
         // var stateEventsQuery = await room.GetStateAsync("");
         // var stateEvents = stateEventsQuery.Value.Deserialize<List<StateEventResponse>>();
         // PolicyEvents = stateEvents.Where(x => x.Type.StartsWith("m.policy.rule"))

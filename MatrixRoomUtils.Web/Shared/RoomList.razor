@@ -22,9 +22,12 @@ else {
     public ProfileResponseEventData? GlobalProfile { get; set; }
 
     Dictionary<string, List<RoomInfo>> RoomsWithTypes = new();
-    
+
     protected override async Task OnInitializedAsync() {
-        GlobalProfile ??= await (await MRUStorage.GetCurrentSession())!.GetProfile((await MRUStorage.GetCurrentSession())!.WhoAmI.UserId);
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        GlobalProfile ??= await hs.GetProfile(hs.WhoAmI.UserId);
         if (RoomsWithTypes.Any()) return;
 
         var tasks = Rooms.Select(ProcessRoom);
@@ -41,7 +44,7 @@ else {
         _ => roomType
         };
 
-    
+
     private static SemaphoreSlim _semaphoreSlim = new(8, 8);
     private async Task ProcessRoom(RoomInfo room) {
         await _semaphoreSlim.WaitAsync();
@@ -59,12 +62,12 @@ else {
         catch (MatrixException e) {
             roomType = $"Error: {e.ErrorCode}";
         }
-        
+
         if (!RoomsWithTypes.ContainsKey(roomType)) {
             RoomsWithTypes.Add(roomType, new List<RoomInfo>());
         }
         RoomsWithTypes[roomType].Add(room);
-        
+
             StateHasChanged();
         _semaphoreSlim.Release();
     }

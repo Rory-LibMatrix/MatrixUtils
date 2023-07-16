@@ -35,14 +35,15 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var hs = await MRUStorage.GetCurrentSession();
-    
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if(hs is null) return;
+
         await _semaphoreSlim.WaitAsync();
 
         if (User == null && UserId == null)
             throw new ArgumentNullException(nameof(UserId));
         User ??= await hs.GetProfile(UserId);
- 
+
 
         ProfileAvatar ??= MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
         ProfileName ??= User.DisplayName;

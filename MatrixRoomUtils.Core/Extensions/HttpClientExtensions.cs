@@ -40,6 +40,7 @@ public class MatrixHttpClient : HttpClient {
             var content = await a.Content.ReadAsStringAsync(cancellationToken);
             if (content.StartsWith('{')) {
                 var ex = JsonSerializer.Deserialize<MatrixException>(content);
+                ex.RawContent = content;
             Console.WriteLine($"Failed to send request: {ex}");
                 if (ex?.RetryAfterMs is not null) {
                     await Task.Delay(ex.RetryAfterMs.Value, cancellationToken);

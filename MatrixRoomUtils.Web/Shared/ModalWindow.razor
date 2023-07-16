@@ -1,12 +1,12 @@
 <div class="r-modal" style="top: @(_y)px; left: @(_x)px;">
     <div class="titlebar" @onmousedown="MouseDown" @onmouseup="MouseUp" @onmousemove="MouseMove" @onmouseleave="MouseMove">
-        <b class="title">@Title</b>
+        <b class="title" @ref="_titleRef">@Title</b>
         <button class="btnclose" @onclick="OnCloseClicked">X</button>
         <button class="btncollapse" @onclick="@(() => Collapsed = !Collapsed)">_</button>
     </div>
-        <div class="content" style="@(Collapsed ? "height: 0px;" : "")">
-            @ChildContent
-        </div>
+    <div class="r-modal-content" style="@((Collapsed ? "height: 0px;" : "") + $"min-width: {MinWidth}px;")">
+        @ChildContent
+    </div>
 </div>
 
 @code {
@@ -24,17 +24,29 @@
     public double Y { get; set; } = 60;
 
     [Parameter]
+    public double MinWidth { get; set; } = 100;
+
+    [Parameter]
     public Action OnCloseClicked { get; set; }
 
     [Parameter]
     public bool Collapsed { get; set; } = false;
 
+    private ElementReference _titleRef;
+
     private double _x = 60;
     private double _y = 60;
 
-    protected override void OnInitialized() {
+    protected override async Task OnInitializedAsync() {
         _x = X;
         _y = Y;
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+    //set minwidth to title width
+        MinWidth = await JSRuntime.InvokeAsync<int>("getWidth", _titleRef) + 75;
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private void WindowDrag(DragEventArgs obj) {

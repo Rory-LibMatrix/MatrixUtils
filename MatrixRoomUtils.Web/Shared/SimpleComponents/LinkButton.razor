@@ -1,16 +1,20 @@
-<a href="@href" class="btn btn-primary" style="background-color: @(Color ?? "#1b6ec2");">
+<a href="@href" class="btn btn-primary" @onclick="@(() => OnClick?.Invoke())"
+   style="background-color: @(Color ?? "#1b6ec2");">
     @ChildContent
 </a>
 
 @code {
-    
+
     [Parameter]
-    public string href { get; set; }
-    
+    public string? href { get; set; }
+
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
     [Parameter]
     public string? Color { get; set; }
+
+    [Parameter]
+    public Func<Task>? OnClick { get; set; }
 
 }

@@ -24,6 +24,7 @@
     top: 0;
     left: 0;
     width: fit-content;
+    text-wrap: nowrap;
     height: 100%;
     line-height: 25px;
     padding-left: 10px;
@@ -55,14 +56,13 @@
     cursor: pointer;
 }
 
-.r-modal > .content {
+.r-modal > .r-modal-content {
     position: relative;
     top: 25px;
     left: 0;
     width: fit-content;
     height: fit-content;
     min-width: 150px;
-    min-height: 5px;
     max-width: 75vw;
     max-height: 75vh;
     overflow: auto;

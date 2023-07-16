@@ -16,6 +16,8 @@ public class MatrixException : Exception {
     [JsonPropertyName("retry_after_ms")]
     public int? RetryAfterMs { get; set; }
 
+    public string RawContent { get; set; }
+
     public override string Message =>
         $"{ErrorCode}: {ErrorCode switch {
             // common

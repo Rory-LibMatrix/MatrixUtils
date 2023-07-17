@@ -52,7 +52,7 @@
         SyncResult? sync = null;
         string? nextBatch = null;
         while (sync is null or { Rooms.Join.Count: > 10}) {
-            sync = await hs.SyncHelper.Sync(since: nextBatch, filter: filter);
+            sync = await hs.SyncHelper.Sync(since: nextBatch, filter: filter, timeout: 0);
             nextBatch = sync?.NextBatch ?? nextBatch;
             if (sync is null) continue;
             Console.WriteLine($"Got sync, next batch: {nextBatch}!");
@@ -91,7 +91,7 @@
                 roomInfo.StateEvents.Add(new StateEventResponse() {
                     Type = "m.room.avatar",
                     TypedContent = new RoomAvatarEventData() {
-                        
+
                     }
                 });
             }
@@ -135,7 +135,7 @@
     }
 
     private bool RenderContents { get; set; } = false;
-    
+
     private string _status;
 
     public string Status {

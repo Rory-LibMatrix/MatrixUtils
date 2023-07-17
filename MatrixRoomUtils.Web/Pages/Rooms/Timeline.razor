@@ -1,13 +1,16 @@
 @page "/Rooms/{RoomId}/Timeline"
 @using MatrixRoomUtils.Web.Shared.TimelineComponents
 @using MatrixRoomUtils.Core.Responses
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
 <h3>RoomManagerTimeline</h3>
 <hr/>
 <p>Loaded @Events.Count events...</p>
 
 @foreach (var evt in Events) {
     <div type="@evt.Type" key="@evt.StateKey" itemid="@evt.EventId">
-        <DynamicComponent Type="@ComponentType(evt)" Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events } })"></DynamicComponent>
+        <DynamicComponent Type="@ComponentType(evt)"
+                          Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events }, { "HomeServer", HomeServer!} })">
+        </DynamicComponent>
     </div>
 }
 
@@ -19,36 +22,32 @@
     private List<MessagesResponse> Messages { get; } = new();
     private List<StateEventResponse> Events { get; } = new();
 
+    private AuthenticatedHomeServer? HomeServer { get; set; }
+
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("RoomId: " + RoomId);
-        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (hs is null) return;
-        var room = await hs.GetRoom(RoomId);
+        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (HomeServer is null) return;
+        var room = await HomeServer.GetRoom(RoomId);
         MessagesResponse? msgs = null;
         do {
-            msgs = await room.GetMessagesAsync(limit: 250, from: msgs?.End, dir: "b");
+            msgs = await room.GetMessagesAsync(limit: 1000, from: msgs?.End, dir: "b");
             Messages.Add(msgs);
             Console.WriteLine($"Got {msgs.Chunk.Count} messages");
             msgs.Chunk.Reverse();
             Events.InsertRange(0, msgs.Chunk);
-            StateHasChanged();
         } while (msgs.End is not null);
+
 
         await base.OnInitializedAsync();
     }
 
     private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
 
-    private Type ComponentType(StateEventResponse Event) => Event.Type switch {
-        "m.room.message" => typeof(TimelineMessageItem),
-        "m.room.member" => typeof(TimelineMemberItem),
+    private Type ComponentType(StateEventResponse Event) => Event.TypedContent switch {
+        RoomMessageEventData => typeof(TimelineMessageItem),
+        RoomMemberEventData => typeof(TimelineMemberItem),
         _ => typeof(TimelineUnknownItem)
-        };
-
-    private Dictionary<string, object> ComponentParameters(Type componentType, StateEventResponse @event) => componentType switch {
-        not null when componentType == typeof(TimelineMessageItem) => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } },
-        not null when componentType == typeof(TimelineMemberItem) => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } },
-        _ => new Dictionary<string, object> { { "Event", @event }, { "Events", Events } }
         };
 
 }

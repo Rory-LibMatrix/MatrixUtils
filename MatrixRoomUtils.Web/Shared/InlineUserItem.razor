@@ -23,6 +23,9 @@
     public ProfileResponseEventData User { get; set; }
 
     [Parameter]
+    public ProfileResponseEventData MemberEvent { get; set; }
+
+    [Parameter]
     public string? UserId { get; set; }
 
     [Parameter]
@@ -31,21 +34,34 @@
     [Parameter]
     public string? ProfileName { get; set; } = null;
 
+    [Parameter]
+    public AuthenticatedHomeServer? HomeServer { get; set; }
+
     private static SemaphoreSlim _semaphoreSlim = new(128);
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
-        if(hs is null) return;
+        HomeServer ??= await MRUStorage.GetCurrentSessionOrNavigate();
+        if(HomeServer is null) return;
 
         await _semaphoreSlim.WaitAsync();
 
-        if (User == null && UserId == null)
+        if (User == null && UserId == null && MemberEvent != null)
             throw new ArgumentNullException(nameof(UserId));
-        User ??= await hs.GetProfile(UserId);
+
+        if (MemberEvent != null) {
+            User = new() {
+                AvatarUrl = MemberEvent.AvatarUrl,
+                DisplayName = MemberEvent.DisplayName
+            };
+        }
+
+        if (User is null && UserId is not null) {
+            User ??= await HomeServer.GetProfile(UserId);
+        }
 
 
-        ProfileAvatar ??= MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
+        ProfileAvatar ??= MediaResolver.ResolveMediaUri(HomeServer.FullHomeServerDomain, User.AvatarUrl);
         ProfileName ??= User.DisplayName;
 
         _semaphoreSlim.Release();

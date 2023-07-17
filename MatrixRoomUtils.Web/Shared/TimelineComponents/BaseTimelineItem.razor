@@ -1,0 +1,15 @@
+@using MatrixRoomUtils.Core.Responses
+<h3>BaseTimelineItem</h3>
+
+@code {
+
+    [Parameter]
+    public StateEventResponse Event { get; set; }
+
+    [Parameter]
+    public List<StateEventResponse> Events { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeServer HomeServer { get; set; }
+
+}

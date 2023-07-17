@@ -1,0 +1,18 @@
+@using MatrixRoomUtils.Core.Responses
+@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@inherits BaseTimelineItem
+
+<p>
+    @Event.Sender created the room with room version @CreationEventContent.RoomVersion
+    @CreationEventContent.Federate ? "and" : "without" federating with other servers.<br/>
+    This room is of type @(CreationEventContent.Type ?? "Untyped room (usually a chat room)")
+</p>
+<pre>
+    @ObjectExtensions.ToJson(Event.RawContent, indent: false)
+</pre>
+
+@code {
+
+    private RoomCreateEventData CreationEventContent => Event.TypedContent as RoomCreateEventData;
+
+}

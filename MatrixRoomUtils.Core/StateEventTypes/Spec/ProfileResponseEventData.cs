@@ -4,7 +4,6 @@ using MatrixRoomUtils.Core.Interfaces;
 
 namespace MatrixRoomUtils.Core.StateEventTypes.Spec;
 
-[MatrixEvent(EventName = "m.room.member")]
 public class ProfileResponseEventData : IStateEventType {
     [JsonPropertyName("avatar_url")]
     public string? AvatarUrl { get; set; } = "";

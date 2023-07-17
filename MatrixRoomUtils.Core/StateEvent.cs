@@ -15,7 +15,16 @@ public class StateEvent {
         new ClassCollector<IStateEventType>().ResolveFromAllAccessibleAssemblies();
 
     public object TypedContent {
-        get => RawContent.Deserialize(GetType)!;
+        get {
+            try {
+                return RawContent.Deserialize(GetType)!;
+            }
+            catch (JsonException e) {
+                Console.WriteLine(e);
+                Console.WriteLine("Content:\n"+ObjectExtensions.ToJson(RawContent));
+            }
+            return null;
+        }
         set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value));
     }
 

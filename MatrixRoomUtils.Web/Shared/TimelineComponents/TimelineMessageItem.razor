@@ -1,11 +1,10 @@
 @using MatrixRoomUtils.Core.Responses
+@inherits BaseTimelineItem
+
 <pre>
     @ObjectExtensions.ToJson(Event.RawContent, indent: false)
 </pre>
 
 @code {
-
-    [Parameter]
-    public StateEventResponse Event { get; set; }
 
 }

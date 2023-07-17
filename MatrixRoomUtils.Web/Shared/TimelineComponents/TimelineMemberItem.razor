@@ -1,38 +1,46 @@
 @using MatrixRoomUtils.Core.Responses
 @using MatrixRoomUtils.Core.StateEventTypes
 @using MatrixRoomUtils.Core.StateEventTypes.Spec
+@inherits BaseTimelineItem
 
-@if (roomMemberData.Membership == "ban") {
-    <i>@Event.StateKey was banned</i>
-}
-else if (roomMemberData.Membership == "invite") {
-    <i>@Event.StateKey was invited</i>
-}
-else if (roomMemberData.Membership == "join") {
-    @if (Event.ReplacesState is not null) {
-        <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
+@if (roomMemberData is not null) {
+    @if (roomMemberData.Membership == "ban") {
+        <i>@Event.StateKey was banned</i>
+    }
+    else if (roomMemberData.Membership == "invite") {
+        <i>@Event.StateKey was invited</i>
+    }
+    else if (roomMemberData.Membership == "join") {
+        @if (Event.ReplacesState is not null) {
+            <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
+        }
+        else {
+            <i><InlineUserItem User="new ProfileResponseEventData()" HomeServer="HomeServer" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+        }
+    }
+    else if (roomMemberData.Membership == "leave") {
+        <i>@Event.StateKey left</i>
+    }
+    else if (roomMemberData.Membership == "knock") {
+        <i>@Event.StateKey knocked</i>
     }
     else {
-        <i><InlineUserItem UserId="@Event.StateKey"></InlineUserItem> joined</i>
-    }
-}
-else if (roomMemberData.Membership == "leave") {
-    <i>@Event.StateKey left</i>
-}
-else if (roomMemberData.Membership == "knock") {
-    <i>@Event.StateKey knocked</i>
-}
-else {
-    <i>@Event.StateKey has an unknown state:</i>
-    <pre>
+        <i>@Event.StateKey has an unknown state:</i>
+        <pre>
         @Event.ToJson()
     </pre>
+    }
+}
+else {
+    <details>
+        <summary>Unknown membership event for @Event.StateKey</summary>
+        <pre>
+            @Event.ToJson()
+        </pre>
+    </details>
 }
 
 @code {
-
-    [Parameter]
-    public StateEventResponse Event { get; set; }
 
     private RoomMemberEventData? roomMemberData => Event.TypedContent as RoomMemberEventData;
 

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Web;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Responses;
@@ -43,13 +44,27 @@ public class GenericRoom {
         if (!string.IsNullOrEmpty(type)) url += $"/{type}";
         if (!string.IsNullOrEmpty(stateKey)) url += $"/{stateKey}";
         try {
+#if DEBUG && false
+            var resp = await _httpClient.GetFromJsonAsync<JsonObject>(url);
+            try {
+                _homeServer._httpClient.PostAsJsonAsync(
+                    "http://localhost:5116/validate/" + typeof(T).AssemblyQualifiedName, resp);
+            }
+            catch (Exception e) {
+                Console.WriteLine("[!!] Checking state response failed: " + e);
+            }
+
+            return resp.Deserialize<T>();
+#else
             var resp = await _httpClient.GetFromJsonAsync<T>(url);
             return resp;
+#endif
         }
         catch (MatrixException e) {
             if (e is not { ErrorCode: "M_NOT_FOUND" }) {
                 throw;
             }
+
             Console.WriteLine(e);
             return default;
         }

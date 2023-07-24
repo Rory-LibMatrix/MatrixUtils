@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Filters;
@@ -36,11 +38,25 @@ public class SyncHelper {
         // else url += "&full_state=true";
         Console.WriteLine("Calling: " + url);
         try {
-            var res = await _homeServer._httpClient.GetFromJsonAsync<SyncResult>(url,
-                cancellationToken: cancellationToken ?? CancellationToken.None);
-            // await _storageService.CacheStorageProvider.SaveObjectAsync(outFileName, res);
-            // Console.WriteLine($"Wrote file: {outFileName}");
+            var req = await _homeServer._httpClient.GetAsync(url, cancellationToken: cancellationToken ?? CancellationToken.None);
+
+            // var res = await JsonSerializer.DeserializeAsync<SyncResult>(await req.Content.ReadAsStreamAsync());
+
+#if DEBUG
+            var jsonObj = await req.Content.ReadFromJsonAsync<JsonElement>();
+            try {
+                await _homeServer._httpClient.PostAsJsonAsync(
+                    "http://localhost:5116/validate/" + typeof(SyncResult).AssemblyQualifiedName, jsonObj);
+            }
+            catch (Exception e) {
+                Console.WriteLine("[!!] Checking sync response failed: " + e);
+            }
+
+            var res = jsonObj.Deserialize<SyncResult>();
             return res;
+#else
+            return await req.Content.ReadFromJsonAsync<SyncResult>();
+#endif
         }
         catch (TaskCanceledException) {
             Console.WriteLine("Sync cancelled!");
@@ -61,10 +77,15 @@ public class SyncHelper {
         SyncFilter? filter = null,
         CancellationToken? cancellationToken = null
     ) {
+        await Task.WhenAll((await _storageService.CacheStorageProvider.GetAllKeysAsync())
+            .Where(x => x.StartsWith("sync"))
+            .ToList()
+            .Select(x => _storageService.CacheStorageProvider.DeleteObjectAsync(x)));
         SyncResult? sync = null;
         string? nextBatch = since;
         while (cancellationToken is null || !cancellationToken.Value.IsCancellationRequested) {
-            sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter, cancellationToken: cancellationToken);
+            sync = await Sync(since: nextBatch, timeout: timeout, setPresence: setPresence, filter: filter,
+                cancellationToken: cancellationToken);
             nextBatch = sync?.NextBatch ?? nextBatch;
             if (sync is null) continue;
             Console.WriteLine($"Got sync, next batch: {nextBatch}!");
@@ -126,17 +147,17 @@ public class SyncResult {
 
     [JsonPropertyName("rooms")]
     public RoomsDataStructure? Rooms { get; set; }
-    
+
     [JsonPropertyName("to_device")]
     public EventList? ToDevice { get; set; }
-    
+
     [JsonPropertyName("device_lists")]
     public DeviceListsDataStructure? DeviceLists { get; set; }
 
     public class DeviceListsDataStructure {
         [JsonPropertyName("changed")]
         public List<string>? Changed { get; set; }
-        
+
         [JsonPropertyName("left")]
         public List<string>? Left { get; set; }
     }

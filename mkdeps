@@ -1,0 +1,11 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i "bash -x" -p bash nuget-to-nix
+find . | grep -E '(bin|obj)$' | while read d; do rm -rf $d & done
+wait
+
+MSBUILDLIVELOGGER=false dotnet restore --packages=packages -v n --ucr
+nuget-to-nix packages | tee deps.nix
+du -sh packages
+rm -rf packages
+nix flake update
+git add deps.nix flake.lock

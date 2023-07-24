@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Web.Server"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Bot", "MatrixRoomUtils.Bot\MatrixRoomUtils.Bot.csproj", "{B397700A-4ABB-4CAF-8DB8-06E01F44514B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.DebugDataValidationApi", "MatrixRoomUtils.DebugDataValidationApi\MatrixRoomUtils.DebugDataValidationApi.csproj", "{FB0CF653-FD25-4701-9477-1E80221346DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Desktop", "MatrixRoomUtils.Desktop\MatrixRoomUtils.Desktop.csproj", "{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +40,13 @@ Global
 		{B397700A-4ABB-4CAF-8DB8-06E01F44514B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B397700A-4ABB-4CAF-8DB8-06E01F44514B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B397700A-4ABB-4CAF-8DB8-06E01F44514B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB0CF653-FD25-4701-9477-1E80221346DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB0CF653-FD25-4701-9477-1E80221346DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB0CF653-FD25-4701-9477-1E80221346DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB0CF653-FD25-4701-9477-1E80221346DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

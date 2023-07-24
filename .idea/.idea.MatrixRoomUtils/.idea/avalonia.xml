@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="MatrixRoomUtils.Desktop/App.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/LoginWindow.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/MainWindow.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/RoomListEntry.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+      </map>
+    </option>
+  </component>
+</project>

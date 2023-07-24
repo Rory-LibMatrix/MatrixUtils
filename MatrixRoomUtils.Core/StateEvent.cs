@@ -14,6 +14,17 @@ public class StateEvent {
     public static List<Type> KnownStateEventTypes =
         new ClassCollector<IStateEventType>().ResolveFromAllAccessibleAssemblies();
 
+    public static Type GetStateEventType(string type) {
+        if (type == "m.receipt") {
+            return typeof(Dictionary<string, JsonObject>);
+        }
+
+        var eventType = KnownStateEventTypes.FirstOrDefault(x =>
+            x.GetCustomAttributes<MatrixEventAttribute>()?.Any(y => y.EventName == type) ?? false);
+
+        return eventType ?? typeof(object);
+    }
+
     public object TypedContent {
         get {
             try {
@@ -21,8 +32,9 @@ public class StateEvent {
             }
             catch (JsonException e) {
                 Console.WriteLine(e);
-                Console.WriteLine("Content:\n"+ObjectExtensions.ToJson(RawContent));
+                Console.WriteLine("Content:\n" + ObjectExtensions.ToJson(RawContent));
             }
+
             return null;
         }
         set => RawContent = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(value));
@@ -65,12 +77,7 @@ public class StateEvent {
     [JsonIgnore]
     public Type GetType {
         get {
-            if (Type == "m.receipt") {
-                return typeof(Dictionary<string, JsonObject>);
-            }
-
-            var type = KnownStateEventTypes.FirstOrDefault(x =>
-                x.GetCustomAttributes<MatrixEventAttribute>()?.Any(y => y.EventName == Type) ?? false);
+            var type = GetStateEventType(Type);
 
             //special handling for some types
             // if (type == typeof(RoomEmotesEventData)) {
@@ -94,7 +101,7 @@ public class StateEvent {
             //     }
             // }
 
-            return type ?? typeof(object);
+            return type;
         }
     }
 

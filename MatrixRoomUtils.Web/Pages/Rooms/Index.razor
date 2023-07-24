@@ -13,45 +13,54 @@
 
 @code {
 
+    public List<RoomInfo> KnownRooms { get; set; } = new();
+
     private List<RoomInfo> Rooms { get; set; } = new();
     private ProfileResponseEventData GlobalProfile { get; set; }
+
+    private SyncFilter filter = new() {
+        AccountData = new() {
+            NotTypes = new() { "*" },
+            Limit = 1
+        },
+        Presence = new() {
+            NotTypes = new() { "*" },
+            Limit = 1
+        },
+        Room = new() {
+            AccountData = new() {
+                NotTypes = new() { "*" },
+                Limit = 1
+            },
+            Ephemeral = new() {
+                NotTypes = new() { "*" },
+                Limit = 1
+            },
+            State = new() {
+                Types = new List<string>() {
+                    "m.room.name",
+                    "m.room.avatar",
+                    "m.room.create",
+                    "org.matrix.mjolnir.shortcode",
+                    "m.room.power_levels"
+                }
+            },
+            Timeline = new() {
+                NotTypes = new() { "*" },
+                Limit = 1
+            }
+        }
+    };
 
     protected override async Task OnInitializedAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         GlobalProfile = await hs.GetProfile(hs.WhoAmI.UserId);
-        var filter = new SyncFilter() {
-            AccountData = new() {
-                NotTypes = new() { "*" }
-            },
-            Presence = new() {
-                NotTypes = new() { "*" }
-            },
-            Room = new RoomFilter() {
-                AccountData = new() {
-                    NotTypes = new() { "*" }
-                },
-                Ephemeral = new() {
-                    NotTypes = new() { "*" }
-                },
-                State = new RoomFilter.StateFilter() {
-                    Types = new List<string>() {
-                        "m.room.name",
-                        "m.room.avatar",
-                        "m.room.create",
-                        "org.matrix.mjolnir.shortcode",
-                    }
-                },
-                Timeline = new() {
-                    NotTypes = new() { "*" },
-                    Limit = 1
-                }
-            }
-        };
+
         Status = "Syncing...";
         SyncResult? sync = null;
         string? nextBatch = null;
-        while (sync is null or { Rooms.Join.Count: > 10}) {
+        while (sync is null or { Rooms.Join.Count: >= 1}) {
             sync = await hs.SyncHelper.Sync(since: nextBatch, filter: filter, timeout: 0);
             nextBatch = sync?.NextBatch ?? nextBatch;
             if (sync is null) continue;
@@ -70,11 +79,13 @@
                         StateEvents = new()
                     };
                     Rooms.Add(room);
+                    KnownRooms.Add(room);
                 }
                 room.StateEvents.AddRange(roomData.State.Events);
             }
-            Status = $"Got {Rooms.Count} rooms so far!";
+            Status = $"Got {Rooms.Count} rooms so far! Next batch: {nextBatch}";
             StateHasChanged();
+            await Task.Delay(100);
         }
         Console.WriteLine("Sync done!");
         Status = "Sync complete!";
@@ -103,8 +114,10 @@
         }
         Console.WriteLine("Set stub data!");
         Status = "Set stub data!";
+        SemaphoreSlim semaphore = new(8, 8);
         var memberTasks = Rooms.Select(async roomInfo => {
             if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId)) {
+                await semaphore.WaitAsync();
                 roomInfo.StateEvents.Add(new StateEventResponse() {
                     Type = "m.room.member",
                     StateKey = hs.WhoAmI.UserId,
@@ -112,6 +125,7 @@
                         Membership = "unknown"
                     }
                 });
+                semaphore.Release();
             }
         }).ToList();
         await Task.WhenAll(memberTasks);

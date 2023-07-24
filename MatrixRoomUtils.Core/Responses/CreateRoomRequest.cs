@@ -31,7 +31,7 @@ public class CreateRoomRequest {
     public string Visibility { get; set; } = null!;
 
     [JsonPropertyName("power_level_content_override")]
-    public PowerLevelEventData PowerLevelContentOverride { get; set; } = null!;
+    public RoomPowerLevelEventData PowerLevelContentOverride { get; set; } = null!;
 
     [JsonPropertyName("creation_content")]
     public JsonObject CreationContent { get; set; } = new();

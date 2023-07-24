@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces;
 
-namespace MatrixRoomUtils.Core.StateEventTypes.Spec; 
+namespace MatrixRoomUtils.Core.StateEventTypes.Spec;
 
 [MatrixEvent(EventName = "m.room.create")]
 public class RoomCreateEventData : IStateEventType {
@@ -16,6 +16,12 @@ public class RoomCreateEventData : IStateEventType {
     public RoomCreatePredecessor? Predecessor { get; set; }
     [JsonPropertyName("type")]
     public string? Type { get; set; }
-    
-    public class RoomCreatePredecessor { }
+
+    public class RoomCreatePredecessor {
+        [JsonPropertyName("room_id")]
+        public string? RoomId { get; set; }
+
+        [JsonPropertyName("event_id")]
+        public string? EventId { get; set; }
+    }
 }

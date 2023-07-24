@@ -48,7 +48,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 }
             },
             Visibility = "public",
-            PowerLevelContentOverride = new PowerLevelEventData {
+            PowerLevelContentOverride = new RoomPowerLevelEventData {
                 UsersDefault = 0,
                 EventsDefault = 100,
                 StateDefault = 50,
@@ -56,7 +56,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 Redact = 50,
                 Kick = 50,
                 Ban = 50,
-                NotificationsPl = new PowerLevelEventData.NotificationsPL {
+                NotificationsPl = new RoomPowerLevelEventData.NotificationsPL {
                     Room = 50
                 },
                 Events = new Dictionary<string, int> {

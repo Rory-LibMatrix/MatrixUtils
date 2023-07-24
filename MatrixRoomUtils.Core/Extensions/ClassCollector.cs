@@ -19,12 +19,4 @@ public class ClassCollector<T> where T : class {
 
     public List<Type> ResolveFromAssembly(Assembly assembly) => assembly.GetTypes()
         .Where(x => x is { IsClass: true, IsAbstract: false } && x.GetInterfaces().Contains(typeof(T))).ToList();
-    // {
-    //     List<Type> ret = new();
-    //     foreach (var x in assembly.GetTypes().Where(x => x is { IsClass: true, IsAbstract: false } && x.GetInterfaces().Contains(typeof(T))).ToList()) {
-    //         // Console.WriteLine($"[!!] Found class {x.FullName}");
-    //         ret.Add(x);
-    //     }
-    //     return ret;
-    // }
 }

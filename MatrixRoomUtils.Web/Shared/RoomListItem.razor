@@ -32,7 +32,7 @@
 
     [Parameter]
     public GenericRoom? Room { get; set; }
-    
+
     [Parameter]
     public RoomInfo? RoomInfo { get; set; }
 
@@ -69,20 +69,32 @@
         if (Room is null && RoomId is null && RoomInfo is null) {
             throw new ArgumentNullException(nameof(RoomId));
         }
-        
+
         // sweep from roominfo to id
         if (RoomInfo is not null) Room = RoomInfo.Room;
         if(Room is not null) RoomId = Room.RoomId;
-        
+
         //sweep from id to roominfo
         if(RoomId is not null) Room ??= await hs.GetRoom(RoomId);
         if(Room is not null) RoomInfo ??= new RoomInfo() {
             Room = Room
         };
 
-        await CheckRoomVersion();
-        await GetRoomInfo();
-        await LoadOwnProfile();
+        try {
+            await CheckRoomVersion();
+            await GetRoomInfo();
+            await LoadOwnProfile();
+        }
+        catch (MatrixException e) {
+            if (e is not { ErrorCode: "M_FORBIDDEN" }) {
+                throw;
+            }
+            roomName = "Error: " + e.Message;
+            roomIcon = "/blobfox_outage.gif";
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to load room info for {RoomId}: {e.Message}");
+        }
         _semaphoreSlim.Release();
     }
 
@@ -104,24 +116,17 @@
     }
 
     private async Task CheckRoomVersion() {
-        try {
-            var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
-            if (int.TryParse(ce.RoomVersion, out var rv)) {
-                if (rv < 10)
-                    hasOldRoomVersion = true;
-            }
-            else // treat unstable room versions as dangerous
-                hasDangerousRoomVersion = true;
-
-            if (RoomConstants.DangerousRoomVersions.Contains(ce.RoomVersion)) {
-                hasDangerousRoomVersion = true;
-                roomName = "Dangerous room: " + roomName;
-            }
+        var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
+        if (int.TryParse(ce.RoomVersion, out var rv)) {
+            if (rv < 10)
+                hasOldRoomVersion = true;
         }
-        catch (MatrixException e) {
-            if (e is not { ErrorCode: "M_FORBIDDEN" }) {
-                throw;
-            }
+        else // treat unstable room versions as dangerous
+            hasDangerousRoomVersion = true;
+
+        if (RoomConstants.DangerousRoomVersions.Contains(ce.RoomVersion)) {
+            hasDangerousRoomVersion = true;
+            roomName = "Dangerous room: " + roomName;
         }
     }
 
@@ -132,7 +137,7 @@
             var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventData;
             if (state?.Url is { } url) {
                 roomIcon = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
-                Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
+                // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
             }
         }
         catch (MatrixException e) {

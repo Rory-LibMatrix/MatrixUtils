@@ -1,4 +1,4 @@
-<LinkButton href="@($"/Rooms/{Space.Room.RoomId}/Space")">Manage space</LinkButton>
+<MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{Space.Room.RoomId}/Space")">Manage space</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
 
 <br/>
 <details @ontoggle="SpaceChildrenOpened">
@@ -17,6 +17,9 @@
     public RoomInfo Space { get; set; }
 
     [Parameter, CascadingParameter]
+    public List<RoomInfo> KnownRooms { get; set; } = new();
+
+    [Parameter, CascadingParameter]
     public string? Breadcrumbs {
         get => _breadcrumbs + Space.Room.RoomId;
         set => _breadcrumbs = value;
@@ -30,9 +33,14 @@
         var rooms = Space.Room.AsSpace.GetRoomsAsync();
         await foreach (var room in rooms) {
             if (Breadcrumbs.Contains(room.RoomId)) continue;
-            Children.Add(new() {
-                Room = room
-            });
+            RoomInfo roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
+            if (roomInfo is null) {
+                roomInfo = new() {
+                    Room = room
+                };
+                KnownRooms.Add(roomInfo);
+            }
+            Children.Add(roomInfo);
         }
         await base.OnInitializedAsync();
     }

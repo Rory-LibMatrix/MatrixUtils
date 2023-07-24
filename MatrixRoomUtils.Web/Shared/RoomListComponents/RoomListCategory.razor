@@ -6,13 +6,14 @@
     @foreach (var room in rooms) {
         <div class="room-list-item">
             <RoomListItem RoomInfo="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
-            @if (RoomVersionDangerLevel(room) != 0) {
-                <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            }
+            @* @if (RoomVersionDangerLevel(room) != 0 && *@
+            @*      (room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.power_levels")?.TypedContent is RoomPowerLevelEventData powerLevels && powerLevels.UserHasPermission(HomeServer.UserId, "m.room.tombstone"))) { *@
+            @*     <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton> *@
+            @* } *@
             <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
             <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
             <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            
+
             @if (roomType == "Space") {
                 <RoomListSpace Space="@room"></RoomListSpace>
             }
@@ -25,9 +26,12 @@
 
     [Parameter]
     public KeyValuePair<string, List<RoomInfo>> Category { get; set; }
-    
+
     [Parameter]
     public ProfileResponseEventData? GlobalProfile { get; set; }
+
+    [CascadingParameter]
+    public AuthenticatedHomeServer HomeServer { get; set; } = null!;
 
     private string roomType => Category.Key;
     private List<RoomInfo> rooms => Category.Value;

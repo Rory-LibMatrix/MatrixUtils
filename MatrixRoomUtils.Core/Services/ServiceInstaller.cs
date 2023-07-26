@@ -1,9 +1,10 @@
+using MatrixRoomUtils.Core.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MatrixRoomUtils.Core.Services; 
+namespace MatrixRoomUtils.Core.Services;
 
 public static class ServiceInstaller {
-    
+
     public static IServiceCollection AddRoryLibMatrixServices(this IServiceCollection services, RoryLibMatrixConfiguration? config = null) {
         //Check required services
         if (!services.Any(x => x.ServiceType == typeof(TieredStorageService)))
@@ -15,13 +16,13 @@ public static class ServiceInstaller {
             services.AddSingleton(new RoryLibMatrixConfiguration());
         }
         //Add services
-        services.AddScoped<HomeserverProviderService>();
+        services.AddSingleton<HomeserverProviderService>();
         services.AddSingleton<HomeserverResolverService>();
-        services.AddScoped<HttpClient>();
+        // services.AddScoped<MatrixHttpClient>();
         return services;
     }
-    
-    
+
+
 }
 
 public class RoryLibMatrixConfiguration {

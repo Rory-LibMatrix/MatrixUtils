@@ -4,8 +4,11 @@
     <option name="projectPerEditor">
       <map>
         <entry key="MatrixRoomUtils.Desktop/App.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/Components/NavigationStack.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/Components/RoomListEntry.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
         <entry key="MatrixRoomUtils.Desktop/LoginWindow.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
         <entry key="MatrixRoomUtils.Desktop/MainWindow.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixRoomUtils.Desktop/NavigationStack.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
         <entry key="MatrixRoomUtils.Desktop/RoomListEntry.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
       </map>
     </option>

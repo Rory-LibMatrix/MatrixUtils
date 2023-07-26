@@ -3,7 +3,7 @@ using MatrixRoomUtils.Core.Extensions;
 using MatrixRoomUtils.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
-namespace MatrixRoomUtils.Desktop; 
+namespace MatrixRoomUtils.Desktop;
 
 public class FileStorageProvider : IStorageProvider {
     private readonly ILogger<FileStorageProvider> _logger;
@@ -32,4 +32,11 @@ public class FileStorageProvider : IStorageProvider {
     public async Task<List<string>> GetAllKeysAsync() => Directory.GetFiles(TargetPath).Select(Path.GetFileName).ToList();
 
     public async Task DeleteObjectAsync(string key) => File.Delete(Path.Join(TargetPath, key));
+    public async Task SaveStreamAsync(string key, Stream stream) {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.Join(TargetPath, key)) ?? throw new InvalidOperationException());
+        await using var fileStream = File.Create(Path.Join(TargetPath, key));
+        await stream.CopyToAsync(fileStream);
+    }
+
+    public async Task<Stream?> LoadStreamAsync(string key) => File.Exists(Path.Join(TargetPath, key)) ? File.OpenRead(Path.Join(TargetPath, key)) : null;
 }

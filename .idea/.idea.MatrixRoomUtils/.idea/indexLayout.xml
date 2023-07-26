@@ -3,6 +3,7 @@
   <component name="UserContentModel">
     <attachedFolders>
       <Path>MatrixRoomUtils.Bot/bot_data</Path>
+      <Path>MatrixRoomUtils.Desktop/bin/Debug/net7.0/mru-desktop</Path>
     </attachedFolders>
     <explicitIncludes />
     <explicitExcludes />

@@ -23,8 +23,18 @@ public class HomeserverProviderService {
             $"New HomeserverProviderService created with TieredStorageService<{string.Join(", ", tieredStorageService.GetType().GetProperties().Select(x => x.Name))}>!");
     }
 
+    private static Dictionary<string, SemaphoreSlim> _authenticatedHomeserverSemaphore = new();
+    private static Dictionary<string, AuthenticatedHomeServer> _authenticatedHomeServerCache = new();
+
     public async Task<AuthenticatedHomeServer> GetAuthenticatedWithToken(string homeserver, string accessToken,
         string? overrideFullDomain = null) {
+        SemaphoreSlim sem = _authenticatedHomeserverSemaphore.GetOrCreate(homeserver+accessToken, _ => new SemaphoreSlim(1, 1));
+        await sem.WaitAsync();
+        if (_authenticatedHomeServerCache.ContainsKey(homeserver+accessToken)) {
+            sem.Release();
+            return _authenticatedHomeServerCache[homeserver+accessToken];
+        }
+
         var hs = new AuthenticatedHomeServer(_tieredStorageService, homeserver, accessToken);
         hs.FullHomeServerDomain = overrideFullDomain ??
                                   await _homeserverResolverService.ResolveHomeserverFromWellKnown(homeserver);
@@ -34,6 +44,10 @@ public class HomeserverProviderService {
         hs._httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         hs.WhoAmI = (await hs._httpClient.GetFromJsonAsync<WhoAmIResponse>("/_matrix/client/v3/account/whoami"))!;
+
+        _authenticatedHomeServerCache[homeserver+accessToken] = hs;
+        sem.Release();
+
         return hs;
     }
 

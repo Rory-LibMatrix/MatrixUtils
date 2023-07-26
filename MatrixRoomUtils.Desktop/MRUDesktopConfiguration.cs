@@ -19,6 +19,7 @@ public class MRUDesktopConfiguration {
 
     public string DataStoragePath { get; set; } = "";
     public string CacheStoragePath { get; set; } = "";
+    public string? SentryDsn { get; set; }
 
     private static string ExpandPath(string path, bool retry = true) {
         _logger.LogInformation($"Expanding path `{path}`");

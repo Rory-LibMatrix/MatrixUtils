@@ -38,7 +38,7 @@ public class MatrixHttpClient : HttpClient {
             if (content.StartsWith('{')) {
                 var ex = JsonSerializer.Deserialize<MatrixException>(content);
                 ex.RawContent = content;
-                Console.WriteLine($"Failed to send request: {ex}");
+                // Console.WriteLine($"Failed to send request: {ex}");
                 if (ex?.RetryAfterMs is not null) {
                     await Task.Delay(ex.RetryAfterMs.Value, cancellationToken);
                     typeof(HttpRequestMessage).GetField("_sendStatus", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -63,5 +63,14 @@ public class MatrixHttpClient : HttpClient {
         response.EnsureSuccessStatusCode();
         await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken);
+    }
+
+    // GetStreamAsync
+    public async Task<Stream> GetStreamAsync(string requestUri, CancellationToken cancellationToken = default) {
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStreamAsync(cancellationToken);
     }
 }

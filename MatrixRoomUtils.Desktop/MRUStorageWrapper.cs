@@ -54,6 +54,8 @@ public class MRUStorageWrapper {
 
         tokens.Add(loginResponse);
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
+        if(await GetCurrentToken() is null)
+            await SetCurrentToken(loginResponse);
     }
 
     private async Task<AuthenticatedHomeServer?> GetCurrentSession() {
@@ -85,7 +87,7 @@ public class MRUStorageWrapper {
         if (session is null) {
             // _navigationManager.NavigateTo("/Login");
             var wnd = new LoginWindow(this);
-            wnd.Show();
+            wnd.ShowDialog(MainWindow.Instance);
             while (wnd.IsVisible) await Task.Delay(100);
             session = await GetCurrentSession();
         }

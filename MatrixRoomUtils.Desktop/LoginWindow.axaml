@@ -6,10 +6,12 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MatrixRoomUtils.Desktop.LoginWindow"
         Title="LoginWindow"
-        x:DataType="desktop:LoginWindow">
+        x:DataType="desktop:LoginWindow"
+        DataContext="{Binding $self}"
+        >
     <StackPanel>
         <TextBox Text="{Binding Username, Mode=TwoWay}" />
-        <MaskedTextBox Text="{Binding Password, Mode=TwoWay}" />
+        <MaskedTextBox PasswordChar="*" Text="{Binding Password, Mode=TwoWay}" />
         <Button Click="Login">Login</Button>
     </StackPanel>
 </Window>

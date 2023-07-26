@@ -26,6 +26,7 @@
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.0" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0" />
+        <PackageReference Include="Sentry" Version="3.34.0" />
     </ItemGroup>
 
 
@@ -45,5 +46,18 @@
         <Content Update="appsettings.Local.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Classes\" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Update="Components\NavigationStack.axaml.cs">
+        <DependentUpon>NavigationStack.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Components\RoomListEntry.axaml.cs">
+        <DependentUpon>RoomListEntry.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>

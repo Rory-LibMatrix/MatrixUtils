@@ -42,7 +42,7 @@ public class SyncHelper {
 
             // var res = await JsonSerializer.DeserializeAsync<SyncResult>(await req.Content.ReadAsStreamAsync());
 
-#if DEBUG
+#if DEBUG && false
             var jsonObj = await req.Content.ReadFromJsonAsync<JsonElement>();
             try {
                 await _homeServer._httpClient.PostAsJsonAsync(

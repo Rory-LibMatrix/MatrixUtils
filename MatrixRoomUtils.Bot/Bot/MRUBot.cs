@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MatrixRoomUtils.Bot.Bot; 
+namespace MatrixRoomUtils.Bot.Bot;
 
 public class MRUBot : IHostedService {
     private readonly HomeserverProviderService _homeserverProviderService;
@@ -58,9 +58,10 @@ public class MRUBot : IHostedService {
                     x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId);
             _logger.LogInformation(
                 $"Got invite to {args.Key} by {inviteEvent.Sender} with reason: {(inviteEvent.TypedContent as RoomMemberEventData).Reason}");
-            if (inviteEvent.Sender == "@emma:rory.gay") {
+            if (inviteEvent.Sender.EndsWith(":rory.gay") || inviteEvent.Sender == "@mxidupwitch:the-apothecary.club" ) {
                 try {
-                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: "I was invited by Emma (Rory&)!");
+                    var senderProfile = await hs.GetProfile(inviteEvent.Sender);
+                    await (await hs.GetRoom(args.Key)).JoinAsync(reason: $"I was invited by {senderProfile.DisplayName ?? inviteEvent.Sender}!");
                 }
                 catch (Exception e) {
                     _logger.LogError(e.ToString());
@@ -76,7 +77,7 @@ public class MRUBot : IHostedService {
             // _logger.LogInformation(eventResponse.ToJson(indent: false));
             if (@event is { Type: "m.room.message", TypedContent: RoomMessageEventData message }) {
                 if (message is { MessageType: "m.text" } && message.Body.StartsWith(_configuration.Prefix)) {
-                    
+
                     var command = _commands.FirstOrDefault(x => x.Name == message.Body.Split(' ')[0][_configuration.Prefix.Length..]);
                     if (command == null) {
                         await room.SendMessageEventAsync("m.room.message",

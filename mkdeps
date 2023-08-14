@@ -4,7 +4,7 @@ projects=(
   MatrixRoomUtils.Web
 )
 
-find . | grep -E '(bin|obj)$' | while read d; do rm -rf $d & done
+find . | grep -E '(bin|obj)$' | while read -r d; do rm -rf "$d" & done
 wait
 
 execDir=$(pwd)
@@ -12,12 +12,20 @@ execDir=$(pwd)
 for p in $projects
 do
   (
-    cd $p
+    set -euo pipefail
+    cd "$p" || exit
     pwd
-    MSBUILDLIVELOGGER=false dotnet restore --packages=packages -v n --ucr
-    #dotnet --list-sdks
-    ${execDir}/nuget-to-nix.sh packages | tee deps.nix
-    #where nuget-to-nix
+    MSBUILDLIVELOGGER=false dotnet restore --packages=packages -v n --ucr || exit 1
+
+    #for blazor: https://globalcdn.nuget.org/packages/microsoft.netcore.app.runtime.mono.browser-wasm.7.0.10.nupkg
+#    if [ -f wwwroot/index.html ]; then
+#      curl -L https://globalcdn.nuget.org/packages/microsoft.netcore.app.runtime.mono.browser-wasm.7.0.10.nupkg -o Microsoft.NETCore.App.Runtime.Mono.browser-wasm.7.0.10.nupkg
+#      mkdir -p packages/Microsoft.NETCore.App.Runtime.Mono.browser-wasm/7.0.10
+#      unzip -d packages/Microsoft.NETCore.App.Runtime.Mono.browser-wasm/7.0.10 Microsoft.NETCore.App.Runtime.Mono.browser-wasm.7.0.10.nupkg
+#      rm Microsoft.NETCore.App.Runtime.Mono.browser-wasm.7.0.10.nupkg
+#    fi
+
+    "${execDir}"/nuget-to-nix.sh packages | tee deps.nix
     pwd
     du -sh packages
     rm -rf packages

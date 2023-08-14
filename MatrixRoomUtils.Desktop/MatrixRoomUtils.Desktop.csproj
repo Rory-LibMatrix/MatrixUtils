@@ -31,7 +31,7 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="..\MatrixRoomUtils.Core\MatrixRoomUtils.Core.csproj" />
+        <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
     </ItemGroup>
 
     <ItemGroup>

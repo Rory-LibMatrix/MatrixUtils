@@ -1,4 +1,4 @@
-using MatrixRoomUtils.Core.Responses;
+using LibMatrix.Responses;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
 

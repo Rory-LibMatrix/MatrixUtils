@@ -1,6 +1,6 @@
-using MatrixRoomUtils.Core;
-using MatrixRoomUtils.Core.Responses;
-using MatrixRoomUtils.Core.Services;
+using LibMatrix;
+using LibMatrix.Responses;
+using LibMatrix.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace MatrixRoomUtils.Web.Classes;

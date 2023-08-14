@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
-using MatrixRoomUtils.Core;
-using MatrixRoomUtils.Core.Helpers;
-using MatrixRoomUtils.Core.Services;
-using MatrixRoomUtils.Core.StateEventTypes.Spec;
+using LibMatrix;
+using LibMatrix.Helpers;
+using LibMatrix.Services;
+using LibMatrix.StateEventTypes.Spec;
 using MatrixRoomUtils.Web.Classes;
 using Microsoft.Extensions.DependencyInjection;
 

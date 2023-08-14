@@ -1,7 +1,7 @@
 using Blazored.LocalStorage;
-using MatrixRoomUtils.Core.Interfaces.Services;
+using LibMatrix.Interfaces.Services;
 
-namespace MatrixRoomUtils.Web.Classes; 
+namespace MatrixRoomUtils.Web.Classes;
 
 public class LocalStorageProviderService : IStorageProvider {
     private readonly ILocalStorageService _localStorageService;

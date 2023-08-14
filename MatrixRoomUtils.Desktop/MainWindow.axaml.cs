@@ -25,8 +25,8 @@ public partial class MainWindow : Window {
 
         InitializeComponent();
 
-        _logger.LogInformation("Cache location: " + _configuration.CacheStoragePath);
-        _logger.LogInformation("Data location: " + _configuration.DataStoragePath);
+        _logger.LogInformation("Cache location: {}", _configuration.CacheStoragePath);
+        _logger.LogInformation("Data location: {}", _configuration.DataStoragePath);
 
 
         // for (int i = 0; i < 100; i++) {
@@ -40,7 +40,7 @@ public partial class MainWindow : Window {
         var hs = await _storageWrapper.GetCurrentSessionOrPrompt();
         var rooms = await hs.GetJoinedRooms();
         foreach (var room in rooms) {
-            roomList.Children.Add(new RoomListEntry(_scopeFactory, new RoomInfo(room)));
+            // roomList.Children.Add(new RoomListEntry(_scopeFactory, new RoomInfo(room)));
         }
         base.OnLoaded(e);
     }

@@ -1,11 +1,28 @@
 #!/usr/bin/env nix-shell
-#!nix-shell -i "bash -x" -p bash nuget-to-nix
+#!nix-shell -i "bash -x" -p bash nuget-to-nix git dotnet-sdk_7 nix curl jq yq
+projects=(
+  MatrixRoomUtils.Web
+)
+
 find . | grep -E '(bin|obj)$' | while read d; do rm -rf $d & done
 wait
 
-MSBUILDLIVELOGGER=false dotnet restore --packages=packages -v n --ucr
-nuget-to-nix packages | tee deps.nix
-du -sh packages
-rm -rf packages
-nix flake update
-git add deps.nix flake.lock
+execDir=$(pwd)
+
+for p in $projects
+do
+  (
+    cd $p
+    pwd
+    MSBUILDLIVELOGGER=false dotnet restore --packages=packages -v n --ucr
+    #dotnet --list-sdks
+    ${execDir}/nuget-to-nix.sh packages | tee deps.nix
+    #where nuget-to-nix
+    pwd
+    du -sh packages
+    rm -rf packages
+    git add deps.nix
+  )
+  nix flake update
+  git add flake.lock
+done

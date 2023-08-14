@@ -24,16 +24,16 @@
               #  pkg-config
               #];
             };
-            frontend = pkgs.buildDotnetModule rec {
-              pname = "botcore-v${version}";
-              version = "4";
+            web = pkgs.buildDotnetModule rec {
+              pname = "MatrixRoomUtils.Web-v${version}";
+              version = "1";
               dotnet-sdk = pkgs.dotnet-sdk_7;
               dotnet-runtime = pkgs.dotnet-aspnetcore_7;
               src = ./.;
               projectFile = [
-                "BotCore.Web.Legacy/BotCore.Web.Legacy.csproj"
+                "MatrixRoomUtils.Web/MatrixRoomUtils.Web.csproj"
                ];
-              nugetDeps = ./deps.nix;
+              nugetDeps = MatrixRoomUtils.Web/deps.nix;
               #nativeBuildInputs = with pkgs; [
               #  pkg-config
               #];

@@ -1,3 +1,4 @@
+@using LibMatrix.Extensions
 <div class="r-modal" style="top: @(_y)px; left: @(_x)px;">
     <div class="titlebar" @onmousedown="MouseDown" @onmouseup="MouseUp" @onmousemove="MouseMove" @onmouseleave="MouseMove">
         <b class="title" @ref="_titleRef">@Title</b>

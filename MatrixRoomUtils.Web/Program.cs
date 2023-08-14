@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
 using Blazored.SessionStorage;
-using MatrixRoomUtils.Core.Services;
+using LibMatrix.Services;
 using MatrixRoomUtils.Web;
 using MatrixRoomUtils.Web.Classes;
 using Microsoft.AspNetCore.Components.Web;

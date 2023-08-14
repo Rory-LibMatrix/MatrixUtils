@@ -1,6 +1,7 @@
-@using MatrixRoomUtils.Core.StateEventTypes
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix.StateEventTypes
 @using MatrixRoomUtils.Web.Classes.Constants
+@using LibMatrix.StateEventTypes.Spec
+@using LibMatrix
 <details>
     <summary>@roomType (@rooms.Count)</summary>
     @foreach (var room in rooms) {

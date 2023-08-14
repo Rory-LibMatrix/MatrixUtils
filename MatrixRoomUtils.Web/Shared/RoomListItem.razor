@@ -1,8 +1,9 @@
-@using MatrixRoomUtils.Core.Extensions
 @using System.Text.Json
-@using MatrixRoomUtils.Core.Helpers
-@using MatrixRoomUtils.Core.StateEventTypes
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix
+@using LibMatrix.Helpers
+@using LibMatrix.RoomTypes
+@using LibMatrix.StateEventTypes.Spec
+@using LibMatrix.StateEventTypes
 @using MatrixRoomUtils.Web.Classes.Constants
 <div class="roomListItem" id="@RoomId" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (OwnMemberState != null) {

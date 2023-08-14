@@ -1,8 +1,10 @@
 @page "/KnownHomeserverList"
 @using System.Text.Json
 @using System.Diagnostics
-@using MatrixRoomUtils.Core.Responses
-@using MatrixRoomUtils.Core.StateEventTypes
+@using LibMatrix
+@using LibMatrix.Extensions
+@using LibMatrix.RoomTypes
+@using LibMatrix.StateEventTypes
 <h3>Known Homeserver List</h3>
 <hr/>
 
@@ -62,7 +64,7 @@ else {
     private async Task<List<HomeServerInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeServerInfoQueryProgress, Task<bool>>? progressCallback = null) {
         HomeServerInfoQueryProgress progress = new();
         List<HomeServerInfo> homeServers = new();
-        
+
         var rooms = await hs.GetJoinedRooms();
         progress.TotalRooms = rooms.Count;
 

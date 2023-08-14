@@ -1,10 +1,12 @@
 @page "/Rooms/Create"
-@using MatrixRoomUtils.Core.Responses
 @using System.Text.Json
 @using System.Reflection
-@using MatrixRoomUtils.Core.Helpers
-@using MatrixRoomUtils.Core.StateEventTypes
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix
+@using LibMatrix.Extensions
+@using LibMatrix.Helpers
+@using LibMatrix.Responses
+@using LibMatrix.StateEventTypes.Spec
+@using LibMatrix.StateEventTypes
 @using MatrixRoomUtils.Web.Classes.RoomCreationTemplates
 @* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
 @using MatrixRoomUtils.Web.Shared.SimpleComponents

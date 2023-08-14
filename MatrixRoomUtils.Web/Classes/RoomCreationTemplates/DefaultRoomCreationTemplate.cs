@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
-using MatrixRoomUtils.Core;
-using MatrixRoomUtils.Core.Responses;
-using MatrixRoomUtils.Core.StateEventTypes;
-using MatrixRoomUtils.Core.StateEventTypes.Spec;
+using LibMatrix;
+using LibMatrix.Responses;
+using LibMatrix.StateEventTypes.Spec;
+using LibMatrix.StateEventTypes;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
 

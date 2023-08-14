@@ -1,7 +1,8 @@
 @using MatrixRoomUtils.Web.Shared.RoomListComponents;
-@using MatrixRoomUtils.Core.StateEventTypes
-@using MatrixRoomUtils.Core.StateEventTypes.Common
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix.StateEventTypes
+@using LibMatrix.StateEventTypes.Spec
+@using LibMatrix
+@using LibMatrix.Extensions
 @if(Rooms.Count != RoomsWithTypes.Sum(x=>x.Value.Count)) {
     <p>Fetching room details... @RoomsWithTypes.Sum(x=>x.Value.Count) out of @Rooms.Count done!</p>
     @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {

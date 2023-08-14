@@ -1,7 +1,6 @@
-using MatrixRoomUtils.Core;
-using MatrixRoomUtils.Core.Interfaces;
-using MatrixRoomUtils.Core.Responses;
-using MatrixRoomUtils.Core.RoomTypes;
+using LibMatrix;
+using LibMatrix.Responses;
+using LibMatrix.RoomTypes;
 
 namespace MatrixRoomUtils.Web.Classes;
 

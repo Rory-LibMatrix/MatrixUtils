@@ -1,7 +1,8 @@
 @page "/Rooms/{RoomId}/Timeline"
 @using MatrixRoomUtils.Web.Shared.TimelineComponents
-@using MatrixRoomUtils.Core.Responses
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix
+@using LibMatrix.Responses
+@using LibMatrix.StateEventTypes.Spec
 <h3>RoomManagerTimeline</h3>
 <hr/>
 <p>Loaded @Events.Count events...</p>

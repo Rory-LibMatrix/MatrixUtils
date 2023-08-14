@@ -1,7 +1,7 @@
 using Blazored.SessionStorage;
-using MatrixRoomUtils.Core.Interfaces.Services;
+using LibMatrix.Interfaces.Services;
 
-namespace MatrixRoomUtils.Web.Classes; 
+namespace MatrixRoomUtils.Web.Classes;
 
 public class SessionStorageProviderService : IStorageProvider {
     private readonly ISessionStorageService _sessionStorageService;
@@ -9,7 +9,7 @@ public class SessionStorageProviderService : IStorageProvider {
     public SessionStorageProviderService(ISessionStorageService sessionStorage) {
         _sessionStorageService = sessionStorage;
     }
-    
+
     async Task IStorageProvider.SaveAllChildrenAsync<T>(string key, T value) => throw new NotImplementedException();
 
     async Task<T?> IStorageProvider.LoadAllChildrenAsync<T>(string key) where T : default => throw new NotImplementedException();

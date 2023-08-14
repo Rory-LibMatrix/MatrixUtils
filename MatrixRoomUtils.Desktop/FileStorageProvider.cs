@@ -1,6 +1,6 @@
 using System.Text.Json;
-using MatrixRoomUtils.Core.Extensions;
-using MatrixRoomUtils.Core.Interfaces.Services;
+using LibMatrix.Extensions;
+using LibMatrix.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
 namespace MatrixRoomUtils.Desktop;

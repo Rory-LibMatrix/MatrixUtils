@@ -1,7 +1,6 @@
-@using MatrixRoomUtils.Core.Responses
-@using MatrixRoomUtils.Core.StateEventTypes
-@using MatrixRoomUtils.Core.Helpers
-@using MatrixRoomUtils.Core.StateEventTypes.Spec
+@using LibMatrix.StateEventTypes
+@using LibMatrix.StateEventTypes.Spec
+@using LibMatrix.Helpers
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
     <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
@@ -35,7 +34,7 @@
 
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        
+
         await _semaphoreSlim.WaitAsync();
 
         if (User == null) {

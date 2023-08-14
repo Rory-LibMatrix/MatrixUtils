@@ -11,6 +11,9 @@
 
     public object Id { get; set; }
 
-    private async Task Callback() => Console.WriteLine("beep");
+    private Task Callback() {
+        Console.WriteLine("beep");
+        return Task.CompletedTask;
+    }
 
 }

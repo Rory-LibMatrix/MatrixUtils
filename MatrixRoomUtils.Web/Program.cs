@@ -33,7 +33,7 @@ builder.Services.AddBlazoredSessionStorage(config => {
 });
 
 builder.Services.AddScoped<TieredStorageService>(x =>
-    new(
+    new TieredStorageService(
         cacheStorageProvider: new SessionStorageProviderService(x.GetRequiredService<ISessionStorageService>()),
         dataStorageProvider: new LocalStorageProviderService(x.GetRequiredService<ILocalStorageService>())
     )

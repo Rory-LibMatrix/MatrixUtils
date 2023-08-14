@@ -23,6 +23,9 @@
         </ModalWindow>
     }
 }
+else {
+    <b>Something has gone wrong and the login was not passed along!</b>
+}
 
 @code
 {
@@ -30,13 +33,13 @@
     [SupplyParameterFromQuery(Name = "ctx")]
     public string Context { get; set; }
 
-    private LoginResponse _login { get; set; }
+    private LoginResponse? _login { get; set; }
 
-    private bool _showRefreshDialog { get; set; } = false;
+    private bool _showRefreshDialog { get; set; }
 
     private string _password { get; set; } = "";
 
-    private MatrixException _loginException { get; set; }
+    private MatrixException? _loginException { get; set; }
 
     protected override async Task OnInitializedAsync() {
         var tokens = await MRUStorage.GetAllTokens();
@@ -55,15 +58,16 @@
     }
 
     private async Task RemoveUser() {
-        await MRUStorage.RemoveToken(_login);
-        if ((await MRUStorage.GetCurrentToken()).AccessToken == _login.AccessToken)
-            MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens()).FirstOrDefault());
+        await MRUStorage.RemoveToken(_login!);
+        if ((await MRUStorage.GetCurrentToken())!.AccessToken == _login!.AccessToken)
+            await MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens())?.FirstOrDefault());
         await OnInitializedAsync();
     }
 
     private async Task OpenRefreshDialog() {
         _showRefreshDialog = true;
         StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private async Task SwitchSession(LoginResponse auth) {
@@ -73,6 +77,7 @@
     }
 
     private async Task TryLogin() {
+        if(_login is null) throw new NullReferenceException("Login is null!");
         try {
             var result = await HomeserverProvider.Login(_login.Homeserver, _login.UserId, _password);
             if (result is null) {

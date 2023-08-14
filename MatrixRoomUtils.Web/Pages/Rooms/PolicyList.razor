@@ -114,7 +114,7 @@ else {
             @foreach (var policyEvent in PolicyEvents.Where(x => x.Type == "m.policy.rule.room" && (x.TypedContent as PolicyRuleStateEventData).Entity == null)) {
                 <tr>
                     <td>@policyEvent.StateKey</td>
-                    <td>@policyEvent.RawContent.ToJson(false, true)</td>
+                    <td>@policyEvent.RawContent!.ToJson(false, true)</td>
                 </tr>
             }
             </tbody>

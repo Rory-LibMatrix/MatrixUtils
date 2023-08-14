@@ -4,31 +4,20 @@ using LibMatrix.Services;
 
 namespace MatrixRoomUtils.Desktop;
 
-public class MRUStorageWrapper {
-    private readonly TieredStorageService _storageService;
-    private readonly HomeserverProviderService _homeserverProviderService;
-
-    public MRUStorageWrapper(
-        TieredStorageService storageService,
-        HomeserverProviderService homeserverProviderService
-    ) {
-        _storageService = storageService;
-        _homeserverProviderService = homeserverProviderService;
-    }
-
+public class MRUStorageWrapper(TieredStorageService storageService, HomeserverProviderService homeserverProviderService) {
     public async Task<List<LoginResponse>?> GetAllTokens() {
-        if(!await _storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
+        if(!await storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
             return null;
         }
-        return await _storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ??
+        return await storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ??
                new List<LoginResponse>();
     }
 
     public async Task<LoginResponse?> GetCurrentToken() {
-        if(!await _storageService.DataStorageProvider.ObjectExistsAsync("token")) {
+        if(!await storageService.DataStorageProvider.ObjectExistsAsync("token")) {
             return null;
         }
-        var currentToken = await _storageService.DataStorageProvider.LoadObjectAsync<LoginResponse>("token");
+        var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<LoginResponse>("token");
         var allTokens = await GetAllTokens();
         if (allTokens is null or { Count: 0 }) {
             await SetCurrentToken(null);
@@ -47,13 +36,10 @@ public class MRUStorageWrapper {
     }
 
     public async Task AddToken(LoginResponse loginResponse) {
-        var tokens = await GetAllTokens();
-        if (tokens == null) {
-            tokens = new List<LoginResponse>();
-        }
+        var tokens = await GetAllTokens() ?? new List<LoginResponse>();
 
         tokens.Add(loginResponse);
-        await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
+        await storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
         if(await GetCurrentToken() is null)
             await SetCurrentToken(loginResponse);
     }
@@ -64,7 +50,7 @@ public class MRUStorageWrapper {
             return null;
         }
 
-        return await _homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+        return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
     }
 
     public async Task<AuthenticatedHomeServer?> GetCurrentSessionOrPrompt() {
@@ -87,7 +73,7 @@ public class MRUStorageWrapper {
         if (session is null) {
             // _navigationManager.NavigateTo("/Login");
             var wnd = new LoginWindow(this);
-            wnd.ShowDialog(MainWindow.Instance);
+            await wnd.ShowDialog(MainWindow.Instance);
             while (wnd.IsVisible) await Task.Delay(100);
             session = await GetCurrentSession();
         }
@@ -112,16 +98,14 @@ public class MRUStorageWrapper {
         }
 
         tokens.RemoveAll(x => x.AccessToken == auth.AccessToken);
-        await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
+        await storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(LoginResponse? auth) {
-        _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
-    }
+    public async Task SetCurrentToken(LoginResponse? auth) => await storageService.DataStorageProvider.SaveObjectAsync("token", auth);
 
     public async Task<LoginResponse?> Login(string homeserver, string username, string password) {
         try {
-            return await _homeserverProviderService.Login(homeserver, username, password);
+            return await homeserverProviderService.Login(homeserver, username, password);
         }
         catch (MatrixException e) {
             if (e.ErrorCode == "M_FORBIDDEN") {

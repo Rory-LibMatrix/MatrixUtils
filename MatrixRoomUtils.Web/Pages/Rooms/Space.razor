@@ -39,17 +39,21 @@
 
         var state = Room.GetFullStateAsync();
         await foreach (var stateEvent in state) {
-            if (stateEvent.Type == "m.space.child") {
-                var roomId = stateEvent.StateKey;
-                var room = await hs.GetRoom(roomId);
-                if (room is not null) {
-                    Rooms.Add(room);
+            switch (stateEvent.Type) {
+                case "m.space.child": {
+                    var roomId = stateEvent.StateKey;
+                    var room = await hs.GetRoom(roomId);
+                    if (room is not null) {
+                        Rooms.Add(room);
+                    }
+                    break;
                 }
-            }
-            else if (stateEvent.Type == "m.room.member") {
-                var serverName = stateEvent.StateKey.Split(':').Last();
-                if (!ServersInSpace.Contains(serverName)) {
-                    ServersInSpace.Add(serverName);
+                case "m.room.member": {
+                    var serverName = stateEvent.StateKey.Split(':').Last();
+                    if (!ServersInSpace.Contains(serverName)) {
+                        ServersInSpace.Add(serverName);
+                    }
+                    break;
                 }
             }
         }
@@ -89,10 +93,10 @@
     // await base.OnInitializedAsync();
     }
 
-    private async Task JoinAllRooms() {
-        foreach (var room in Rooms) {
-            room.JoinAsync(ServersInSpace.ToArray());
-        }
+    private Task JoinAllRooms() {
+        List<Task> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
+        Task.WaitAll(tasks.ToArray());
+        return Task.CompletedTask;
     }
 
 }

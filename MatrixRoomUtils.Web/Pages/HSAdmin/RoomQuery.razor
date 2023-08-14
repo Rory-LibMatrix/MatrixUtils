@@ -158,10 +158,11 @@
 
     public LocalRoomQueryFilter Filter { get; set; } = new();
 
-    protected override async Task OnParametersSetAsync() {
+    protected override Task OnParametersSetAsync() {
         if (Ascending == null)
             Ascending = true;
         OrderBy ??= "name";
+        return Task.CompletedTask;
     }
 
     private async Task Search() {

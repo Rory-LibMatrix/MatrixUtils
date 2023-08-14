@@ -91,12 +91,12 @@
                 FilteredEvents.Add(_ev);
             }
             StateLoaded++;
-            if ((DateTime.Now - _lastUpdate).TotalMilliseconds > 100) {
-                _lastUpdate = DateTime.Now;
-                status = $"Loaded {StateLoaded} state events";
-                StateHasChanged();
-                await Task.Delay(0);
-            }
+
+            if (!((DateTime.Now - _lastUpdate).TotalMilliseconds > 100)) continue;
+            _lastUpdate = DateTime.Now;
+            status = $"Loaded {StateLoaded} state events";
+            StateHasChanged();
+            await Task.Delay(0);
         }
 
         StateHasChanged();

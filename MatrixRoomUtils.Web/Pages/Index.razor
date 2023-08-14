@@ -15,16 +15,15 @@ Small collection of tools to do not-so-everyday things.
 <form>
     @foreach (var (auth, user) in _users.OrderByDescending(x=>x.Value.RoomCount)) {
         var _auth = auth;
-        var _user = user;
         <div style="margin-bottom: 1em;">
-            <img style="border-radius: 50%; height: 3em; width: 3em;" src="@_user.AvatarUrl"/>
+            <img style="border-radius: 50%; height: 3em; width: 3em;" src="@user.AvatarUrl"/>
             <p style="margin-left: 1em; margin-top: -0.5em; display: inline-block;">
                 <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(()=>SwitchSession(_auth))" style="text-decoration-line: unset;"/>
-                <b>@_user.DisplayName</b> on <b>@_auth.Homeserver</b>
+                <b>@user.DisplayName</b> on <b>@_auth.Homeserver</b>
                 <a role="button" @onclick="@(() => RemoveUser(_auth))">Remove</a>
 
             </p>
-            <p style="margin-top: -1.5em; margin-left: 4em;">Member of @_user.RoomCount rooms</p>
+            <p style="margin-top: -1.5em; margin-left: 4em;">Member of @user.RoomCount rooms</p>
 
         </div>
     }
@@ -69,7 +68,7 @@ Small collection of tools to do not-so-everyday things.
     private class UserInfo {
         internal string AvatarUrl { get; set; }
         internal string DisplayName { get; set; }
-        internal int RoomCount { get; set; } = 0;
+        internal int RoomCount { get; set; }
     }
 
     private async Task RemoveUser(LoginResponse auth) {

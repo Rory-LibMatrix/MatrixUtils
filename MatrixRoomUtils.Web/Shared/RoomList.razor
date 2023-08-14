@@ -51,7 +51,7 @@ else {
         await _semaphoreSlim.WaitAsync();
         string roomType;
         try {
-            RoomCreateEventData createEvent = (await room.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
+            var createEvent = (await room.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
             roomType = GetRoomTypeName(createEvent.Type);
 
             if (roomType == "Room") {

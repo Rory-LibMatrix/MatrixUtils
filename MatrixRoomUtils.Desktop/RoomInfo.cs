@@ -2,7 +2,7 @@ using LibMatrix;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 
-namespace MatrixRoomUtils.Web.Classes;
+namespace MatrixRoomUtils.Desktop;
 
 public class RoomInfo {
     public RoomInfo() { }
@@ -17,10 +17,10 @@ public class RoomInfo {
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
         var @event = StateEvents.FirstOrDefault(x => x.Type == type && x.StateKey == stateKey);
         if (@event is not null) return @event;
-        @event = new StateEventResponse() {
+        @event = new StateEventResponse {
             RoomId = Room.RoomId,
             Type = type,
-            StateKey = stateKey,
+            StateKey = stateKey
         };
         try {
             @event.TypedContent = await Room.GetStateAsync<object>(type, stateKey);

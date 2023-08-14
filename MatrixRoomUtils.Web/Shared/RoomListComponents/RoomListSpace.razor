@@ -33,9 +33,9 @@
         var rooms = Space.Room.AsSpace.GetRoomsAsync();
         await foreach (var room in rooms) {
             if (Breadcrumbs.Contains(room.RoomId)) continue;
-            RoomInfo roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
+            var roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
             if (roomInfo is null) {
-                roomInfo = new() {
+                roomInfo = new RoomInfo {
                     Room = room
                 };
                 KnownRooms.Add(roomInfo);
@@ -48,10 +48,11 @@
     private bool _shouldRenderChildren = false;
     private string? _breadcrumbs;
 
-    private async Task SpaceChildrenOpened() {
-        if (_shouldRenderChildren) return;
+    private Task SpaceChildrenOpened() {
+        if (_shouldRenderChildren) return Task.CompletedTask;
         _shouldRenderChildren = true;
         Console.WriteLine($"[RoomList] Rendering children of {Space.Room.RoomId}");
+        return Task.CompletedTask;
     }
 
 }

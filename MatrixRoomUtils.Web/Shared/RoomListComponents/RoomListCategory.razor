@@ -38,13 +38,11 @@
     private List<RoomInfo> rooms => Category.Value;
 
     private int RoomVersionDangerLevel(RoomInfo room) {
-        var roomVersion = room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.create");
+        var roomVersion = room.StateEvents.FirstOrDefault(x => x.Type == "m.room.create");
         if (roomVersion is null) return 0;
-        var roomVersionContent = roomVersion.TypedContent as RoomCreateEventData;
-        if (roomVersionContent is null) return 0;
-        if (RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion)) return 2;
-        if (roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion) return 1;
-        return 0;
+        return roomVersion.TypedContent is not RoomCreateEventData roomVersionContent ? 0
+            : RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion) ? 2
+                : roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion ? 1 : 0;
     }
 
 }

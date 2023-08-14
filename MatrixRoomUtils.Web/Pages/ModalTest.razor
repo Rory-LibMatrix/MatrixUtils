@@ -5,10 +5,10 @@
 @foreach (var (key, value) in _windowInfos) {
    @* <ModalWindow X="@value.X" Y="@value.Y" Title="@value.Title">@value.Content</ModalWindow> *@
 }
-@for (int i = 0; i < 5; i++) {
+@for (var i = 0; i < 5; i++) {
      var i1 = i;
      <ModalWindow X="@Random.Shared.Next(1400)" Y="@Random.Shared.Next(1000)" Title="@("Window " + i1)" OnCloseClicked="() => OnCloseClicked(i1)">
-          @for (int j = 0; j < i1; j++) {
+          @for (var j = 0; j < i1; j++) {
               <h1>@j</h1>
           } 
      </ModalWindow>
@@ -31,9 +31,9 @@
         double _y = 0;
         double multiplier = 1;
 
-        for (int i = 0; i < 200; i++) {
+        for (var i = 0; i < 200; i++) {
             var i1 = i;
-            _windowInfos.Add(_windowInfos.Count, new WindowInfo() {
+            _windowInfos.Add(_windowInfos.Count, new WindowInfo {
                 X = _x,
                 Y = _y,
                 Title = "Win" + i1,

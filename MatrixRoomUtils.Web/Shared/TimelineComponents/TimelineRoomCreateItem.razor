@@ -8,7 +8,7 @@
     This room is of type @(CreationEventContent.Type ?? "Untyped room (usually a chat room)")
 </p>
 <pre>
-    @ObjectExtensions.ToJson(Event.RawContent, indent: false)
+    @Event.RawContent?.ToJson(indent: false)
 </pre>
 
 @code {

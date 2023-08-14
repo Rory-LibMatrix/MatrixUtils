@@ -10,9 +10,11 @@ public class LocalStorageProviderService : IStorageProvider {
         _localStorageService = localStorageService;
     }
 
-    async Task IStorageProvider.SaveAllChildrenAsync<T>(string key, T value) => throw new NotImplementedException();
+    Task IStorageProvider.SaveAllChildrenAsync<T>(string key, T value) {
+        throw new NotImplementedException();
+    }
 
-    async Task<T?> IStorageProvider.LoadAllChildrenAsync<T>(string key) where T : default => throw new NotImplementedException();
+    Task<T?> IStorageProvider.LoadAllChildrenAsync<T>(string key) where T : default => throw new NotImplementedException();
 
     async Task IStorageProvider.SaveObjectAsync<T>(string key, T value) => await _localStorageService.SetItemAsync(key, value);
 

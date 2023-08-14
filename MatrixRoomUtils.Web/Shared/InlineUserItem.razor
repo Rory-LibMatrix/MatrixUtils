@@ -50,7 +50,7 @@
             throw new ArgumentNullException(nameof(UserId));
 
         if (MemberEvent != null) {
-            User = new() {
+            User = new ProfileResponseEventData {
                 AvatarUrl = MemberEvent.AvatarUrl,
                 DisplayName = MemberEvent.DisplayName
             };

@@ -1,8 +1,7 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace MatrixRoomUtils.Desktop;
+namespace MatrixRoomUtils.Desktop.Components;
 
 public partial class NavigationStack : UserControl {
     public NavigationStack() {
@@ -20,7 +19,7 @@ public partial class NavigationStack : UserControl {
             Button btn = new() {
                 Content = item.Name
             };
-            btn.Click += (sender, args) => {
+            btn.Click += (_, _) => {
                 PopTo(_stack.IndexOf(item));
                 buildView();
             };
@@ -41,7 +40,7 @@ public partial class NavigationStack : UserControl {
     public NavigationStackItem? Current => _stack.LastOrDefault();
 
     public void Push(string name, UserControl view) {
-        _stack.Add(new NavigationStackItem() {
+        _stack.Add(new NavigationStackItem {
             Name = name,
             View = view
         });

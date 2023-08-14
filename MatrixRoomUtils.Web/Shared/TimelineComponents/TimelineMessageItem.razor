@@ -2,7 +2,7 @@
 @inherits BaseTimelineItem
 
 <pre>
-    @ObjectExtensions.ToJson(Event.RawContent, indent: false)
+    @Event.RawContent?.ToJson(indent: false)
 </pre>
 
 @code {

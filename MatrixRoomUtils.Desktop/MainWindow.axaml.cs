@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Interactivity;
-using MatrixRoomUtils.Web.Classes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

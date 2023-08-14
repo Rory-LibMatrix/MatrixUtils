@@ -20,12 +20,12 @@ public partial class App : Application {
             services.AddSingleton<MRUDesktopConfiguration>();
             services.AddSingleton<SentryService>();
             services.AddSingleton<TieredStorageService>(x =>
-                new(
+                new TieredStorageService(
                     cacheStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>().CacheStoragePath),
                     dataStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>().DataStoragePath)
                 )
             );
-            services.AddSingleton(new RoryLibMatrixConfiguration() {
+            services.AddSingleton(new RoryLibMatrixConfiguration {
                 AppName = "MatrixRoomUtils.Desktop"
             });
             services.AddRoryLibMatrixServices();

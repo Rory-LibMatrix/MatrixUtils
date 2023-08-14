@@ -78,10 +78,10 @@ else {
             await foreach (var state in states) {
                 if (state.Type is not "m.room.member") continue;
                 progress.ProcessedUsers[room].Total++;
-                if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) {
-                    homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
-                    Console.WriteLine($"Added new homeserver {state.StateKey.Split(':')[1]}");
-                }
+
+                if (homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) continue;
+                homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
+                Console.WriteLine($"Added new homeserver {state.StateKey.Split(':')[1]}");
             }
             semaphore.Release();
             progress.ProcessedUsers[room].IsFinished = true;

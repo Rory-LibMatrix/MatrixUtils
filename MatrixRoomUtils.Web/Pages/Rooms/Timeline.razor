@@ -45,7 +45,7 @@
 
     private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
 
-    private Type ComponentType(StateEventResponse Event) => Event.TypedContent switch {
+    private Type ComponentType(StateEvent Event) => Event.TypedContent switch {
         RoomMessageEventData => typeof(TimelineMessageItem),
         RoomMemberEventData => typeof(TimelineMemberItem),
         _ => typeof(TimelineUnknownItem)

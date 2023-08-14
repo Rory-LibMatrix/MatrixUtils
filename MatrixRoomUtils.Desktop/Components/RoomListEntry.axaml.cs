@@ -5,10 +5,9 @@ using LibMatrix;
 using LibMatrix.Helpers;
 using LibMatrix.Services;
 using LibMatrix.StateEventTypes.Spec;
-using MatrixRoomUtils.Web.Classes;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MatrixRoomUtils.Desktop;
+namespace MatrixRoomUtils.Desktop.Components;
 
 public partial class RoomListEntry : UserControl {
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -29,7 +28,7 @@ public partial class RoomListEntry : UserControl {
     private async Task GetRoomName() {
         try {
             var nameEvent = await _roomInfo.GetStateEvent("m.room.name");
-            if (nameEvent is not null && nameEvent.TypedContent is RoomNameEventData nameData)
+            if (nameEvent?.TypedContent is RoomNameEventData nameData)
                 RoomName.Content = nameData.Name;
         }
         catch (MatrixException e) {
@@ -41,7 +40,7 @@ public partial class RoomListEntry : UserControl {
     private async Task GetRoomIcon() {
         try {
             var avatarEvent = await _roomInfo.GetStateEvent("m.room.avatar");
-            if (avatarEvent is not null && avatarEvent.TypedContent is RoomAvatarEventData avatarData) {
+            if (avatarEvent?.TypedContent is RoomAvatarEventData avatarData) {
                 var mxcUrl = avatarData.Url;
                 await using var svc = _serviceScopeFactory.CreateAsyncScope();
                 var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>().GetCurrentSessionOrPrompt();

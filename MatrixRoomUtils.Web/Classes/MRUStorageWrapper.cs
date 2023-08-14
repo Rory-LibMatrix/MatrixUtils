@@ -45,10 +45,7 @@ public class MRUStorageWrapper {
     }
 
     public async Task AddToken(LoginResponse loginResponse) {
-        var tokens = await GetAllTokens();
-        if (tokens == null) {
-            tokens = new List<LoginResponse>();
-        }
+        var tokens = await GetAllTokens() ?? new List<LoginResponse>();
 
         tokens.Add(loginResponse);
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
@@ -92,9 +89,9 @@ public class MRUStorageWrapper {
     }
 
     public class DeveloperSettings {
-        public bool EnableLogViewers { get; set; } = false;
+        public bool EnableLogViewers { get; set; }
         public bool EnableConsoleLogging { get; set; } = true;
-        public bool EnablePortableDevtools { get; set; } = false;
+        public bool EnablePortableDevtools { get; set; }
     }
 
     public async Task RemoveToken(LoginResponse auth) {
@@ -107,7 +104,5 @@ public class MRUStorageWrapper {
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(LoginResponse? auth) {
-        _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
-    }
+    public async Task SetCurrentToken(LoginResponse? auth) => await _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
 }

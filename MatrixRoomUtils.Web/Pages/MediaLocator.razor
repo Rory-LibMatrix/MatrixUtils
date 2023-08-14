@@ -56,7 +56,7 @@
         });
     }
 
-    async Task executeSearch() {
+    Task executeSearch() {
         var sem = new SemaphoreSlim(128, 128);
         homeservers.ForEach(async hs => {
             await sem.WaitAsync();
@@ -80,6 +80,7 @@
             }
             StateHasChanged();
         });
+        return Task.CompletedTask;
     }
 
     async Task addMoreHomeservers() {

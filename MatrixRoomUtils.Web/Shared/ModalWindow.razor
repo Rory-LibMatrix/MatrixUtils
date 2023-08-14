@@ -74,13 +74,13 @@
     }
 
     private void MouseMove(MouseEventArgs obj) {
-        if (isDragging) {
-            _x += obj.ClientX - dragX;
-            _y += obj.ClientY - dragY;
-            dragX = obj.ClientX;
-            dragY = obj.ClientY;
-            StateHasChanged();
-        }
+        if (!isDragging) return;
+
+        _x += obj.ClientX - dragX;
+        _y += obj.ClientY - dragY;
+        dragX = obj.ClientX;
+        dragY = obj.ClientY;
+        StateHasChanged();
     }
 
 }

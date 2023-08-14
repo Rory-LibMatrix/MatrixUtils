@@ -131,7 +131,7 @@
             <td>
                 @if (serverAcl?.Allow is null) {
                     <p>No allow rules exist!</p>
-                    <button @onclick="@(() => { serverAcl.Allow = new() { "*" }; })">Create sane defaults</button>
+                    <button @onclick="@(() => { serverAcl.Allow = new List<string> { "*" }; })">Create sane defaults</button>
                 }
                 else {
                     <details>
@@ -141,7 +141,7 @@
                 }
                 @if (serverAcl?.Deny is null) {
                     <p>No deny rules exist!</p>
-                    <button @onclick="@(() => { serverAcl.Allow = new(); })">Create sane defaults</button>
+                    <button @onclick="@(() => { serverAcl.Allow = new List<string>(); })">Create sane defaults</button>
                 }
                 else {
                     <details>
@@ -240,12 +240,7 @@
 @code {
 
     private string RoomPreset {
-        get {
-            if (Presets.ContainsValue(creationEvent)) {
-                return Presets.First(x => x.Value == creationEvent).Key;
-            }
-            return "Not a preset";
-        }
+        get => Presets.ContainsValue(creationEvent) ? Presets.First(x => x.Value == creationEvent).Key : "Not a preset";
         set {
             creationEvent = Presets[value];
             JsonChanged();
@@ -310,7 +305,7 @@
             creationEvent.InitialState.Add(new StateEvent {
                 Type = "m.room.member",
                 StateKey = mxid,
-                TypedContent = new RoomMemberEventData() {
+                TypedContent = new RoomMemberEventData {
                     Membership = "invite",
                     Reason = "Automatically invited at room creation time."
                 }

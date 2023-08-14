@@ -10,7 +10,7 @@ internal class Program {
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     // [STAThread]
-    public static async Task Main(string[] args) {
+    public static Task Main(string[] args) {
         try {
             BuildAvaloniaApp()
                 .StartWithClassicDesktopLifetime(args);
@@ -20,6 +20,8 @@ internal class Program {
             Console.WriteLine(e);
             throw;
         }
+
+        return Task.CompletedTask;
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

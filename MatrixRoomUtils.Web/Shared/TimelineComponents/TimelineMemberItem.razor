@@ -4,31 +4,31 @@
 @inherits BaseTimelineItem
 
 @if (roomMemberData is not null) {
-    @if (roomMemberData.Membership == "ban") {
-        <i>@Event.StateKey was banned</i>
-    }
-    else if (roomMemberData.Membership == "invite") {
-        <i>@Event.StateKey was invited</i>
-    }
-    else if (roomMemberData.Membership == "join") {
-        @if (Event.ReplacesState is not null) {
+    @switch (roomMemberData.Membership) {
+        case "ban":
+            <i>@Event.StateKey was banned</i>
+            break;
+        case "invite":
+            <i>@Event.StateKey was invited</i>
+            break;
+        case "join" when Event.ReplacesState is not null:
             <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
-        }
-        else {
-            <i><InlineUserItem User="new ProfileResponseEventData()" HomeServer="HomeServer" UserId="@Event.StateKey"></InlineUserItem> joined</i>
-        }
-    }
-    else if (roomMemberData.Membership == "leave") {
-        <i>@Event.StateKey left</i>
-    }
-    else if (roomMemberData.Membership == "knock") {
-        <i>@Event.StateKey knocked</i>
-    }
-    else {
-        <i>@Event.StateKey has an unknown state:</i>
-        <pre>
+            break;
+        case "join":
+            <i><InlineUserItem User="@(new ProfileResponseEventData())" HomeServer="@HomeServer" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+            break;
+        case "leave":
+            <i>@Event.StateKey left</i>
+            break;
+        case "knock":
+            <i>@Event.StateKey knocked</i>
+            break;
+        default:
+            <i>@Event.StateKey has an unknown state:</i>
+            <pre>
         @Event.ToJson()
     </pre>
+            break;
     }
 }
 else {

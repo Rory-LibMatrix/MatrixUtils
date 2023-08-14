@@ -28,7 +28,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 },
                 new() {
                     Type = "m.room.join_rules",
-                    TypedContent = new JoinRulesEventData() {
+                    TypedContent = new JoinRulesEventData {
                         JoinRule = "public"
                     }
                 },
@@ -42,7 +42,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 },
                 new() {
                     Type = "m.room.avatar",
-                    TypedContent = new RoomAvatarEventData() {
+                    TypedContent = new RoomAvatarEventData {
                         Url = "mxc://feline.support/UKNhEyrVsrAbYteVvZloZcFj"
                     }
                 }

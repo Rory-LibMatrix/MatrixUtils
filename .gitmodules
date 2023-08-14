@@ -1,3 +1,6 @@
 [submodule "LibMatrix"]
 	path = LibMatrix
 	url = https://git.rory.gay/matrix/LibMatrix.git
+[submodule "MxApiExtensions"]
+	path = MxApiExtensions
+	url = https://git.rory.gay/matrix/MxApiExtensions.git

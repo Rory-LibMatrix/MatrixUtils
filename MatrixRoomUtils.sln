@@ -16,6 +16,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.ExampleBot", "Lib
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.DebugDataValidationApi", "LibMatrix\LibMatrix.DebugDataValidationApi\LibMatrix.DebugDataValidationApi.csproj", "{7762FD80-E7AA-409D-A465-CF208EA4BC53}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MxApiExtensions", "MxApiExtensions", "{F1376F9A-FB65-4E60-BB9A-62A64F741FF4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MxApiExtensions", "MxApiExtensions\MxApiExtensions\MxApiExtensions.csproj", "{41200A7B-D2DB-4656-B66B-5206A63B367A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,10 +54,15 @@ Global
 		{7762FD80-E7AA-409D-A465-CF208EA4BC53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7762FD80-E7AA-409D-A465-CF208EA4BC53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7762FD80-E7AA-409D-A465-CF208EA4BC53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41200A7B-D2DB-4656-B66B-5206A63B367A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41200A7B-D2DB-4656-B66B-5206A63B367A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41200A7B-D2DB-4656-B66B-5206A63B367A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41200A7B-D2DB-4656-B66B-5206A63B367A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F4E241C3-0300-4B87-8707-BCBDEF1F0185} = {8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}
 		{4E72793A-AFAD-4E46-B406-2DF1E49994C6} = {8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}
 		{7762FD80-E7AA-409D-A465-CF208EA4BC53} = {8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}
+		{41200A7B-D2DB-4656-B66B-5206A63B367A} = {F1376F9A-FB65-4E60-BB9A-62A64F741FF4}
 	EndGlobalSection
 EndGlobal

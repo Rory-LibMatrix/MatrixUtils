@@ -1,7 +1,6 @@
 @page "/Login"
 @using System.Text.Json
 @using LibMatrix.Responses
-@using MatrixRoomUtils.Web.Shared.SimpleComponents
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 <h3>Login</h3>
@@ -12,6 +11,8 @@
     --><FancyTextBox @bind-Value="@newRecordInput.username"></FancyTextBox><!--
     --><span>:</span><!--
     --><FancyTextBox @bind-Value="@newRecordInput.homeserver"></FancyTextBox>
+    via
+    <FancyTextBox @bind-Value="@newRecordInput.password" IsPassword="true"></FancyTextBox>
 </span>
 <span style="display: block;">
     <label>Password:</label>
@@ -29,13 +30,27 @@
     <thead>
         <td>Username</td>
         <td>Homeserver</td>
+        <td>Password</td>
+        <td>Proxy</td>
     </thead>
-    @foreach (var (homeserver, username, password) in records) {
-        var record = (homeserver, username, password);
-        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}") ? "green" : "unset")">
-            <td style="border-width: 1px;">@username</td>
-            <td style="border-width: 1px;">@homeserver</td>
-            <td><a role="button" @onclick="() => records.Remove(record)">Remove</a></td>
+    @foreach (var record in records) {
+        var r = record;
+        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{r.username}:{r.homeserver}" && x.Proxy == r.proxy) ? "green" : "unset")">
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.homeserver"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.username"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.password" IsPassword="true"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.proxy"></FancyTextBox>
+            </td>
+            <td>
+                <a role="button" @onclick="() => records.Remove(r)">Remove</a>
+            </td>
         </tr>
     }
 </table>
@@ -45,17 +60,19 @@
 <LogView></LogView>
 
 @code {
-    readonly List<(string homeserver, string username, string password)> records = new();
-    (string homeserver, string username, string password) newRecordInput = ("", "", "");
+    readonly List<(string homeserver, string username, string password, string? proxy)> records = new();
+    (string homeserver, string username, string password, string? proxy) newRecordInput = ("", "", "", null);
 
-    List<LoginResponse> LoggedInSessions { get; set; } = new();
+    List<UserAuth>? LoggedInSessions { get; set; } = new();
 
     async Task Login() {
         var loginTasks = records.Select(async record => {
-            var (homeserver, username, password) = record;
-            if (LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}")) return;
+            var (homeserver, username, password, proxy) = record;
+            if (LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}" && x.Proxy == proxy)) return;
             try {
-                var result = await HomeserverProvider.Login(homeserver, username, password);
+                var result = new UserAuth(await HomeserverProvider.Login(homeserver, username, password, proxy)) {
+                    Proxy = proxy
+                };
                 if (result == null) {
                     Console.WriteLine($"Failed to login to {homeserver} as {username}!");
                     return;
@@ -81,20 +98,21 @@
         }));
         await using var rs = obj.File.OpenReadStream();
         using var sr = new StreamReader(rs);
-        var TsvData = await sr.ReadToEndAsync();
+        var tsvData = await sr.ReadToEndAsync();
         records.Clear();
-        foreach (var line in TsvData.Split('\n')) {
-            var parts = line.Split('\t');
-            if (parts.Length != 3)
+        foreach (var line in tsvData.Split('\n')) {
+            string?[] parts = line.Split('\t');
+            if (parts.Length < 3)
                 continue;
-            records.Add((parts[0], parts[1], parts[2]));
+            string? via = parts.Length > 3 ? parts[3] : null;
+            records.Add((parts[0], parts[1], parts[2], via));
         }
     }
 
     private async Task AddRecord() {
         LoggedInSessions = await MRUStorage.GetAllTokens();
         records.Add(newRecordInput);
-        newRecordInput = ("", "", "");
+        newRecordInput = ("", "", "", null);
     }
 
 }

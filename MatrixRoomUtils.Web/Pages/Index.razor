@@ -1,8 +1,9 @@
 ﻿@page "/"
-@using MatrixRoomUtils.Web.Shared.SimpleComponents
 @using LibMatrix.Responses
 @using LibMatrix
 @using LibMatrix.Helpers
+@using LibMatrix.Homeservers
+@using ArcaneLibs.Extensions
 
 <PageTitle>Index</PageTitle>
 
@@ -13,25 +14,38 @@ Small collection of tools to do not-so-everyday things.
 <h5>Signed in accounts - <a href="/Login">Add new account</a></h5>
 <hr/>
 <form>
-    @foreach (var (auth, user) in _users.OrderByDescending(x=>x.Value.RoomCount)) {
-        var _auth = auth;
-        <div style="margin-bottom: 1em;">
-            <img style="border-radius: 50%; height: 3em; width: 3em;" src="@user.AvatarUrl"/>
-            <p style="margin-left: 1em; margin-top: -0.5em; display: inline-block;">
-                <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(()=>SwitchSession(_auth))" style="text-decoration-line: unset;"/>
-                <b>@user.DisplayName</b> on <b>@_auth.Homeserver</b>
-                <a role="button" @onclick="@(() => RemoveUser(_auth))">Remove</a>
+    <table>
+        @foreach (var (auth, user) in _users.OrderByDescending(x => x.Value.RoomCount)) {
+            var _auth = auth;
+            <tr class="user-entry">
+                <td>
+                    <img class="avatar" src="@user.AvatarUrl"/>
+                </td>
+                <td class="user-info">
+                    @* <div class="user-info"> *@
+                    <p>
+                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(() => SwitchSession(_auth))" style="text-decoration-line: unset;"/>
+                        <b>@user.DisplayName</b> on <b>@_auth.Homeserver</b>
+                    </p>
+                    <p>Member of @user.RoomCount rooms</p>
 
-            </p>
-            <p style="margin-top: -1.5em; margin-left: 4em;">Member of @user.RoomCount rooms</p>
-
-        </div>
-    }
+                    <p>Not proxied</p>
+                </td>
+                <td>
+                    <p>
+                        <LinkButton href="">Manage</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(_auth))">Remove</LinkButton>
+                    </p>
+                </td>
+                @* </div> *@
+            </tr>
+        }
+    </table>
 </form>
 
 @code
 {
-    private Dictionary<LoginResponse, UserInfo> _users = new();
+    private Dictionary<UserAuth, UserInfo> _users = new();
 
     protected override async Task OnInitializedAsync() {
         _currentSession = await MRUStorage.GetCurrentToken();
@@ -39,13 +53,13 @@ Small collection of tools to do not-so-everyday things.
         var tokens = await MRUStorage.GetAllTokens();
         var profileTasks = tokens.Select(async token => {
             UserInfo userInfo = new();
-            AuthenticatedHomeServer hs;
+            AuthenticatedHomeserverGeneric hs;
             try {
                 hs = await HomeserverProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
             }
             catch (MatrixException e) {
                 if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
-                    NavigationManager.NavigateTo("/InvalidSession?ctx="+token.AccessToken);
+                    NavigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
                     return;
                 }
                 throw;
@@ -53,6 +67,7 @@ Small collection of tools to do not-so-everyday things.
             var roomCountTask = hs.GetJoinedRooms();
             var profile = await hs.GetProfile(hs.WhoAmI.UserId);
             userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;
+            Console.WriteLine(profile.ToJson());
             userInfo.AvatarUrl = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain,
                 profile.AvatarUrl
                 ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId
@@ -71,7 +86,7 @@ Small collection of tools to do not-so-everyday things.
         internal int RoomCount { get; set; }
     }
 
-    private async Task RemoveUser(LoginResponse auth) {
+    private async Task RemoveUser(UserAuth auth) {
         await MRUStorage.RemoveToken(auth);
         if ((await MRUStorage.GetCurrentToken()).AccessToken == auth.AccessToken)
             MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens()).FirstOrDefault());
@@ -80,8 +95,8 @@ Small collection of tools to do not-so-everyday things.
 
     private LoginResponse _currentSession;
 
-    private async Task SwitchSession(LoginResponse auth) {
-        Console.WriteLine($"Switching to {auth.Homeserver} {auth.AccessToken} {auth.UserId}");
+    private async Task SwitchSession(UserAuth auth) {
+        Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");
         await MRUStorage.SetCurrentToken(auth);
         await OnInitializedAsync();
     }

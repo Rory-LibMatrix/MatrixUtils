@@ -1,15 +1,15 @@
 @page "/Rooms/Create"
 @using System.Text.Json
 @using System.Reflection
+@using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.Extensions
 @using LibMatrix.Helpers
+@using LibMatrix.Homeservers
 @using LibMatrix.Responses
 @using LibMatrix.StateEventTypes.Spec
-@using LibMatrix.StateEventTypes
 @using MatrixRoomUtils.Web.Classes.RoomCreationTemplates
 @* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
-@using MatrixRoomUtils.Web.Shared.SimpleComponents
 
 <h3>Room Manager - Create Room</h3>
 
@@ -135,7 +135,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventData).Allow.Count) allow rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventContent).Allow.Count) allow rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -145,7 +145,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventData).Deny.Count) deny rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventContent).Deny.Count) deny rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -251,14 +251,14 @@
     private CreateRoomRequest? creationEvent { get; set; }
 
     private Dictionary<string, CreateRoomRequest>? Presets { get; set; } = new();
-    private AuthenticatedHomeServer? HomeServer { get; set; }
+    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
 
     private MatrixException? _matrixException { get; set; }
 
-    private HistoryVisibilityEventData? historyVisibility => creationEvent?["m.room.history_visibility"].TypedContent as HistoryVisibilityEventData;
-    private GuestAccessEventData? guestAccessEvent => creationEvent?["m.room.guest_access"].TypedContent as GuestAccessEventData;
-    private ServerACLEventData? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as ServerACLEventData;
-    private RoomAvatarEventData? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventData;
+    private HistoryVisibilityEventContent? historyVisibility => creationEvent?["m.room.history_visibility"].TypedContent as HistoryVisibilityEventContent;
+    private GuestAccessEventContent? guestAccessEvent => creationEvent?["m.room.guest_access"].TypedContent as GuestAccessEventContent;
+    private ServerACLEventContent? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as ServerACLEventContent;
+    private RoomAvatarEventContent? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventContent;
 
     protected override async Task OnInitializedAsync() {
         HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
@@ -284,7 +284,7 @@
     private async Task RoomIconFilePicked(InputFileChangeEventArgs obj) {
         var res = await HomeServer.UploadFile(obj.File.Name, obj.File.OpenReadStream(), obj.File.ContentType);
         Console.WriteLine(res);
-        (creationEvent["m.room.avatar"].TypedContent as RoomAvatarEventData).Url = res;
+        (creationEvent["m.room.avatar"].TypedContent as RoomAvatarEventContent).Url = res;
         StateHasChanged();
     }
 
@@ -305,7 +305,7 @@
             creationEvent.InitialState.Add(new StateEvent {
                 Type = "m.room.member",
                 StateKey = mxid,
-                TypedContent = new RoomMemberEventData {
+                TypedContent = new RoomMemberEventContent {
                     Membership = "invite",
                     Reason = "Automatically invited at room creation time."
                 }

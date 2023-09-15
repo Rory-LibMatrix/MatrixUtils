@@ -1,5 +1,6 @@
 @using LibMatrix.Responses
 @using LibMatrix
+@using LibMatrix.Homeservers
 <h3>BaseTimelineItem</h3>
 
 @code {
@@ -11,6 +12,6 @@
     public List<StateEventResponse> Events { get; set; }
 
     [Parameter]
-    public AuthenticatedHomeServer HomeServer { get; set; }
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
 }

@@ -10,7 +10,7 @@
      <ModalWindow X="@Random.Shared.Next(1400)" Y="@Random.Shared.Next(1000)" Title="@("Window " + i1)" OnCloseClicked="() => OnCloseClicked(i1)">
           @for (var j = 0; j < i1; j++) {
               <h1>@j</h1>
-          } 
+          }
      </ModalWindow>
 }
 
@@ -70,7 +70,7 @@
             }
             if(_windowInfos.Count > 750) multiplier = 2;
             if(_windowInfos.Count > 1500) multiplier = 3;
-            
+
         }
 
         await base.OnInitializedAsync();

@@ -3,6 +3,7 @@
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix
 @using LibMatrix.Extensions
+@using ArcaneLibs.Extensions
 @if(Rooms.Count != RoomsWithTypes.Sum(x=>x.Value.Count)) {
     <p>Fetching room details... @RoomsWithTypes.Sum(x=>x.Value.Count) out of @Rooms.Count done!</p>
     @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
@@ -20,7 +21,7 @@ else {
     [Parameter]
     public List<RoomInfo> Rooms { get; set; }
     [Parameter]
-    public ProfileResponseEventData? GlobalProfile { get; set; }
+    public ProfileResponseEventContent? GlobalProfile { get; set; }
 
     Dictionary<string, List<RoomInfo>> RoomsWithTypes = new();
 
@@ -51,7 +52,7 @@ else {
         await _semaphoreSlim.WaitAsync();
         string roomType;
         try {
-            var createEvent = (await room.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
+            var createEvent = (await room.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventContent;
             roomType = GetRoomTypeName(createEvent.Type);
 
             if (roomType == "Room") {

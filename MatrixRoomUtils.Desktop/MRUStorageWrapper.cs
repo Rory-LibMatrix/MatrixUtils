@@ -1,4 +1,5 @@
 using LibMatrix;
+using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.Services;
 
@@ -44,7 +45,7 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
             await SetCurrentToken(loginResponse);
     }
 
-    private async Task<AuthenticatedHomeServer?> GetCurrentSession() {
+    private async Task<AuthenticatedHomeserverGeneric?> GetCurrentSession() {
         var token = await GetCurrentToken();
         if (token == null) {
             return null;
@@ -53,8 +54,8 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
         return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
     }
 
-    public async Task<AuthenticatedHomeServer?> GetCurrentSessionOrPrompt() {
-        AuthenticatedHomeServer? session = null;
+    public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrPrompt() {
+        AuthenticatedHomeserverGeneric? session = null;
 
         try {
             //catch if the token is invalid

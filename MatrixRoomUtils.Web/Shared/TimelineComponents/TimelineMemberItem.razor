@@ -1,6 +1,6 @@
-@using LibMatrix.StateEventTypes
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix.Extensions
+@using ArcaneLibs.Extensions
 @inherits BaseTimelineItem
 
 @if (roomMemberData is not null) {
@@ -15,7 +15,7 @@
             <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
             break;
         case "join":
-            <i><InlineUserItem User="@(new ProfileResponseEventData())" HomeServer="@HomeServer" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+            <i><InlineUserItem User="@(new ProfileResponseEventContent())" HomeServer="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>
             break;
         case "leave":
             <i>@Event.StateKey left</i>
@@ -26,8 +26,8 @@
         default:
             <i>@Event.StateKey has an unknown state:</i>
             <pre>
-        @Event.ToJson()
-    </pre>
+                @Event.ToJson()
+            </pre>
             break;
     }
 }
@@ -42,6 +42,6 @@ else {
 
 @code {
 
-    private RoomMemberEventData? roomMemberData => Event.TypedContent as RoomMemberEventData;
+    private RoomMemberEventContent? roomMemberData => Event.TypedContent as RoomMemberEventContent;
 
 }

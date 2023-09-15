@@ -30,7 +30,7 @@
     protected override async Task OnInitializedAsync() {
         if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));
         await Task.Delay(Random.Shared.Next(1000, 10000));
-        var rooms = Space.Room.AsSpace.GetRoomsAsync();
+        var rooms = Space.Room.AsSpace.GetChildrenAsync();
         await foreach (var room in rooms) {
             if (Breadcrumbs.Contains(room.RoomId)) continue;
             var roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);

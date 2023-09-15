@@ -1,0 +1,25 @@
+.user-entry {
+    margin-bottom: 1em;
+}
+
+.avatar {
+    width: 4em;
+    height: 4em;
+    border-radius: 50%;
+    margin-right: 0.5em;
+    vertical-align: middle;
+}
+
+.user-entry > td {
+    margin-right: 0.5em;
+    vertical-align: middle;
+}
+
+.user-info {
+    margin-bottom: 0.5em;
+    display: inline-block;
+    vertical-align: middle;
+}
+.user-info > p {
+    margin: 0;
+}

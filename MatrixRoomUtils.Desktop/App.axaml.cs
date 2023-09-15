@@ -4,7 +4,6 @@ using Avalonia.Markup.Xaml;
 using LibMatrix.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Sentry;
 
 namespace MatrixRoomUtils.Desktop;
 

@@ -1,5 +1,4 @@
 ﻿@page "/InvalidSession"
-@using MatrixRoomUtils.Web.Shared.SimpleComponents
 @using LibMatrix.Responses
 @using LibMatrix
 
@@ -33,7 +32,7 @@ else {
     [SupplyParameterFromQuery(Name = "ctx")]
     public string Context { get; set; }
 
-    private LoginResponse? _login { get; set; }
+    private UserAuth? _login { get; set; }
 
     private bool _showRefreshDialog { get; set; }
 
@@ -70,7 +69,7 @@ else {
         await Task.CompletedTask;
     }
 
-    private async Task SwitchSession(LoginResponse auth) {
+    private async Task SwitchSession(UserAuth auth) {
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.AccessToken} {auth.UserId}");
         await MRUStorage.SetCurrentToken(auth);
         await OnInitializedAsync();
@@ -79,7 +78,7 @@ else {
     private async Task TryLogin() {
         if(_login is null) throw new NullReferenceException("Login is null!");
         try {
-            var result = await HomeserverProvider.Login(_login.Homeserver, _login.UserId, _password);
+            var result = new UserAuth(await HomeserverProvider.Login(_login.Homeserver, _login.UserId, _password));
             if (result is null) {
                 Console.WriteLine($"Failed to login to {_login.Homeserver} as {_login.UserId}!");
                 return;

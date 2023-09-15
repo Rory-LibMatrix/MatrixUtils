@@ -1,10 +1,10 @@
 @page "/KnownHomeserverList"
-@using System.Text.Json
 @using System.Diagnostics
+@using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.Extensions
+@using LibMatrix.Homeservers
 @using LibMatrix.RoomTypes
-@using LibMatrix.StateEventTypes
 <h3>Known Homeserver List</h3>
 <hr/>
 
@@ -36,7 +36,7 @@ else {
     List<HomeServerInfo> HomeServers = new();
     bool IsFinished { get; set; }
     HomeServerInfoQueryProgress QueryProgress { get; set; } = new();
-    AuthenticatedHomeServer hs { get; set; }
+    AuthenticatedHomeserverGeneric hs { get; set; }
     protected override async Task OnInitializedAsync() {
         hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
@@ -91,7 +91,7 @@ else {
 
 
 
-    //         states.RemoveAll(x => x.Type != "m.room.member" || (x.TypedContent as RoomMemberEventData).Membership != "join");
+    //         states.RemoveAll(x => x.Type != "m.room.member" || (x.TypedContent as RoomMemberEventContent).Membership != "join");
     //         Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
     //         if (states.Count > memberLimit) {
     //             Console.WriteLine("Skipping!");

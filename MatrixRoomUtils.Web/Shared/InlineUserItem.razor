@@ -2,6 +2,7 @@
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix
 @using LibMatrix.Helpers
+@using LibMatrix.Homeservers
 <div style="background-color: #ffffff11; border-radius: 0.5em; height: 1em; display: inline-block; vertical-align: middle;" alt="@UserId">
     <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "vertical-align: top;") width: 1em; height: 1em; border-radius: 50%;" src="@ProfileAvatar"/>
     <span style="position: relative; top: -5px;">@ProfileName</span>
@@ -20,10 +21,10 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public ProfileResponseEventData User { get; set; }
+    public ProfileResponseEventContent User { get; set; }
 
     [Parameter]
-    public ProfileResponseEventData MemberEvent { get; set; }
+    public ProfileResponseEventContent MemberEvent { get; set; }
 
     [Parameter]
     public string? UserId { get; set; }
@@ -35,7 +36,7 @@
     public string? ProfileName { get; set; } = null;
 
     [Parameter]
-    public AuthenticatedHomeServer? HomeServer { get; set; }
+    public AuthenticatedHomeserverGeneric? HomeServer { get; set; }
 
     private static SemaphoreSlim _semaphoreSlim = new(128);
 
@@ -50,7 +51,7 @@
             throw new ArgumentNullException(nameof(UserId));
 
         if (MemberEvent != null) {
-            User = new ProfileResponseEventData {
+            User = new ProfileResponseEventContent {
                 AvatarUrl = MemberEvent.AvatarUrl,
                 DisplayName = MemberEvent.DisplayName
             };

@@ -1,8 +1,10 @@
 @page "/HSAdmin/RoomQuery"
-@using MatrixRoomUtils.Web.Shared.SimpleComponents
 @using LibMatrix.Responses.Admin
 @using LibMatrix.Filters
 @using LibMatrix.Extensions
+@using LibMatrix
+@using LibMatrix.Homeservers
+@using ArcaneLibs.Extensions
 
 <h3>Homeserver Administration - Room Query</h3>
 
@@ -168,15 +170,17 @@
     private async Task Search() {
         Results.Clear();
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (hs is null) return;
-        var searchRooms = hs.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
-        while (await searchRooms.MoveNextAsync()) {
-            var room = searchRooms.Current;
-            Console.WriteLine("Hit: " + room.ToJson(false));
-            Results.Add(room);
-            if (Results.Count % 10 == 0)
-                StateHasChanged();
+        if (hs is AuthenticatedHomeserverSynapse synapse) {
+            var searchRooms = synapse.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+            while (await searchRooms.MoveNextAsync()) {
+                var room = searchRooms.Current;
+                Console.WriteLine("Hit: " + room.ToJson(false));
+                Results.Add(room);
+                if (Results.Count % 10 == 0)
+                    StateHasChanged();
+            }
         }
+
     }
 
     private readonly Dictionary<string, string> validOrderBy = new() {

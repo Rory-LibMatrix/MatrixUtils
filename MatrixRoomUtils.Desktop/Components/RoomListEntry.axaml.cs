@@ -28,7 +28,7 @@ public partial class RoomListEntry : UserControl {
     private async Task GetRoomName() {
         try {
             var nameEvent = await _roomInfo.GetStateEvent("m.room.name");
-            if (nameEvent?.TypedContent is RoomNameEventData nameData)
+            if (nameEvent?.TypedContent is RoomNameEventContent nameData)
                 RoomName.Content = nameData.Name;
         }
         catch (MatrixException e) {
@@ -40,7 +40,7 @@ public partial class RoomListEntry : UserControl {
     private async Task GetRoomIcon() {
         try {
             var avatarEvent = await _roomInfo.GetStateEvent("m.room.avatar");
-            if (avatarEvent?.TypedContent is RoomAvatarEventData avatarData) {
+            if (avatarEvent?.TypedContent is RoomAvatarEventContent avatarData) {
                 var mxcUrl = avatarData.Url;
                 await using var svc = _serviceScopeFactory.CreateAsyncScope();
                 var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>().GetCurrentSessionOrPrompt();

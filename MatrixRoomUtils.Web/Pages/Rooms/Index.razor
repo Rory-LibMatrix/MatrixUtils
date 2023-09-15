@@ -1,10 +1,10 @@
 @page "/Rooms"
-@using LibMatrix.StateEventTypes
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix.Filters
 @using LibMatrix.Helpers
 @using LibMatrix.Responses
 <h3>Room list</h3>
+
 <p>@Status</p>
 @if (RenderContents) {
     <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile"></RoomList>
@@ -16,7 +16,7 @@
     public List<RoomInfo> KnownRooms { get; set; } = new();
 
     private List<RoomInfo> Rooms { get; set; } = new();
-    private ProfileResponseEventData GlobalProfile { get; set; }
+    private ProfileResponseEventContent GlobalProfile { get; set; }
 
     private SyncFilter filter = new() {
         AccountData = new SyncFilter.EventFilter {
@@ -93,7 +93,7 @@
             if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.name")) {
                 roomInfo.StateEvents.Add(new StateEventResponse {
                     Type = "m.room.name",
-                    TypedContent = new RoomNameEventData {
+                    TypedContent = new RoomNameEventContent {
                         Name = roomInfo.Room.RoomId
                     }
                 });
@@ -101,7 +101,7 @@
             if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.avatar")) {
                 roomInfo.StateEvents.Add(new StateEventResponse {
                     Type = "m.room.avatar",
-                    TypedContent = new RoomAvatarEventData {
+                    TypedContent = new RoomAvatarEventContent {
 
                     }
                 });
@@ -121,7 +121,7 @@
                 roomInfo.StateEvents.Add(new StateEventResponse {
                     Type = "m.room.member",
                     StateKey = hs.WhoAmI.UserId,
-                    TypedContent = await roomInfo.Room.GetStateAsync<RoomMemberEventData>("m.room.member", hs.WhoAmI.UserId) ?? new RoomMemberEventData {
+                    TypedContent = await roomInfo.Room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs.WhoAmI.UserId) ?? new RoomMemberEventContent {
                         Membership = "unknown"
                     }
                 });

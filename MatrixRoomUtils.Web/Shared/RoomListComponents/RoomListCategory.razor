@@ -2,18 +2,19 @@
 @using MatrixRoomUtils.Web.Classes.Constants
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix
+@using LibMatrix.Homeservers
 <details>
     <summary>@roomType (@rooms.Count)</summary>
     @foreach (var room in rooms) {
         <div class="room-list-item">
             <RoomListItem RoomInfo="@room" ShowOwnProfile="@(roomType == "Room")"></RoomListItem>
             @* @if (RoomVersionDangerLevel(room) != 0 && *@
-            @*      (room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.power_levels")?.TypedContent is RoomPowerLevelEventData powerLevels && powerLevels.UserHasPermission(HomeServer.UserId, "m.room.tombstone"))) { *@
+            @*      (room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.power_levels")?.TypedContent is RoomPowerLevelEventContent powerLevels && powerLevels.UserHasPermission(HomeServer.UserId, "m.room.tombstone"))) { *@
             @*     <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton> *@
             @* } *@
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
-            <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</LinkButton>
 
             @if (roomType == "Space") {
                 <RoomListSpace Space="@room"></RoomListSpace>
@@ -29,10 +30,10 @@
     public KeyValuePair<string, List<RoomInfo>> Category { get; set; }
 
     [Parameter]
-    public ProfileResponseEventData? GlobalProfile { get; set; }
+    public ProfileResponseEventContent? GlobalProfile { get; set; }
 
     [CascadingParameter]
-    public AuthenticatedHomeServer HomeServer { get; set; } = null!;
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
 
     private string roomType => Category.Key;
     private List<RoomInfo> rooms => Category.Value;
@@ -40,7 +41,7 @@
     private int RoomVersionDangerLevel(RoomInfo room) {
         var roomVersion = room.StateEvents.FirstOrDefault(x => x.Type == "m.room.create");
         if (roomVersion is null) return 0;
-        return roomVersion.TypedContent is not RoomCreateEventData roomVersionContent ? 0
+        return roomVersion.TypedContent is not RoomCreateEventContent roomVersionContent ? 0
             : RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion) ? 2
                 : roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion ? 1 : 0;
     }

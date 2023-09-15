@@ -1,4 +1,5 @@
 using LibMatrix;
+using LibMatrix.Interfaces;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 
@@ -17,7 +18,7 @@ public class RoomInfo {
             StateKey = stateKey
         };
         try {
-            @event.TypedContent = await Room.GetStateAsync<object>(type, stateKey);
+            @event.TypedContent = await Room.GetStateAsync<EventContent>(type, stateKey);
         }
         catch (MatrixException e) {
             if (e is { ErrorCode: "M_NOT_FOUND" }) @event.TypedContent = default!;

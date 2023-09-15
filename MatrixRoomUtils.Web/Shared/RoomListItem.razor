@@ -1,6 +1,7 @@
 @using System.Text.Json
 @using LibMatrix
 @using LibMatrix.Helpers
+@using LibMatrix.Homeservers
 @using LibMatrix.RoomTypes
 @using LibMatrix.StateEventTypes.Spec
 @using LibMatrix.StateEventTypes
@@ -44,10 +45,10 @@
     public bool ShowOwnProfile { get; set; } = false;
 
     [Parameter]
-    public RoomMemberEventData? OwnMemberState { get; set; }
+    public RoomMemberEventContent? OwnMemberState { get; set; }
 
     [CascadingParameter]
-    public ProfileResponseEventData? GlobalProfile { get; set; }
+    public ProfileResponseEventContent? GlobalProfile { get; set; }
 
     private string? roomName { get; set; }
 
@@ -57,7 +58,7 @@
     private bool hasDangerousRoomVersion { get; set; } = false;
 
     private static SemaphoreSlim _semaphoreSlim = new(8);
-    private static AuthenticatedHomeServer? hs { get; set; }
+    private static AuthenticatedHomeserverGeneric? hs { get; set; }
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
@@ -102,7 +103,7 @@
     private async Task LoadOwnProfile() {
         if (!ShowOwnProfile) return;
         try {
-            OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventData;
+            OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
             GlobalProfile ??= await hs.GetProfile(hs.UserId);
         }
         catch (MatrixException e) {
@@ -117,7 +118,7 @@
     }
 
     private async Task CheckRoomVersion() {
-        var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventData;
+        var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventContent;
         if (int.TryParse(ce.RoomVersion, out var rv)) {
             if (rv < 10)
                 hasOldRoomVersion = true;
@@ -133,9 +134,9 @@
 
     private async Task GetRoomInfo() {
         try {
-            roomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventData)?.Name ?? RoomId;
+            roomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventContent)?.Name ?? RoomId;
 
-            var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventData;
+            var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
             if (state?.Url is { } url) {
                 roomIcon = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
                 // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");

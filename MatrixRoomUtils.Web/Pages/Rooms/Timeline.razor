@@ -1,6 +1,7 @@
 @page "/Rooms/{RoomId}/Timeline"
 @using MatrixRoomUtils.Web.Shared.TimelineComponents
 @using LibMatrix
+@using LibMatrix.Homeservers
 @using LibMatrix.Responses
 @using LibMatrix.StateEventTypes.Spec
 <h3>RoomManagerTimeline</h3>
@@ -23,7 +24,7 @@
     private List<MessagesResponse> Messages { get; } = new();
     private List<StateEventResponse> Events { get; } = new();
 
-    private AuthenticatedHomeServer? HomeServer { get; set; }
+    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("RoomId: " + RoomId);
@@ -46,8 +47,9 @@
     private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
 
     private Type ComponentType(StateEvent Event) => Event.TypedContent switch {
-        RoomMessageEventData => typeof(TimelineMessageItem),
-        RoomMemberEventData => typeof(TimelineMemberItem),
+        RoomMessageEventContent => typeof(TimelineMessageItem),
+        RoomMemberEventContent => typeof(TimelineMemberItem),
+        RoomCreateEventContent => typeof(TimelineRoomCreateItem),
         _ => typeof(TimelineUnknownItem)
         };
 

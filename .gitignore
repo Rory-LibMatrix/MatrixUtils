@@ -8,3 +8,10 @@ matrix-sync.json
 /patches/
 MatrixRoomUtils.Bot/bot_data/
 appsettings.Local*.json
+nixpkgs/
+
+test.tsv
+test-proxy.tsv
+homeservers.txt
+LoginPayload.txt
+LoginPayload.txt.old

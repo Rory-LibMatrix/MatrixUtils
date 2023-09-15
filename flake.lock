@@ -20,18 +20,14 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1691899779,
-        "narHash": "sha256-IBf4KVr/UQJlzrqB2/IHtlvmwsvyIVLPerSzCPU/6Xk=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "100a1550b0e7a64b960c625b656f9229bdef5f87",
-        "type": "github"
+        "lastModified": 1692446604,
+        "narHash": "sha256-3VBMD9VXzB1KP1lx4KGq5E+g0ugo6vpR0VSNT47nPMM=",
+        "path": "/home/root@Rory/git/Matrix/MatrixRoomUtils/nixpkgs",
+        "type": "path"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
+        "path": "/home/root@Rory/git/Matrix/MatrixRoomUtils/nixpkgs",
+        "type": "path"
       }
     },
     "root": {

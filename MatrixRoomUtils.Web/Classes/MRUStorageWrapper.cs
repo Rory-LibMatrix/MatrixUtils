@@ -1,4 +1,5 @@
 using LibMatrix;
+using LibMatrix.Homeservers;
 using LibMatrix.Responses;
 using LibMatrix.Services;
 using Microsoft.AspNetCore.Components;
@@ -20,13 +21,13 @@ public class MRUStorageWrapper {
         _navigationManager = navigationManager;
     }
 
-    public async Task<List<LoginResponse>?> GetAllTokens() {
-        return await _storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ??
-               new List<LoginResponse>();
+    public async Task<List<UserAuth>?> GetAllTokens() {
+        return await _storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("mru.tokens") ??
+               new List<UserAuth>();
     }
 
-    public async Task<LoginResponse?> GetCurrentToken() {
-        var currentToken = await _storageService.DataStorageProvider.LoadObjectAsync<LoginResponse>("token");
+    public async Task<UserAuth?> GetCurrentToken() {
+        var currentToken = await _storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("token");
         var allTokens = await GetAllTokens();
         if (allTokens is null or { Count: 0 }) {
             await SetCurrentToken(null);
@@ -44,14 +45,14 @@ public class MRUStorageWrapper {
         return currentToken;
     }
 
-    public async Task AddToken(LoginResponse loginResponse) {
-        var tokens = await GetAllTokens() ?? new List<LoginResponse>();
+    public async Task AddToken(UserAuth UserAuth) {
+        var tokens = await GetAllTokens() ?? new List<UserAuth>();
 
-        tokens.Add(loginResponse);
+        tokens.Add(UserAuth);
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    private async Task<AuthenticatedHomeServer?> GetCurrentSession() {
+    private async Task<AuthenticatedHomeserverGeneric?> GetCurrentSession() {
         var token = await GetCurrentToken();
         if (token == null) {
             return null;
@@ -60,8 +61,8 @@ public class MRUStorageWrapper {
         return await _homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
     }
 
-    public async Task<AuthenticatedHomeServer?> GetCurrentSessionOrNavigate() {
-        AuthenticatedHomeServer? session = null;
+    public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {
+        AuthenticatedHomeserverGeneric? session = null;
 
         try {
             //catch if the token is invalid
@@ -94,7 +95,7 @@ public class MRUStorageWrapper {
         public bool EnablePortableDevtools { get; set; }
     }
 
-    public async Task RemoveToken(LoginResponse auth) {
+    public async Task RemoveToken(UserAuth auth) {
         var tokens = await GetAllTokens();
         if (tokens == null) {
             return;
@@ -104,5 +105,5 @@ public class MRUStorageWrapper {
         await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(LoginResponse? auth) => await _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
+    public async Task SetCurrentToken(UserAuth? auth) => await _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
 }

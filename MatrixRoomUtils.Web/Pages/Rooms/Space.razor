@@ -35,14 +35,14 @@
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        Room = await hs.GetRoom(RoomId.Replace('~', '.'));
+        Room = hs.GetRoom(RoomId.Replace('~', '.'));
 
         var state = Room.GetFullStateAsync();
         await foreach (var stateEvent in state) {
             switch (stateEvent.Type) {
                 case "m.space.child": {
                     var roomId = stateEvent.StateKey;
-                    var room = await hs.GetRoom(roomId);
+                    var room = hs.GetRoom(roomId);
                     if (room is not null) {
                         Rooms.Add(room);
                     }
@@ -68,7 +68,7 @@
     //             if (stateEvent.Type == "m.space.child") {
     // // if (stateEvent.Content.ToJson().Length < 5) return;
     //                 var roomId = stateEvent.StateKey;
-    //                 var room = await hs.GetRoom(roomId);
+    //                 var room = hs.GetRoom(roomId);
     //                 if (room is not null) {
     //                     Rooms.Add(room);
     //                 }

@@ -59,7 +59,7 @@
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
 
         var StateLoaded = 0;
-        var response = (await hs.GetRoom(RoomId)).GetFullStateAsync();
+        var response = (hs.GetRoom(RoomId)).GetFullStateAsync();
         await foreach (var _ev in response) {
             // var e = new StateEventResponse {
             //     Type = _ev.Type,

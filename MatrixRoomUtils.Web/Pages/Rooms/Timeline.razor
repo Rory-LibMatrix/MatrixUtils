@@ -1,9 +1,10 @@
 @page "/Rooms/{RoomId}/Timeline"
 @using MatrixRoomUtils.Web.Shared.TimelineComponents
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec
+@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
-@using LibMatrix.StateEventTypes.Spec
 <h3>RoomManagerTimeline</h3>
 <hr/>
 <p>Loaded @Events.Count events...</p>
@@ -30,7 +31,7 @@
         Console.WriteLine("RoomId: " + RoomId);
         HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
         if (HomeServer is null) return;
-        var room = await HomeServer.GetRoom(RoomId);
+        var room = HomeServer.GetRoom(RoomId);
         MessagesResponse? msgs = null;
         do {
             msgs = await room.GetMessagesAsync(limit: 1000, from: msgs?.End, dir: "b");

@@ -70,7 +70,7 @@
             var (homeserver, username, password, proxy) = record;
             if (LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}" && x.Proxy == proxy)) return;
             try {
-                var result = new UserAuth(await HomeserverProvider.Login(homeserver, username, password, proxy)) {
+                var result = new UserAuth(await hsProvider.Login(homeserver, username, password, proxy)) {
                     Proxy = proxy
                 };
                 if (result == null) {

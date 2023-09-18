@@ -1,8 +1,8 @@
 @page "/Rooms"
-@using LibMatrix.StateEventTypes.Spec
 @using LibMatrix.Filters
 @using LibMatrix.Helpers
 @using LibMatrix.Responses
+@using LibMatrix.EventTypes.Spec.State
 <h3>Room list</h3>
 
 <p>@Status</p>
@@ -55,7 +55,7 @@
     protected override async Task OnInitializedAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        GlobalProfile = await hs.GetProfile(hs.WhoAmI.UserId);
+        GlobalProfile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
 
         Status = "Syncing...";
         SyncResult? sync = null;
@@ -75,7 +75,7 @@
                 }
                 else {
                     room = new RoomInfo {
-                        Room = await hs.GetRoom(roomId),
+                        Room = hs.GetRoom(roomId),
                         StateEvents = new List<StateEventResponse?>()
                     };
                     Rooms.Add(room);
@@ -135,7 +135,7 @@
     // if (res is not null) {
     //     foreach (var (roomId, roomData) in res.Rooms.Join) {
     //         var room = new RoomInfo() {
-    //             Room = await hs.GetRoom(roomId),
+    //             Room = hs.GetRoom(roomId),
     //             StateEvents = roomData.State.Events.Where(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId).ToList()
     //         };
     //         Rooms.Add(room);

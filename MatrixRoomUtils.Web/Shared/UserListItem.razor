@@ -1,6 +1,5 @@
-@using LibMatrix.StateEventTypes
-@using LibMatrix.StateEventTypes.Spec
 @using LibMatrix.Helpers
+@using LibMatrix.EventTypes.Spec.State
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
     <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@profileAvatar"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@profileName</span>
@@ -41,11 +40,11 @@
             if (UserId == null) {
                 throw new ArgumentNullException(nameof(UserId));
             }
-            User = await hs.GetProfile(UserId);
+            User = await hs.GetProfileAsync(UserId);
         }
 
     // UserId = User.;
-        profileAvatar = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
+        profileAvatar = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
         profileName = User.DisplayName;
 
         _semaphoreSlim.Release();

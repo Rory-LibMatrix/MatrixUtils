@@ -1,16 +1,15 @@
 @using System.Text.Json
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Helpers
 @using LibMatrix.Homeservers
 @using LibMatrix.RoomTypes
-@using LibMatrix.StateEventTypes.Spec
-@using LibMatrix.StateEventTypes
 @using MatrixRoomUtils.Web.Classes.Constants
 <div class="roomListItem" id="@RoomId" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
     @if (OwnMemberState != null) {
         <img class="imageUnloaded @(string.IsNullOrWhiteSpace(OwnMemberState?.AvatarUrl ?? GlobalProfile?.AvatarUrl) ? "" : "imageLoaded")"
              style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "border-color: red; border-width: 3px; border-style: dashed;" : "")"
-             src="@MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl ?? "/icon-192.png")"/>
+             src="@hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl ?? "/icon-192.png").Result"/>
         <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "background-color: red;" : "")">
             @(OwnMemberState?.Displayname ?? GlobalProfile?.DisplayName ?? "Loading...")
         </span>
@@ -77,7 +76,7 @@
         if(Room is not null) RoomId = Room.RoomId;
 
         //sweep from id to roominfo
-        if(RoomId is not null) Room ??= await hs.GetRoom(RoomId);
+        if(RoomId is not null) Room ??= hs.GetRoom(RoomId);
         if(Room is not null) RoomInfo ??= new RoomInfo {
             Room = Room
         };
@@ -104,7 +103,7 @@
         if (!ShowOwnProfile) return;
         try {
             OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
-            GlobalProfile ??= await hs.GetProfile(hs.UserId);
+            GlobalProfile ??= await hs.GetProfileAsync(hs.UserId);
         }
         catch (MatrixException e) {
             if (e is { ErrorCode: "M_FORBIDDEN" }) {
@@ -138,7 +137,7 @@
 
             var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
             if (state?.Url is { } url) {
-                roomIcon = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
+                roomIcon = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
                 // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
             }
         }

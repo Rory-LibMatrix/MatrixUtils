@@ -4,8 +4,8 @@
 @using LibMatrix.Helpers
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
-@using LibMatrix.StateEventTypes.Spec
 @using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State
 <h3>Policy list editor - Editing @RoomId</h3>
 <hr/>
 
@@ -212,7 +212,7 @@ else {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        var room = await hs.GetRoom(RoomId);
+        var room = hs.GetRoom(RoomId);
 
         var states = room.GetFullStateAsync();
         await foreach (var state in states) {
@@ -234,8 +234,8 @@ else {
             var hs = userId.Split(':')[1];
             var server = servers.ContainsKey(hs) ? servers[hs] : new RemoteHomeServer(userId.Split(':')[1]);
             if (!servers.ContainsKey(hs)) servers.Add(hs, server);
-            var profile = await server.GetProfile(userId);
-            avatars.Add(userId, MediaResolver.ResolveMediaUri(server.FullHomeServerDomain, profile.AvatarUrl));
+            var profile = await server.GetProfileAsync(userId);
+            avatars.Add(userId, await hsResolver.ResolveMediaUri(server.FullHomeServerDomain, profile.AvatarUrl));
             servers.Add(userId, server);
             StateHasChanged();
         }

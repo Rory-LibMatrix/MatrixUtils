@@ -3,11 +3,11 @@
 @using System.Reflection
 @using ArcaneLibs.Extensions
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Extensions
 @using LibMatrix.Helpers
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
-@using LibMatrix.StateEventTypes.Spec
 @using MatrixRoomUtils.Web.Classes.RoomCreationTemplates
 @* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
 
@@ -90,7 +90,7 @@
         <tr>
             <td>Room icon:</td>
             <td>
-                <img src="@MediaResolver.ResolveMediaUri(HomeServer.HomeServerDomain, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+                <img src="@hsResolver.ResolveMediaUri(HomeServer.HomeServerDomain, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
                     <InputFile OnChange="RoomIconFilePicked"></InputFile>

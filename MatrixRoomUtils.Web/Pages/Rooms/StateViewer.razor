@@ -83,7 +83,7 @@
         var StateLoaded = 0;
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var response = (await hs.GetRoom(RoomId)).GetFullStateAsync();
+        var response = (hs.GetRoom(RoomId)).GetFullStateAsync();
         await foreach (var _ev in response) {
             Events.Add(_ev);
             if (string.IsNullOrEmpty(_ev.StateKey)) {

@@ -20,8 +20,8 @@ public partial class App : Application {
             services.AddSingleton<SentryService>();
             services.AddSingleton<TieredStorageService>(x =>
                 new TieredStorageService(
-                    cacheStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>().CacheStoragePath),
-                    dataStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>().DataStoragePath)
+                    cacheStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>()!.CacheStoragePath),
+                    dataStorageProvider: new FileStorageProvider(x.GetService<MRUDesktopConfiguration>()!.DataStoragePath)
                 )
             );
             services.AddSingleton(new RoryLibMatrixConfiguration {

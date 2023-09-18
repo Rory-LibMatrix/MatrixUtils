@@ -26,6 +26,9 @@ Small collection of tools to do not-so-everyday things.
                     <p>
                         <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(() => SwitchSession(_auth))" style="text-decoration-line: unset;"/>
                         <b>@user.DisplayName</b> on <b>@_auth.Homeserver</b>
+                        @if (_auth.Proxy != null) {
+                            <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
+                        }
                     </p>
                     <p>Member of @user.RoomCount rooms</p>
 
@@ -35,6 +38,7 @@ Small collection of tools to do not-so-everyday things.
                     <p>
                         <LinkButton href="">Manage</LinkButton>
                         <LinkButton OnClick="@(() => RemoveUser(_auth))">Remove</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(_auth, true))">Log out</LinkButton>
                     </p>
                 </td>
                 @* </div> *@
@@ -55,7 +59,7 @@ Small collection of tools to do not-so-everyday things.
             UserInfo userInfo = new();
             AuthenticatedHomeserverGeneric hs;
             try {
-                hs = await HomeserverProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+                hs = await hsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
             }
             catch (MatrixException e) {
                 if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
@@ -65,10 +69,10 @@ Small collection of tools to do not-so-everyday things.
                 throw;
             }
             var roomCountTask = hs.GetJoinedRooms();
-            var profile = await hs.GetProfile(hs.WhoAmI.UserId);
+            var profile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
             userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;
             Console.WriteLine(profile.ToJson());
-            userInfo.AvatarUrl = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain,
+            userInfo.AvatarUrl = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain,
                 profile.AvatarUrl
                 ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId
                 );
@@ -86,10 +90,22 @@ Small collection of tools to do not-so-everyday things.
         internal int RoomCount { get; set; }
     }
 
-    private async Task RemoveUser(UserAuth auth) {
+    private async Task RemoveUser(UserAuth auth, bool logout = false) {
+        try {
+            if (logout) {
+                await (await hsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken)).Logout();
+            }
+        }
+        catch (Exception e) {
+            if(e is MatrixException {ErrorCode: "M_UNKNOWN_TOKEN" }) {
+                //todo: handle this
+                return;
+            }
+            Console.WriteLine(e);
+        }
         await MRUStorage.RemoveToken(auth);
-        if ((await MRUStorage.GetCurrentToken()).AccessToken == auth.AccessToken)
-            MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens()).FirstOrDefault());
+        if ((await MRUStorage.GetCurrentToken())?.AccessToken == auth.AccessToken)
+            await MRUStorage.SetCurrentToken((await MRUStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
         await OnInitializedAsync();
     }
 

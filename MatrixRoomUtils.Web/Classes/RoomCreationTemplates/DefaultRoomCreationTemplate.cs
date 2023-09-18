@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using LibMatrix;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Responses;
-using LibMatrix.StateEventTypes.Spec;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
 

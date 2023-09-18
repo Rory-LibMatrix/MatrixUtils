@@ -2,9 +2,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using LibMatrix;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Helpers;
+using LibMatrix.Interfaces.Services;
 using LibMatrix.Services;
-using LibMatrix.StateEventTypes.Spec;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MatrixRoomUtils.Desktop.Components;
@@ -43,9 +44,10 @@ public partial class RoomListEntry : UserControl {
             if (avatarEvent?.TypedContent is RoomAvatarEventContent avatarData) {
                 var mxcUrl = avatarData.Url;
                 await using var svc = _serviceScopeFactory.CreateAsyncScope();
-                var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>().GetCurrentSessionOrPrompt();
-                var storage = svc.ServiceProvider.GetService<TieredStorageService>().CacheStorageProvider;
-                var resolvedUrl = MediaResolver.ResolveMediaUri(hs.FullHomeServerDomain, mxcUrl);
+                var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>()?.GetCurrentSessionOrPrompt()!;
+                var hsResolver = svc.ServiceProvider.GetService<HomeserverResolverService>();
+                var storage = svc.ServiceProvider.GetService<TieredStorageService>()?.CacheStorageProvider;
+                var resolvedUrl = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, mxcUrl);
                 var storageKey = $"media/{mxcUrl.Replace("mxc://", "").Replace("/", ".")}";
                 try {
                     if (!await storage.ObjectExistsAsync(storageKey))

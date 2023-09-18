@@ -1,6 +1,5 @@
-@using LibMatrix.StateEventTypes
-@using LibMatrix.StateEventTypes.Spec
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Helpers
 @using LibMatrix.Homeservers
 <div style="background-color: #ffffff11; border-radius: 0.5em; height: 1em; display: inline-block; vertical-align: middle;" alt="@UserId">
@@ -58,11 +57,11 @@
         }
 
         if (User is null && UserId is not null) {
-            User ??= await HomeServer.GetProfile(UserId);
+            User ??= await HomeServer.GetProfileAsync(UserId);
         }
 
 
-        ProfileAvatar ??= MediaResolver.ResolveMediaUri(HomeServer.FullHomeServerDomain, User.AvatarUrl);
+        ProfileAvatar ??= await hsResolver.ResolveMediaUri(HomeServer.FullHomeServerDomain, User.AvatarUrl);
         ProfileName ??= User.DisplayName;
 
         _semaphoreSlim.Release();

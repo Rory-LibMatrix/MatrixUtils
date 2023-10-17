@@ -1,6 +1,7 @@
 @page "/SpaceDebug"
 @using LibMatrix.RoomTypes
 @using LibMatrix.Filters
+@using LibMatrix.Helpers
 <h3>SpaceDebug</h3>
 <hr/>
 
@@ -48,10 +49,8 @@
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        Status = "Syncing...";
-        string nextBatch = null;
-        while (nextBatch != "end") {
-            var sync = await hs.SyncHelper.Sync(since: nextBatch, filter: new SyncFilter() {
+        var syncHelper = new SyncHelper(hs) {
+            Filter = new SyncFilter() {
                 Presence = new(0),
                 Room = new() {
                     AccountData = new(limit: 0),
@@ -60,8 +59,13 @@
                     Timeline = new(limit: 0)
                 },
                 AccountData = new(limit: 0)
-            });
+            }
+        };
+        
+        Status = "Syncing...";
 
+        var syncs = syncHelper.EnumerateSyncAsync();
+        await foreach (var sync in syncs) {
             if (sync is null) {
                 Status = "Sync failed";
                 continue;
@@ -69,23 +73,20 @@
 
             if (sync.Rooms is null) {
                 Status = "No rooms in sync...";
-                nextBatch = "end";
-                continue;
+                break;
             }
 
             if (sync.Rooms.Join is null) {
                 Status = "No joined rooms in sync...";
-                nextBatch = "end";
-                continue;
+                break;
             }
 
             if (sync.Rooms.Join.Count == 0) {
                 Status = "Joined rooms list was empty...";
-                nextBatch = "end";
-                continue;
+                break;
             }
 
-            nextBatch = sync.NextBatch;
+            // nextBatch = sync.NextBatch;
             foreach (var (roomId, data) in sync.Rooms!.Join!) {
                 data.State?.Events?.ForEach(e => {
                     if (e.Type == "m.space.child") {

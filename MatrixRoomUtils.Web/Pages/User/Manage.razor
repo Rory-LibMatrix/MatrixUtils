@@ -1,0 +1,55 @@
+@page "/User/Manage"
+@using LibMatrix.Homeservers
+@using LibMatrix.EventTypes.Spec.State
+@using ArcaneLibs.Extensions
+<h3>Manage user - @HomeServer?.WhoAmI?.UserId</h3>
+<hr/>
+
+@if (Profile is not null) {
+    <h4>Profile</h4>
+    <hr/>
+
+    <img src="@HomeServer.ResolveMediaUri(Profile.AvatarUrl)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+    <div style="display: inline-block; vertical-align: middle;">
+        <span>Display name: </span><FancyTextBox @bind-Value="@Profile.DisplayName"></FancyTextBox><br/>
+        <span>Avatar URL: </span><FancyTextBox @bind-Value="@Profile.AvatarUrl"></FancyTextBox>
+        <InputFile OnChange="@AvatarChanged"></InputFile><br/>
+        <LinkButton OnClick="@(() => UpdateProfile())">Update profile</LinkButton>
+        <LinkButton OnClick="@(() => UpdateProfile(true))">Update profile (restore room overrides)</LinkButton>
+    </div>
+    @if (Busy) {
+        <div>Busy processing profile update, please do not leave this page...</div>
+    }
+}
+
+@code {
+
+    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    private ProfileResponseEventContent? Profile { get; set; }
+    private bool Busy { get; set; } = false;
+
+    protected override async Task OnInitializedAsync() {
+        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (HomeServer is null) return;
+        if (HomeServer.WhoAmI?.UserId is not null)
+            Profile = (await HomeServer.GetProfileAsync(HomeServer.WhoAmI.UserId)).DeepClone();
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task AvatarChanged(InputFileChangeEventArgs arg) {
+        var res = await HomeServer.UploadFile(arg.File.Name, arg.File.OpenReadStream(), arg.File.ContentType);
+        Console.WriteLine(res);
+        Profile.AvatarUrl = res;
+        StateHasChanged();
+    }
+
+    private async Task UpdateProfile(bool restoreRoomProfiles = false) {
+        Busy = true;
+        StateHasChanged();
+        await HomeServer.UpdateProfileAsync(Profile, restoreRoomProfiles);
+        Busy = false;
+        StateHasChanged();
+    }
+
+}

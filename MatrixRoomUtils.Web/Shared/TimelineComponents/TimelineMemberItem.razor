@@ -12,7 +12,7 @@
             <i>@Event.StateKey was invited</i>
             break;
         case "join" when Event.ReplacesState is not null:
-            <i>@Event.StateKey changed their display name to @(roomMemberData.Displayname ?? Event.Sender)</i>
+            <i>@Event.StateKey changed their display name to @(roomMemberData.DisplayName ?? Event.Sender)</i>
             break;
         case "join":
             <i><InlineUserItem User="@(new ProfileResponseEventContent())" HomeServer="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>

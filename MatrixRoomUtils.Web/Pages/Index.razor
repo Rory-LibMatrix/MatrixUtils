@@ -36,7 +36,7 @@ Small collection of tools to do not-so-everyday things.
                 </td>
                 <td>
                     <p>
-                        <LinkButton href="">Manage</LinkButton>
+                        <LinkButton OnClick="@(()=>ManageUser(_auth))">Manage</LinkButton>
                         <LinkButton OnClick="@(() => RemoveUser(_auth))">Remove</LinkButton>
                         <LinkButton OnClick="@(() => RemoveUser(_auth, true))">Log out</LinkButton>
                     </p>
@@ -72,10 +72,7 @@ Small collection of tools to do not-so-everyday things.
             var profile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
             userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;
             Console.WriteLine(profile.ToJson());
-            userInfo.AvatarUrl = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain,
-                profile.AvatarUrl
-                ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId
-                );
+            userInfo.AvatarUrl = string.IsNullOrWhiteSpace(profile.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId : hs.ResolveMediaUri(profile.AvatarUrl);
             userInfo.RoomCount = (await roomCountTask).Count;
             _users.Add(token, userInfo);
     // StateHasChanged();
@@ -115,5 +112,10 @@ Small collection of tools to do not-so-everyday things.
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");
         await MRUStorage.SetCurrentToken(auth);
         await OnInitializedAsync();
+    }
+
+    private async Task ManageUser(UserAuth auth) {
+        await SwitchSession(auth);
+        NavigationManager.NavigateTo("/User/Manage");
     }
 }

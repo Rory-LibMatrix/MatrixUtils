@@ -15,25 +15,25 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
             InitialState = new List<StateEvent> {
                 new() {
                     Type = "m.room.history_visibility",
-                    TypedContent = new HistoryVisibilityEventContent() {
+                    TypedContent = new RoomHistoryVisibilityEventContent() {
                         HistoryVisibility = "world_readable"
                     }
                 },
                 new() {
                     Type = "m.room.guest_access",
-                    TypedContent = new GuestAccessEventContent {
+                    TypedContent = new RoomGuestAccessEventContent {
                         GuestAccess = "can_join"
                     }
                 },
                 new() {
                     Type = "m.room.join_rules",
-                    TypedContent = new JoinRulesEventContent {
+                    TypedContent = new RoomJoinRulesEventContent {
                         JoinRule = "public"
                     }
                 },
                 new() {
                     Type = "m.room.server_acl",
-                    TypedContent = new ServerACLEventContent() {
+                    TypedContent = new RoomServerACLEventContent() {
                         Allow = new List<string>() { "*" },
                         Deny = new List<string>(),
                         AllowIpLiterals = false

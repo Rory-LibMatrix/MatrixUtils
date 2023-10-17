@@ -44,7 +44,7 @@
         }
 
     // UserId = User.;
-        profileAvatar = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, User.AvatarUrl);
+        profileAvatar = await hsResolver.ResolveMediaUri(hs.ServerName, User.AvatarUrl);
         profileName = User.DisplayName;
 
         _semaphoreSlim.Release();

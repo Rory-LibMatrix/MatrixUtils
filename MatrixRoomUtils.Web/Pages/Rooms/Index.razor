@@ -3,6 +3,7 @@
 @using LibMatrix.Helpers
 @using LibMatrix.Responses
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix
 <h3>Room list</h3>
 
 <p>@Status</p>
@@ -58,10 +59,14 @@
         GlobalProfile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
 
         Status = "Syncing...";
-        SyncResult? sync = null;
+        var syncHelper = new SyncHelper(hs) {
+            Timeout = 0,
+            Filter = filter
+        };
+        // SyncResponse? sync = null;
         string? nextBatch = null;
-        while (sync is null or { Rooms.Join.Count: >= 1}) {
-            sync = await hs.SyncHelper.Sync(since: nextBatch, filter: filter, timeout: 0);
+        var syncs = syncHelper.EnumerateSyncAsync();
+        await foreach (var sync in syncs) {
             nextBatch = sync?.NextBatch ?? nextBatch;
             if (sync is null) continue;
             Console.WriteLine($"Got sync, next batch: {nextBatch}!");
@@ -86,7 +91,12 @@
             Status = $"Got {Rooms.Count} rooms so far! Next batch: {nextBatch}";
             StateHasChanged();
             await Task.Delay(100);
+            if (!syncHelper.IsInitialSync) break;
         }
+        // while (sync is null or { Rooms.Join.Count: >= 1}) {
+            // sync = await syncHelper.SyncAsync(since: nextBatch, filter: filter, timeout: 0);
+            
+        // }
         Console.WriteLine("Sync done!");
         Status = "Sync complete!";
         foreach (var roomInfo in Rooms) {

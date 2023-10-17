@@ -90,7 +90,7 @@
         <tr>
             <td>Room icon:</td>
             <td>
-                <img src="@hsResolver.ResolveMediaUri(HomeServer.HomeServerDomain, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+                <img src="@hsResolver.ResolveMediaUri(HomeServer.ServerName, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
                     <InputFile OnChange="RoomIconFilePicked"></InputFile>
@@ -135,7 +135,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventContent).Allow.Count) allow rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerACLEventContent).Allow.Count) allow rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -145,7 +145,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as ServerACLEventContent).Deny.Count) deny rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerACLEventContent).Deny.Count) deny rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -255,9 +255,9 @@
 
     private MatrixException? _matrixException { get; set; }
 
-    private HistoryVisibilityEventContent? historyVisibility => creationEvent?["m.room.history_visibility"].TypedContent as HistoryVisibilityEventContent;
-    private GuestAccessEventContent? guestAccessEvent => creationEvent?["m.room.guest_access"].TypedContent as GuestAccessEventContent;
-    private ServerACLEventContent? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as ServerACLEventContent;
+    private RoomHistoryVisibilityEventContent? historyVisibility => creationEvent?["m.room.history_visibility"].TypedContent as RoomHistoryVisibilityEventContent;
+    private RoomGuestAccessEventContent? guestAccessEvent => creationEvent?["m.room.guest_access"].TypedContent as RoomGuestAccessEventContent;
+    private RoomServerACLEventContent? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as RoomServerACLEventContent;
     private RoomAvatarEventContent? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventContent;
 
     protected override async Task OnInitializedAsync() {

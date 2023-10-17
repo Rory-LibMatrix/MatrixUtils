@@ -47,7 +47,7 @@ public partial class RoomListEntry : UserControl {
                 var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>()?.GetCurrentSessionOrPrompt()!;
                 var hsResolver = svc.ServiceProvider.GetService<HomeserverResolverService>();
                 var storage = svc.ServiceProvider.GetService<TieredStorageService>()?.CacheStorageProvider;
-                var resolvedUrl = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, mxcUrl);
+                var resolvedUrl = await hsResolver.ResolveMediaUri(hs.ServerName, mxcUrl);
                 var storageKey = $"media/{mxcUrl.Replace("mxc://", "").Replace("/", ".")}";
                 try {
                     if (!await storage.ObjectExistsAsync(storageKey))

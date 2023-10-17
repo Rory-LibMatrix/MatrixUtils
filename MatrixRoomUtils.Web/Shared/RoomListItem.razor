@@ -9,9 +9,9 @@
     @if (OwnMemberState != null) {
         <img class="imageUnloaded @(string.IsNullOrWhiteSpace(OwnMemberState?.AvatarUrl ?? GlobalProfile?.AvatarUrl) ? "" : "imageLoaded")"
              style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "border-color: red; border-width: 3px; border-style: dashed;" : "")"
-             src="@hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl ?? "/icon-192.png").Result"/>
+             src="@hsResolver.ResolveMediaUri(hs.ServerName, OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl ?? "/icon-192.png").Result"/>
         <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "background-color: red;" : "")">
-            @(OwnMemberState?.Displayname ?? GlobalProfile?.DisplayName ?? "Loading...")
+            @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
         </span>
         <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
     }
@@ -137,7 +137,7 @@
 
             var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
             if (state?.Url is { } url) {
-                roomIcon = await hsResolver.ResolveMediaUri(hs.FullHomeServerDomain, url);
+                roomIcon = await hsResolver.ResolveMediaUri(hs.ServerName, url);
                 // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
             }
         }

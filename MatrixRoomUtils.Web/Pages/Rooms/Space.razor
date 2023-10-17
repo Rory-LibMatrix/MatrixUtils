@@ -3,6 +3,7 @@
 @using LibMatrix.Responses
 @using LibMatrix.RoomTypes
 @using ArcaneLibs.Extensions
+@using LibMatrix
 <h3>Room manager - Viewing Space</h3>
 
 <button onclick="@JoinAllRooms">Join all rooms</button>
@@ -93,10 +94,9 @@
     // await base.OnInitializedAsync();
     }
 
-    private Task JoinAllRooms() {
-        List<Task> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
-        Task.WaitAll(tasks.ToArray());
-        return Task.CompletedTask;
+    private async Task JoinAllRooms() {
+        List<Task<RoomIdResponse>> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
+        await Task.WhenAll(tasks);
     }
 
 }

@@ -235,7 +235,7 @@ else {
             var server = servers.ContainsKey(hs) ? servers[hs] : new RemoteHomeServer(userId.Split(':')[1]);
             if (!servers.ContainsKey(hs)) servers.Add(hs, server);
             var profile = await server.GetProfileAsync(userId);
-            avatars.Add(userId, await hsResolver.ResolveMediaUri(server.FullHomeServerDomain, profile.AvatarUrl));
+            avatars.Add(userId, await hsResolver.ResolveMediaUri(server.BaseUrl, profile.AvatarUrl));
             servers.Add(userId, server);
             StateHasChanged();
         }

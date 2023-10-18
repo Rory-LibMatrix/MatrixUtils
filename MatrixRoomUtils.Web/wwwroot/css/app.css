@@ -1,6 +1,14 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 @import url('jetbrains-mono/jetbrains-mono.css');
 
+.details-compact > summary {
+    line-height: 0px;
+}
+
+.details-compact[open] > summary {
+    margin-bottom: 24px;
+}
+
 article > h3:first-child {
     padding-top: 24px;
 }

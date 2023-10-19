@@ -1,6 +1,5 @@
 using LibMatrix;
 using LibMatrix.Homeservers;
-using LibMatrix.Responses;
 using LibMatrix.Services;
 using Microsoft.AspNetCore.Components;
 
@@ -22,6 +21,9 @@ public class MRUStorageWrapper {
     }
 
     public async Task<List<UserAuth>?> GetAllTokens() {
+        if (!await _storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
+            
+        }
         return await _storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("mru.tokens") ??
                new List<UserAuth>();
     }

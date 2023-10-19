@@ -1,25 +1,32 @@
 @page "/Rooms"
 @using LibMatrix.Filters
 @using LibMatrix.Helpers
-@using LibMatrix.Responses
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix
+@using LibMatrix.Homeservers
+@using ArcaneLibs.Extensions
+@using LibMatrix.Extensions
+@using LibMatrix.Responses
+@using System.Collections.ObjectModel
+@inject ILogger<Index> logger
 <h3>Room list</h3>
 
 <p>@Status</p>
-@if (RenderContents) {
-    <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile"></RoomList>
-}
-
+<p>@Status2</p>
+@* @if (RenderContents) { *@
+<RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile" @bind-StillFetching="RenderContents"></RoomList>
+@* } *@
+@* else { *@
+@* <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile" StillFetching="true"></RoomList> *@
+@* } *@
 
 @code {
-
-    public List<RoomInfo> KnownRooms { get; set; } = new();
-
-    private List<RoomInfo> Rooms { get; set; } = new();
+    private ObservableCollection<RoomInfo> Rooms { get; } = new();
     private ProfileResponseEventContent GlobalProfile { get; set; }
 
-    private SyncFilter filter = new() {
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+    private static SyncFilter filter = new() {
         AccountData = new SyncFilter.EventFilter {
             NotTypes = new List<string> { "*" },
             Limit = 1
@@ -43,7 +50,7 @@
                     "m.room.avatar",
                     "m.room.create",
                     "org.matrix.mjolnir.shortcode",
-                    "m.room.power_levels"
+                    "m.room.power_levels",
                 }
             },
             Timeline = new SyncFilter.RoomFilter.StateFilter {
@@ -53,112 +60,115 @@
         }
     };
 
-    protected override async Task OnInitializedAsync() {
-        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (hs is null) return;
-        GlobalProfile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
+    private static SyncFilter profileUpdateFilter = new() {
+        AccountData = new SyncFilter.EventFilter {
+            NotTypes = new List<string> { "*" },
+            Limit = 1
+        },
+        Presence = new SyncFilter.EventFilter {
+            NotTypes = new List<string> { "*" },
+            Limit = 1
+        },
+        Room = new SyncFilter.RoomFilter {
+            AccountData = new SyncFilter.RoomFilter.StateFilter {
+                NotTypes = new List<string> { "*" },
+                Limit = 1
+            },
+            Ephemeral = new SyncFilter.RoomFilter.StateFilter {
+                NotTypes = new List<string> { "*" },
+                Limit = 1
+            },
+            State = new SyncFilter.RoomFilter.StateFilter {
+                Types = new List<string> {
+                    "m.room.member"
+                },
+                Senders = new()
+            },
+            Timeline = new SyncFilter.RoomFilter.StateFilter {
+                NotTypes = new List<string> { "*" },
+                Limit = 1
+            }
+        }
+    };
 
-        Status = "Syncing...";
-        var syncHelper = new SyncHelper(hs) {
-            Timeout = 0,
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+        var rooms = await Homeserver.GetJoinedRooms();
+        foreach (var room in rooms) {
+            Rooms.Add(new(){Room = room});
+        }
+        
+        GlobalProfile = await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId);
+
+        var syncHelper = new SyncHelper(Homeserver, logger) {
+            Timeout = 10000,
             Filter = filter
         };
-        // SyncResponse? sync = null;
-        string? nextBatch = null;
-        var syncs = syncHelper.EnumerateSyncAsync();
-        await foreach (var sync in syncs) {
-            nextBatch = sync?.NextBatch ?? nextBatch;
-            if (sync is null) continue;
-            Console.WriteLine($"Got sync, next batch: {nextBatch}!");
-
-            if (sync.Rooms is null) continue;
-            if (sync.Rooms.Join is null) continue;
-            foreach (var (roomId, roomData) in sync.Rooms.Join) {
-                RoomInfo room;
-                if (Rooms.Any(x => x.Room.RoomId == roomId)) {
-                    room = Rooms.First(x => x.Room.RoomId == roomId);
-                }
-                else {
-                    room = new RoomInfo {
-                        Room = hs.GetRoom(roomId),
-                        StateEvents = new List<StateEventResponse?>()
-                    };
-                    Rooms.Add(room);
-                    KnownRooms.Add(room);
-                }
-                room.StateEvents.AddRange(roomData.State.Events);
-            }
-            Status = $"Got {Rooms.Count} rooms so far! Next batch: {nextBatch}";
-            StateHasChanged();
-            await Task.Delay(100);
-            if (!syncHelper.IsInitialSync) break;
-        }
-        // while (sync is null or { Rooms.Join.Count: >= 1}) {
-            // sync = await syncHelper.SyncAsync(since: nextBatch, filter: filter, timeout: 0);
-            
-        // }
-        Console.WriteLine("Sync done!");
-        Status = "Sync complete!";
-        foreach (var roomInfo in Rooms) {
-            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.name")) {
-                roomInfo.StateEvents.Add(new StateEventResponse {
-                    Type = "m.room.name",
-                    TypedContent = new RoomNameEventContent {
-                        Name = roomInfo.Room.RoomId
-                    }
-                });
-            }
-            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.avatar")) {
-                roomInfo.StateEvents.Add(new StateEventResponse {
-                    Type = "m.room.avatar",
-                    TypedContent = new RoomAvatarEventContent {
-
-                    }
-                });
-            }
-            if (!roomInfo.StateEvents.Any(x => x.Type == "org.matrix.mjolnir.shortcode")) {
-                roomInfo.StateEvents.Add(new StateEventResponse {
-                    Type = "org.matrix.mjolnir.shortcode"
-                });
-            }
-        }
-        Console.WriteLine("Set stub data!");
-        Status = "Set stub data!";
-        SemaphoreSlim semaphore = new(8, 8);
-        var memberTasks = Rooms.Select(async roomInfo => {
-            if (!roomInfo.StateEvents.Any(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId)) {
-                await semaphore.WaitAsync();
-                roomInfo.StateEvents.Add(new StateEventResponse {
-                    Type = "m.room.member",
-                    StateKey = hs.WhoAmI.UserId,
-                    TypedContent = await roomInfo.Room.GetStateAsync<RoomMemberEventContent>("m.room.member", hs.WhoAmI.UserId) ?? new RoomMemberEventContent {
-                        Membership = "unknown"
-                    }
-                });
-                semaphore.Release();
-            }
-        }).ToList();
-        await Task.WhenAll(memberTasks);
-        Console.WriteLine("Set all room member data!");
-        Status = "Set all room member data!";
-    // var res = await hs.SyncHelper.Sync(filter: filter);
-    // if (res is not null) {
-    //     foreach (var (roomId, roomData) in res.Rooms.Join) {
-    //         var room = new RoomInfo() {
-    //             Room = hs.GetRoom(roomId),
-    //             StateEvents = roomData.State.Events.Where(x => x.Type == "m.room.member" && x.StateKey == hs.WhoAmI.UserId).ToList()
-    //         };
-    //         Rooms.Add(room);
-    //     }
-    // }
-    // Rooms = (await hs.GetJoinedRooms()).Select(x => new RoomInfo() { Room = x }).ToList();
-
-        RenderContents = true;
-        Status = "";
+        profileUpdateFilter.Room.State.Senders.Add(Homeserver.WhoAmI.UserId);
+        var profileSyncHelper = new SyncHelper(Homeserver, logger) {
+            Timeout = 10000,
+            Filter = profileUpdateFilter
+        };
+        RunSyncLoop(syncHelper);
+        RunSyncLoop(profileSyncHelper);
+        RunQueueProcessor();
         await base.OnInitializedAsync();
     }
 
-    private bool RenderContents { get; set; }
+    private async Task RunQueueProcessor() {
+        while (true) {
+            try {
+                if (queue.Count == 0) {
+                    while (queue.Count == 0) {
+                        Console.WriteLine("Queue is empty, waiting...");
+                        await Task.Delay(2500);
+                    }
+                    Console.WriteLine("Queue no longer empty!");
+                }
+                if (queue.TryDequeue(out var queueEntry)) {
+                    var (roomId, roomData) = queueEntry;
+                    Console.WriteLine($"Dequeued room {roomId}");
+                    RoomInfo room;
+                    
+                    if (Rooms.Any(x => x.Room.RoomId == roomId)) {
+                        room = Rooms.First(x => x.Room.RoomId == roomId);
+                        Console.WriteLine($"QueueWorker: {roomId} already known with {room.StateEvents?.Count ?? 0} state events");
+                    }
+                    else {
+                        Console.WriteLine($"QueueWorker: encountered new room {roomId}!");
+                        room = new RoomInfo() {
+                            Room = Homeserver.GetRoom(roomId)
+                        };
+                        Rooms.Add(room);
+                    }
+                    
+                    if (room.StateEvents is null) {
+                        Console.WriteLine($"QueueWorker: {roomId} does not have state events on record?");
+                        throw new InvalidDataException("Somehow this is null???");
+                    }
+                    if (roomData.State?.Events is {Count: >0 })
+                        room.StateEvents.MergeStateEventLists(roomData.State.Events);
+                    else {
+                        Console.WriteLine($"QueueWorker: could not merge state for {room.Room.RoomId} as new data contains no state events!");
+                    }
+                    if (Random.Shared.Next(101) < 20 || true) {
+                        Status = $"Got {Rooms.Count} rooms so far! {queue.Count} entries in processing queue...";
+                    }
+                    RenderContents |= queue.Count == 0;
+                    await Task.Delay(RenderContents ? 25 : 25);
+                }
+                else {
+                    Console.WriteLine("Failed to dequeue item");
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine("QueueWorker exception: " + e);
+            }
+        }
+    }
+
+    private bool RenderContents { get; set; } = false;
 
     private string _status;
 
@@ -167,6 +177,48 @@
         set {
             _status = value;
             StateHasChanged();
+        }
+    }
+
+    private string _status2;
+
+    public string Status2 {
+        get => _status2;
+        set {
+            _status2 = value;
+            StateHasChanged();
+        }
+    }
+
+    private Queue<KeyValuePair<string, SyncResponse.RoomsDataStructure.JoinedRoomDataStructure>> queue = new();
+
+    private async Task RunSyncLoop(SyncHelper syncHelper) {
+        Status = "Initial syncing...";
+        Console.WriteLine("starting sync");
+
+        var syncs = syncHelper.EnumerateSyncAsync();
+        await foreach (var sync in syncs) {
+            Console.WriteLine("trying sync");
+            if (sync is null) continue;
+
+            Status = $"Got sync with {sync.Rooms?.Join?.Count ?? 0} room updates, next batch: {sync.NextBatch}!";
+            if (sync?.Rooms?.Join != null)
+                foreach (var joinedRoom in sync.Rooms.Join)
+                    if ( /*joinedRoom.Value.AccountData?.Events?.Count > 0 ||*/ joinedRoom.Value.State?.Events?.Count > 0) {
+                        joinedRoom.Value.State.Events.RemoveAll(x => x.Type == "m.room.member" && x.StateKey != Homeserver.WhoAmI?.UserId);
+                        // We can't trust servers to give us what we ask for, and this ruins performance
+                        // Thanks, Conduit.
+                        joinedRoom.Value.State.Events.RemoveAll(x => filter.Room?.State?.Types?.Contains(x.Type) ?? false);
+                        if(filter.Room?.State?.NotSenders?.Any() ?? false)
+                            joinedRoom.Value.State.Events.RemoveAll(x => filter.Room?.State?.NotSenders?.Contains(x.Sender) ?? false);
+                        
+                        queue.Enqueue(joinedRoom);
+                    }
+
+            Status = $"Got {Rooms.Count} rooms so far! {queue.Count} entries in processing queue... " +
+                     $"{sync?.Rooms?.Join?.Count ?? 0} new updates!";
+
+            Status2 = $"Next batch: {sync.NextBatch}";
         }
     }
 

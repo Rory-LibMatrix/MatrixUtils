@@ -1,3 +1,4 @@
+@using System.Collections.ObjectModel
 <MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton href="@($"/Rooms/{Space.Room.RoomId}/Space")">Manage space</MatrixRoomUtils.Web.Shared.SimpleComponents.LinkButton>
 
 <br/>
@@ -25,7 +26,7 @@
         set => _breadcrumbs = value;
     }
 
-    private List<RoomInfo> Children { get; set; } = new();
+    private ObservableCollection<RoomInfo> Children { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
         if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));
@@ -35,7 +36,7 @@
             if (Breadcrumbs.Contains(room.RoomId)) continue;
             var roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
             if (roomInfo is null) {
-                roomInfo = new RoomInfo {
+                roomInfo = new RoomInfo() {
                     Room = room
                 };
                 KnownRooms.Add(roomInfo);

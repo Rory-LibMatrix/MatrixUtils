@@ -1,10 +1,48 @@
-/*.imageUnloaded {*/
-/*    scale: 3;*/
-/*    opacity: 0.5;*/
-/*    transition: scale 0.5s ease-in-out;*/
-/*}*/
+.roomListItem {
+    background-color: #ffffff11;
+    border-radius: 25px;
+    margin: 8px;
+    width: fit-Content;
+}
 
-.imageLoaded {
-    opacity: 1;
-    scale: 1;
+.roomListItem.dangerousRoomVersion {
+    border: red 4px solid;
+}
+
+.roomListItem.oldRoomVersion {
+    border: #FF0 1px solid;
+}
+
+.avatar32 {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.avatar32.vcenter {
+    vertical-align: baseline;
+}
+
+.highlightChange {
+    background-color: red;
+    border-color: red;
+    border-width: 3px;
+    border-style: dashed;
+}
+
+.inlineBlock {
+    display: inline-block;
+}
+
+.centerVertical {
+    vertical-align: middle;
+    padding-right: 8px;
+}
+
+.noLeftPadding {
+    padding-left: 0px;
+}
+
+.border75 {
+    border-radius: 75px;
 }

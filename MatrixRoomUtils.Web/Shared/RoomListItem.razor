@@ -5,40 +5,37 @@
 @using LibMatrix.Homeservers
 @using LibMatrix.RoomTypes
 @using MatrixRoomUtils.Web.Classes.Constants
-<div class="roomListItem" id="@RoomId" style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content; @(hasDangerousRoomVersion ? "border: red 4px solid;" : hasOldRoomVersion ? "border: #FF0 1px solid;" : "")">
-    @if (OwnMemberState != null) {
-        <img class="imageUnloaded @(string.IsNullOrWhiteSpace(OwnMemberState?.AvatarUrl ?? GlobalProfile?.AvatarUrl) ? "" : "imageLoaded")"
-             style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height: 32px; border-radius: 50%; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "border-color: red; border-width: 3px; border-style: dashed;" : "")"
-             src="@hsResolver.ResolveMediaUri(hs.ServerName, OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl ?? "/icon-192.png").Result"/>
-        <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px; @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "background-color: red;" : "")">
-            @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
-        </span>
-        <span style="vertical-align: middle; padding-right: 8px; padding-left: 0px;">-></span>
-    }
-    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;"
-         src="@roomIcon"/>
-    <div style="display: inline-block;">
-        <span style="vertical-align: middle; padding-right: 8px;">@roomName</span>
-        @if (ChildContent is not null) {
-            @ChildContent
+@if (RoomInfo is not null) {
+    <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
+        @if (OwnMemberState != null) {
+            <img class="avatar32 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "") " @*@(ChildContent is not null ? "vcenter" : "")*@
+                 src="@(hs.ResolveMediaUri(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl) ?? "/icon-192.png")"/>
+            <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
+                @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
+            </span>
+            <span class="centerVertical noLeftPadding">-></span>
         }
-    </div>
+        <img class="avatar32" src="@hs?.ResolveMediaUri(RoomInfo.RoomIcon)"/> @* style="@(ChildContent is not null ? "vertical-align: baseline;" : "")"*@
+        <div class="inlineBlock">
+            <span class="centerVertical">@RoomInfo.RoomName</span>
+            @* @if (ChildContent is not null) { *@
+            @* @ChildContent *@
+            @* } *@
+        </div>
 
-</div>
+    </div>
+}
+else {
+    <p>Warning: RoomInfo is null!</p>
+}
 
 @code {
 
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    [Parameter]
-    public GenericRoom? Room { get; set; }
+    // [Parameter]
+    // public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public RoomInfo? RoomInfo { get; set; }
-
-    [Parameter]
-    public string? RoomId { get; set; }
 
     [Parameter]
     public bool ShowOwnProfile { get; set; } = false;
@@ -49,15 +46,19 @@
     [CascadingParameter]
     public ProfileResponseEventContent? GlobalProfile { get; set; }
 
-    private string? roomName { get; set; }
-
-    private string? roomIcon { get; set; } = "/icon-192.png";
-
-    private bool hasOldRoomVersion { get; set; } = false;
-    private bool hasDangerousRoomVersion { get; set; } = false;
+    private bool HasOldRoomVersion { get; set; } = false;
+    private bool HasDangerousRoomVersion { get; set; } = false;
 
     private static SemaphoreSlim _semaphoreSlim = new(8);
     private static AuthenticatedHomeserverGeneric? hs { get; set; }
+
+    protected override async Task OnParametersSetAsync() {
+        RoomInfo.PropertyChanged += (_, a) => {
+            Console.WriteLine(a.PropertyName);
+            StateHasChanged();
+        };
+        await base.OnParametersSetAsync();
+    }
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
@@ -67,34 +68,20 @@
         hs ??= await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        if (Room is null && RoomId is null && RoomInfo is null) {
-            throw new ArgumentNullException(nameof(RoomId));
-        }
-
-        // sweep from roominfo to id
-        if (RoomInfo is not null) Room = RoomInfo.Room;
-        if(Room is not null) RoomId = Room.RoomId;
-
-        //sweep from id to roominfo
-        if(RoomId is not null) Room ??= hs.GetRoom(RoomId);
-        if(Room is not null) RoomInfo ??= new RoomInfo {
-            Room = Room
-        };
-
         try {
-            await CheckRoomVersion();
-            await GetRoomInfo();
-            await LoadOwnProfile();
+    await CheckRoomVersion();
+    // await GetRoomInfo();
+    // await LoadOwnProfile();
         }
         catch (MatrixException e) {
             if (e is not { ErrorCode: "M_FORBIDDEN" }) {
                 throw;
             }
-            roomName = "Error: " + e.Message;
-            roomIcon = "/blobfox_outage.gif";
+    // RoomName = "Error: " + e.Message;
+    // RoomIcon = "/blobfox_outage.gif";
         }
         catch (Exception e) {
-            Console.WriteLine($"Failed to load room info for {RoomId}: {e.Message}");
+            Console.WriteLine($"Failed to load room info for {RoomInfo.Room.RoomId}: {e.Message}");
         }
         _semaphoreSlim.Release();
     }
@@ -102,7 +89,7 @@
     private async Task LoadOwnProfile() {
         if (!ShowOwnProfile) return;
         try {
-            OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
+    // OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
             GlobalProfile ??= await hs.GetProfileAsync(hs.UserId);
         }
         catch (MatrixException e) {
@@ -117,35 +104,39 @@
     }
 
     private async Task CheckRoomVersion() {
-        var ce = (await RoomInfo.GetStateEvent("m.room.create")).TypedContent as RoomCreateEventContent;
+        while (RoomInfo?.CreationEventContent is null) {
+            Console.WriteLine($"Room creation event content for {RoomInfo.Room.RoomId} is null...");
+            await Task.Delay(Random.Shared.Next(1000, 2500));
+        }
+        var ce = RoomInfo.CreationEventContent;
         if (int.TryParse(ce.RoomVersion, out var rv)) {
             if (rv < 10)
-                hasOldRoomVersion = true;
+                HasOldRoomVersion = true;
         }
         else // treat unstable room versions as dangerous
-            hasDangerousRoomVersion = true;
+            HasDangerousRoomVersion = true;
 
         if (RoomConstants.DangerousRoomVersions.Contains(ce.RoomVersion)) {
-            hasDangerousRoomVersion = true;
-            roomName = "Dangerous room: " + roomName;
+            HasDangerousRoomVersion = true;
+    // RoomName = "Dangerous room: " + RoomName;
         }
     }
 
-    private async Task GetRoomInfo() {
-        try {
-            roomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventContent)?.Name ?? RoomId;
-
-            var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
-            if (state?.Url is { } url) {
-                roomIcon = await hsResolver.ResolveMediaUri(hs.ServerName, url);
-                // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
-            }
-        }
-        catch (MatrixException e) {
-            if (e is not { ErrorCode: "M_FORBIDDEN" }) {
-                throw;
-            }
-        }
-    }
+    // private async Task GetRoomInfo() {
+    //     try {
+    //         RoomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventContent)?.Name ?? RoomId;
+    //
+    //         var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
+    //         if (state?.Url is { } url) {
+    //             RoomIcon = await hsResolver.ResolveMediaUri(hs.ServerName, url);
+    // // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
+    //         }
+    //     }
+    //     catch (MatrixException e) {
+    //         if (e is not { ErrorCode: "M_FORBIDDEN" }) {
+    //             throw;
+    //         }
+    //     }
+    // }
 
 }

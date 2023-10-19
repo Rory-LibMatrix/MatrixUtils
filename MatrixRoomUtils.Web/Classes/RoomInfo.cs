@@ -1,13 +1,15 @@
+using System.Collections.ObjectModel;
+using ArcaneLibs;
 using LibMatrix;
+using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.Interfaces;
-using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
 
 namespace MatrixRoomUtils.Web.Classes;
 
-public class RoomInfo {
+public class RoomInfo : NotifyPropertyChanged {
     public GenericRoom Room { get; set; }
-    public List<StateEventResponse?> StateEvents { get; init; } = new();
+    public ObservableCollection<StateEventResponse?> StateEvents { get; } = new();
 
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
         var @event = StateEvents.FirstOrDefault(x => x.Type == type && x.StateKey == stateKey);
@@ -27,5 +29,49 @@ public class RoomInfo {
 
         StateEvents.Add(@event);
         return @event;
+    }
+
+    public string? RoomIcon {
+        get => _roomIcon ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + Room.RoomId;
+        set => SetField(ref _roomIcon, value);
+    }
+
+    public string? RoomName {
+        get => _roomName ?? Room.RoomId;
+        set => SetField(ref _roomName, value);
+    }
+
+    public RoomCreateEventContent? CreationEventContent {
+        get => _creationEventContent;
+        set => SetField(ref _creationEventContent, value);
+    }
+
+    public string? RoomCreator {
+        get => _roomCreator;
+        set => SetField(ref _roomCreator, value);
+    }
+
+    // public string? GetRoomIcon() => (StateEvents.FirstOrDefault(x => x?.Type == RoomAvatarEventContent.EventId)?.TypedContent as RoomAvatarEventContent)?.Url ??
+    // "mxc://rory.gay/dgP0YPjJEWaBwzhnbyLLwGGv";
+
+    private string? _roomIcon;
+    private string? _roomName;
+    private RoomCreateEventContent? _creationEventContent;
+    private string? _roomCreator;
+
+    public RoomInfo() {
+        StateEvents.CollectionChanged += (_, args) => {
+            if (args.NewItems is { Count: > 0 })
+                foreach (StateEventResponse newState in args.NewItems) {
+                    if (newState.TypedContent is RoomNameEventContent roomNameContent)
+                        RoomName = roomNameContent.Name;
+                    else if (newState.TypedContent is RoomAvatarEventContent roomAvatarContent)
+                        RoomIcon = roomAvatarContent.Url;
+                    else if (newState.TypedContent is RoomCreateEventContent roomCreateContent) {
+                        CreationEventContent = roomCreateContent;
+                        RoomCreator = newState.Sender;
+                    }
+                }
+        };
     }
 }

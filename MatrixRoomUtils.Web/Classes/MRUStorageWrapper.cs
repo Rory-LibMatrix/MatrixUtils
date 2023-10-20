@@ -5,31 +5,16 @@ using Microsoft.AspNetCore.Components;
 
 namespace MatrixRoomUtils.Web.Classes;
 
-public class MRUStorageWrapper {
-    private readonly TieredStorageService _storageService;
-    private readonly HomeserverProviderService _homeserverProviderService;
-    private readonly NavigationManager _navigationManager;
-
-    public MRUStorageWrapper(
-        TieredStorageService storageService,
-        HomeserverProviderService homeserverProviderService,
-        NavigationManager navigationManager
-    ) {
-        _storageService = storageService;
-        _homeserverProviderService = homeserverProviderService;
-        _navigationManager = navigationManager;
-    }
-
+public class MRUStorageWrapper(TieredStorageService storageService, HomeserverProviderService homeserverProviderService, NavigationManager navigationManager) {
     public async Task<List<UserAuth>?> GetAllTokens() {
-        if (!await _storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
-            
-        }
-        return await _storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("mru.tokens") ??
+        if (!await storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) { }
+
+        return await storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("mru.tokens") ??
                new List<UserAuth>();
     }
 
     public async Task<UserAuth?> GetCurrentToken() {
-        var currentToken = await _storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("token");
+        var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("token");
         var allTokens = await GetAllTokens();
         if (allTokens is null or { Count: 0 }) {
             await SetCurrentToken(null);
@@ -51,7 +36,7 @@ public class MRUStorageWrapper {
         var tokens = await GetAllTokens() ?? new List<UserAuth>();
 
         tokens.Add(UserAuth);
-        await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
+        await storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
     private async Task<AuthenticatedHomeserverGeneric?> GetCurrentSession() {
@@ -60,7 +45,7 @@ public class MRUStorageWrapper {
             return null;
         }
 
-        return await _homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+        return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {
@@ -73,7 +58,7 @@ public class MRUStorageWrapper {
         catch (MatrixException e) {
             if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
                 var token = await GetCurrentToken();
-                _navigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
+                navigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
                 return null;
             }
 
@@ -81,7 +66,7 @@ public class MRUStorageWrapper {
         }
 
         if (session is null) {
-            _navigationManager.NavigateTo("/Login");
+            navigationManager.NavigateTo("/Login");
         }
 
         return session;
@@ -104,8 +89,8 @@ public class MRUStorageWrapper {
         }
 
         tokens.RemoveAll(x => x.AccessToken == auth.AccessToken);
-        await _storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
+        await storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(UserAuth? auth) => await _storageService.DataStorageProvider.SaveObjectAsync("token", auth);
+    public async Task SetCurrentToken(UserAuth? auth) => await storageService.DataStorageProvider.SaveObjectAsync("token", auth);
 }

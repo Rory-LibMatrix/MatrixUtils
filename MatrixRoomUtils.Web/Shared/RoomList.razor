@@ -4,6 +4,7 @@
 @using ArcaneLibs.Extensions
 @using LibMatrix.EventTypes.Spec.State
 @using System.Collections.ObjectModel
+@using LibMatrix.Responses
 @using _Imports = MatrixRoomUtils.Web._Imports
 @if (!StillFetching) {
     <p>Fetching room details... @RoomsWithTypes.Sum(x => x.Value.Count) out of @Rooms.Count done!</p>
@@ -23,7 +24,7 @@ else {
     public ObservableCollection<RoomInfo> Rooms { get; set; }
 
     [Parameter]
-    public ProfileResponseEventContent? GlobalProfile { get; set; }
+    public UserProfileResponse? GlobalProfile { get; set; }
 
     [Parameter]
     public bool StillFetching { get; set; } = true;

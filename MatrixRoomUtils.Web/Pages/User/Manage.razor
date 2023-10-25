@@ -1,8 +1,9 @@
-@page "/User/Manage"
+@page "/User/Profile"
 @using LibMatrix.Homeservers
 @using LibMatrix.EventTypes.Spec.State
 @using ArcaneLibs.Extensions
-<h3>Manage user - @HomeServer?.WhoAmI?.UserId</h3>
+@using LibMatrix.Responses
+<h3>Manage Profile - @HomeServer?.WhoAmI?.UserId</h3>
 <hr/>
 
 @if (Profile is not null) {
@@ -48,8 +49,8 @@
     private string? _status = null;
 
     private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
-    private ProfileResponseEventContent? Profile { get; set; }
-    private ProfileResponseEventContent? OldProfile { get; set; }
+    private UserProfileResponse? Profile { get; set; }
+    private UserProfileResponse? OldProfile { get; set; }
 
     private string? Status {
         get => _status;
@@ -77,7 +78,7 @@
 
         var roomNameTasks = RoomProfiles.Keys.Select(x => HomeServer.GetRoom(x)).Select(async x => {
             var name = await x.GetNameAsync();
-            return new KeyValuePair<string, string>(x.RoomId, name);
+            return new KeyValuePair<string, string?>(x.RoomId, name);
         }).ToAsyncEnumerable();
         await foreach (var (roomId, roomName) in roomNameTasks) {
             // Status = $"Got room name for {roomId}: {roomName}";

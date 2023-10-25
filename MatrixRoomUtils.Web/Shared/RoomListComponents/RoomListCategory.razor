@@ -2,6 +2,7 @@
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Homeservers
+@using LibMatrix.Responses
 <details>
     <summary>@roomType (@rooms.Count)</summary>
     @foreach (var room in rooms) {
@@ -29,7 +30,7 @@
     public KeyValuePair<string, List<RoomInfo>> Category { get; set; }
 
     [Parameter]
-    public ProfileResponseEventContent? GlobalProfile { get; set; }
+    public UserProfileResponse? GlobalProfile { get; set; }
 
     [CascadingParameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;

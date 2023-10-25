@@ -7,8 +7,6 @@ namespace MatrixRoomUtils.Web.Classes;
 
 public class MRUStorageWrapper(TieredStorageService storageService, HomeserverProviderService homeserverProviderService, NavigationManager navigationManager) {
     public async Task<List<UserAuth>?> GetAllTokens() {
-        if (!await storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) { }
-
         return await storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("mru.tokens") ??
                new List<UserAuth>();
     }
@@ -46,6 +44,10 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
         }
 
         return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+    }
+
+    public async Task<AuthenticatedHomeserverGeneric?> GetSession(UserAuth userAuth) {
+        return await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {

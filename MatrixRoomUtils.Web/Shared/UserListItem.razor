@@ -1,6 +1,7 @@
 @using LibMatrix.Helpers
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Homeservers
+@using LibMatrix.Responses
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
     <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@(string.IsNullOrWhiteSpace(User?.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + UserId : User.AvatarUrl)"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@User?.DisplayName</span>
@@ -19,7 +20,7 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public ProfileResponseEventContent? User { get; set; }
+    public UserProfileResponse? User { get; set; }
 
     [Parameter]
     public string UserId { get; set; }

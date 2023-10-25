@@ -1,0 +1,56 @@
+@page "/User/DirectMessages"
+@using LibMatrix.Homeservers
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Responses
+<h3>Direct Messages</h3>
+<hr/>
+
+@foreach (var (targetUser, rooms) in DMRooms) {
+    <div>
+        <InlineUserItem User="targetUser"></InlineUserItem>
+        @foreach (var room in rooms) {
+            <RoomListItem RoomInfo="room" LoadData="true"></RoomListItem>
+        }
+    </div>
+}
+
+@code {
+    private string? _status;
+    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    private Dictionary<UserProfileResponse, List<RoomInfo>> DMRooms { get; set; } = new();
+
+    public string? Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync() {
+        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (HomeServer is null) return;
+        Status = "Loading global profile...";
+        if (HomeServer.WhoAmI?.UserId is null) return;
+
+        Status = "Loading DM list from account data...";
+        var dms = await HomeServer.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        DMRooms.Clear();
+        foreach (var (userId, rooms) in dms) {
+            var roomList = new List<RoomInfo>();
+            DMRooms.Add(await HomeServer.GetProfileAsync(userId), roomList);
+            foreach (var room in rooms) {
+                roomList.Add(new RoomInfo() { Room = HomeServer.GetRoom(room) });
+            }
+            StateHasChanged();
+        }
+
+        StateHasChanged();
+        Status = null;
+
+        await base.OnInitializedAsync();
+    }
+
+
+
+}

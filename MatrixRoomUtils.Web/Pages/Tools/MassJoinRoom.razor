@@ -1,0 +1,110 @@
+@page "/MassRoomJoin"
+@using System.Diagnostics
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+<h3>Mass join room</h3>
+<hr/>
+<p>Room: </p>
+<FancyTextBox @bind-Value="@roomId"></FancyTextBox>
+
+<p>Users: </p>
+@foreach (var hs in hss) {
+    <p>@hs.WhoAmI.UserId</p>
+}
+
+<br/>
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+@foreach (var line in Enumerable.Reverse(log)) {
+    <p>@line</p>
+}
+
+@code {
+    private List<string> log { get; set; } = new();
+    List<AuthenticatedHomeserverGeneric> hss { get; set; } = new();
+    string roomId { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var sessions = await MRUStorage.GetAllTokens();
+        foreach (var userAuth in sessions) {
+            var session = await MRUStorage.GetSession(userAuth);
+            if (session is not null) {
+                hss.Add(session);
+                StateHasChanged();
+            }
+        }
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Execute() {
+    // foreach (var hs in hss) {
+    // var rooms = await hs.GetJoinedRooms();
+        var tasks = hss.Select(ExecuteInvite).ToAsyncEnumerable();
+        await foreach (var a in tasks) {
+            if (!string.IsNullOrWhiteSpace(a)) {
+                log.Add(a);
+                StateHasChanged();
+            }
+        }
+        tasks = hss.Select(ExecuteJoin).ToAsyncEnumerable();
+        await foreach (var a in tasks) {
+            if (!string.IsNullOrWhiteSpace(a)) {
+                log.Add(a);
+                StateHasChanged();
+            }
+        }
+    // }
+    }
+
+    private async Task<string> ExecuteInvite(AuthenticatedHomeserverGeneric hs) {
+        var room = hs.GetRoom(roomId);
+        try {
+            try {
+                var joinRule = await room.GetJoinRuleAsync();
+                if (joinRule.JoinRule == "public") return "Room is public, no invite needed";
+            }
+            catch { }
+            var pls = await room.GetPowerLevelsAsync();
+            if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) < pls.Invite) return "I do not have permission to send invite in " + room.RoomId;
+            await room.InviteUsersAsync(hss.Select(x => x.WhoAmI.UserId).ToList());
+            log.Add($"Invited to {room.RoomId} to {pls.GetUserPowerLevel(hs.WhoAmI.UserId)}");
+        }
+        catch (MatrixException e) {
+            return $"Failed to invite in {room.RoomId}: {e.Message}";
+        }
+        catch (Exception e) {
+            return $"Failed to invite in {room.RoomId}: {e.Message}";
+        }
+        StateHasChanged();
+        return "";
+    }
+
+    private async Task<string> ExecuteJoin(AuthenticatedHomeserverGeneric hs) {
+        var room = hs.GetRoom(roomId);
+        try {
+            try {
+                var mse = await room.GetStateOrNullAsync<RoomMemberEventContent>(RoomMemberEventContent.EventId, hs.WhoAmI.UserId);
+                if (mse?.Membership == "join") return $"User {hs.WhoAmI.UserId} already in room";
+            }
+            catch { }
+            await room.JoinAsync();
+        }
+        catch (MatrixException e) {
+            return $"Failed to join {hs.WhoAmI.UserId} to {room.RoomId}: {e.Message}";
+        }
+        catch (Exception e) {
+            return $"Failed to join {hs.WhoAmI.UserId} to {room.RoomId}: {e.Message}";
+        }
+        StateHasChanged();
+        return "";
+    }
+
+}

@@ -3,24 +3,25 @@
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Helpers
 @using LibMatrix.Homeservers
+@using LibMatrix.Responses
 @using LibMatrix.RoomTypes
 @using MatrixRoomUtils.Web.Classes.Constants
 @if (RoomInfo is not null) {
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
         @if (OwnMemberState != null) {
-            <img class="avatar32 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "") " @*@(ChildContent is not null ? "vcenter" : "")*@
+            <img class="avatar32 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "") @(ChildContent is not null ? "vcenter" : "")"
                  src="@(hs.ResolveMediaUri(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl) ?? "/icon-192.png")"/>
             <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
                 @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
             </span>
             <span class="centerVertical noLeftPadding">-></span>
         }
-        <img class="avatar32" src="@hs?.ResolveMediaUri(RoomInfo.RoomIcon)"/> @* style="@(ChildContent is not null ? "vertical-align: baseline;" : "")"*@
+        <img class="avatar32" src="@hs?.ResolveMediaUri(RoomInfo.RoomIcon)" style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/>
         <div class="inlineBlock">
             <span class="centerVertical">@RoomInfo.RoomName</span>
-            @* @if (ChildContent is not null) { *@
-            @* @ChildContent *@
-            @* } *@
+            @if (ChildContent is not null) {
+                @ChildContent
+            }
         </div>
 
     </div>
@@ -31,8 +32,8 @@ else {
 
 @code {
 
-    // [Parameter]
-    // public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public RoomInfo? RoomInfo { get; set; }
@@ -44,7 +45,10 @@ else {
     public RoomMemberEventContent? OwnMemberState { get; set; }
 
     [CascadingParameter]
-    public ProfileResponseEventContent? GlobalProfile { get; set; }
+    public UserProfileResponse? GlobalProfile { get; set; }
+
+    [Parameter]
+    public bool LoadData { get; set; } = false;
 
     private bool HasOldRoomVersion { get; set; } = false;
     private bool HasDangerousRoomVersion { get; set; } = false;
@@ -57,6 +61,33 @@ else {
             Console.WriteLine(a.PropertyName);
             StateHasChanged();
         };
+
+        if (LoadData) {
+            try {
+                await RoomInfo.GetStateEvent("m.room.create");
+                if (ShowOwnProfile)
+                    OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.WhoAmI.UserId)).TypedContent as RoomMemberEventContent;
+
+                await RoomInfo.GetStateEvent("m.room.name");
+                await RoomInfo.GetStateEvent("m.room.avatar");
+            }
+            catch (MatrixException e) {
+                if (e.ErrorCode == "M_FORBIDDEN") {
+                    LoadData = false;
+                    RoomInfo.StateEvents.Add(new() {
+                        Type = "m.room.create",
+                        TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }
+                    });
+                    RoomInfo.StateEvents.Add(new() {
+                        Type = "m.room.name",
+                        TypedContent = new RoomNameEventContent() {
+                            Name = "M_FORBIDDEN: Are you a member of this room? " + RoomInfo.Room.RoomId
+                        }
+                    });
+                }
+            }
+        }
+
         await base.OnParametersSetAsync();
     }
 
@@ -69,7 +100,7 @@ else {
         if (hs is null) return;
 
         try {
-    await CheckRoomVersion();
+            await CheckRoomVersion();
     // await GetRoomInfo();
     // await LoadOwnProfile();
         }
@@ -140,3 +171,4 @@ else {
     // }
 
 }
+

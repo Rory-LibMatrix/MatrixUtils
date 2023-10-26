@@ -15,7 +15,7 @@
             <i>@Event.StateKey changed their display name to @(roomMemberData.DisplayName ?? Event.Sender)</i>
             break;
         case "join":
-            <i><InlineUserItem User="@(new UserProfileResponse())" HomeServer="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+            <i><InlineUserItem User="@(new UserProfileResponse())" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>
             break;
         case "leave":
             <i>@Event.StateKey left</i>

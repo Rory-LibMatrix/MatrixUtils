@@ -51,7 +51,7 @@ public partial class RoomListEntry : UserControl {
                 var storageKey = $"media/{mxcUrl.Replace("mxc://", "").Replace("/", ".")}";
                 try {
                     if (!await storage.ObjectExistsAsync(storageKey))
-                        await storage.SaveStreamAsync(storageKey, await hs._httpClient.GetStreamAsync(resolvedUrl));
+                        await storage.SaveStreamAsync(storageKey, await hs.ClientHttpClient.GetStreamAsync(resolvedUrl));
 
                     RoomIcon.Source = new Bitmap(await storage.LoadStreamAsync(storageKey) ?? throw new NullReferenceException());
                 }

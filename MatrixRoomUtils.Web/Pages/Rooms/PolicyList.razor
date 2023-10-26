@@ -192,7 +192,7 @@ else {
     private bool _enableAvatars;
 
     static readonly Dictionary<string, string?> avatars = new();
-    static readonly Dictionary<string, RemoteHomeServer> servers = new();
+    static readonly Dictionary<string, RemoteHomeserver> servers = new();
 
     public static List<StateEventResponse> PolicyEvents { get; set; } = new();
 
@@ -229,7 +229,7 @@ else {
         try {
             if (avatars.ContainsKey(userId)) return;
             var hs = userId.Split(':')[1];
-            var server = servers.ContainsKey(hs) ? servers[hs] : new RemoteHomeServer(userId.Split(':')[1]);
+            var server = servers.ContainsKey(hs) ? servers[hs] : new RemoteHomeserver(userId.Split(':')[1]);
             if (!servers.ContainsKey(hs)) servers.Add(hs, server);
             var profile = await server.GetProfileAsync(userId);
             avatars.Add(userId, await hsResolver.ResolveMediaUri(server.BaseUrl, profile.AvatarUrl));

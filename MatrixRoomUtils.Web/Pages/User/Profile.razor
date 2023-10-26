@@ -3,17 +3,17 @@
 @using LibMatrix.EventTypes.Spec.State
 @using ArcaneLibs.Extensions
 @using LibMatrix.Responses
-<h3>Manage Profile - @HomeServer?.WhoAmI?.UserId</h3>
+<h3>Manage Profile - @Homeserver?.WhoAmI?.UserId</h3>
 <hr/>
 
-@if (Profile is not null) {
+@if (NewProfile is not null) {
     <h4>Profile</h4>
     <hr/>
 
-    <img src="@HomeServer.ResolveMediaUri(Profile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
+    <img src="@Homeserver.ResolveMediaUri(NewProfile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
     <div style="display: inline-block; vertical-align: middle;">
-        <span>Display name: </span><FancyTextBox @bind-Value="@Profile.DisplayName"></FancyTextBox><br/>
-        <span>Avatar URL: </span><FancyTextBox @bind-Value="@Profile.AvatarUrl"></FancyTextBox>
+        <span>Display name: </span><FancyTextBox @bind-Value="@NewProfile.DisplayName"></FancyTextBox><br/>
+        <span>Avatar URL: </span><FancyTextBox @bind-Value="@NewProfile.AvatarUrl"></FancyTextBox>
         <InputFile OnChange="@AvatarChanged"></InputFile><br/>
         <LinkButton OnClick="@(() => UpdateProfile())">Update profile</LinkButton>
         <LinkButton OnClick="@(() => UpdateProfile(true))">Update profile (restore room overrides)</LinkButton>
@@ -28,7 +28,7 @@
         @foreach (var (roomId, roomProfile) in RoomProfiles.OrderBy(x=>RoomNames.TryGetValue(x.Key, out var _name) ? _name : x.Key)) {
             <details class="details-compact">
                 <summary style="@(roomProfile.DisplayName == OldProfile.DisplayName && roomProfile.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")">@(RoomNames.TryGetValue(roomId, out var name) ? name : roomId)</summary>
-                <img src="@HomeServer.ResolveMediaUri(roomProfile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
+                <img src="@Homeserver.ResolveMediaUri(roomProfile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <span>Display name: </span><FancyTextBox BackgroundColor="@(roomProfile.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")" @bind-Value="@roomProfile.DisplayName"></FancyTextBox><br/>
                     <span>Avatar URL: </span><FancyTextBox BackgroundColor="@(roomProfile.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")" @bind-Value="@roomProfile.AvatarUrl"></FancyTextBox>
@@ -48,8 +48,8 @@
 @code {
     private string? _status = null;
 
-    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
-    private UserProfileResponse? Profile { get; set; }
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    private UserProfileResponse? NewProfile { get; set; }
     private UserProfileResponse? OldProfile { get; set; }
 
     private string? Status {
@@ -61,14 +61,14 @@
     private Dictionary<string, string> RoomNames { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (HomeServer is null) return;
+        Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
         Status = "Loading global profile...";
-        if (HomeServer.WhoAmI?.UserId is null) return;
-        Profile = (await HomeServer.GetProfileAsync(HomeServer.WhoAmI.UserId)).DeepClone();
-        OldProfile = (await HomeServer.GetProfileAsync(HomeServer.WhoAmI.UserId)).DeepClone();
+        if (Homeserver.WhoAmI?.UserId is null) return;
+        NewProfile = (await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId)).DeepClone();
+        OldProfile = (await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId)).DeepClone();
         Status = "Loading room profiles...";
-        var roomProfiles = HomeServer.GetRoomProfilesAsync();
+        var roomProfiles = Homeserver.GetRoomProfilesAsync();
         await foreach (var (roomId, roomProfile) in roomProfiles) {
             // Status = $"Got profile for {roomId}...";
             RoomProfiles[roomId] = roomProfile.DeepClone();
@@ -76,8 +76,8 @@
         StateHasChanged();
         Status = "Room profiles loaded, loading room names...";
 
-        var roomNameTasks = RoomProfiles.Keys.Select(x => HomeServer.GetRoom(x)).Select(async x => {
-            var name = await x.GetNameAsync();
+        var roomNameTasks = RoomProfiles.Keys.Select(x => Homeserver.GetRoom(x)).Select(async x => {
+            var name = await x.GetNameOrFallbackAsync();
             return new KeyValuePair<string, string?>(x.RoomId, name);
         }).ToAsyncEnumerable();
         await foreach (var (roomId, roomName) in roomNameTasks) {
@@ -92,22 +92,22 @@
     }
 
     private async Task AvatarChanged(InputFileChangeEventArgs arg) {
-        var res = await HomeServer.UploadFile(arg.File.Name, arg.File.OpenReadStream(Int64.MaxValue), arg.File.ContentType);
+        var res = await Homeserver.UploadFile(arg.File.Name, arg.File.OpenReadStream(Int64.MaxValue), arg.File.ContentType);
         Console.WriteLine(res);
-        Profile.AvatarUrl = res;
+        NewProfile.AvatarUrl = res;
         StateHasChanged();
     }
 
     private async Task UpdateProfile(bool restoreRoomProfiles = false) {
         Status = "Busy processing global profile update, please do not leave this page...";
         StateHasChanged();
-        await HomeServer.UpdateProfileAsync(Profile, restoreRoomProfiles);
+        await Homeserver.UpdateProfileAsync(NewProfile, restoreRoomProfiles);
         Status = null;
         StateHasChanged();
         await OnInitializedAsync();
     }
     private async Task RoomAvatarChanged(InputFileChangeEventArgs arg, string roomId) {
-        var res = await HomeServer.UploadFile(arg.File.Name, arg.File.OpenReadStream(Int64.MaxValue), arg.File.ContentType);
+        var res = await Homeserver.UploadFile(arg.File.Name, arg.File.OpenReadStream(Int64.MaxValue), arg.File.ContentType);
         Console.WriteLine(res);
         RoomProfiles[roomId].AvatarUrl = res;
         StateHasChanged();
@@ -116,8 +116,8 @@
     private async Task UpdateRoomProfile(string roomId) {
         Status = "Busy processing room profile update, please do not leave this page...";
         StateHasChanged();
-        var room = HomeServer.GetRoom(roomId);
-        await room.SendStateEventAsync("m.room.member", HomeServer.WhoAmI.UserId, RoomProfiles[roomId]);
+        var room = Homeserver.GetRoom(roomId);
+        await room.SendStateEventAsync("m.room.member", Homeserver.WhoAmI.UserId, RoomProfiles[roomId]);
         Status = null;
         StateHasChanged();
     }

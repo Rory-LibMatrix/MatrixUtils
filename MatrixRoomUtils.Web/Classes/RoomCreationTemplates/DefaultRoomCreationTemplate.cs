@@ -78,7 +78,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                     { "org.matrix.msc3401.call.member", 50 }
                 },
                 Users = new() {
-                    // { RuntimeCache.CurrentHomeServer.UserId, 100 }
+                    // { RuntimeCache.CurrentHomeserver.UserId, 100 }
                     //TODO: re-implement this
                 }
             },

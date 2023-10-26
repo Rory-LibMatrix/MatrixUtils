@@ -208,7 +208,7 @@
                         joinedRoom.Value.State.Events.RemoveAll(x => x.Type == "m.room.member" && x.StateKey != Homeserver.WhoAmI?.UserId);
                         // We can't trust servers to give us what we ask for, and this ruins performance
                         // Thanks, Conduit.
-                        joinedRoom.Value.State.Events.RemoveAll(x => filter.Room?.State?.Types?.Contains(x.Type) ?? false);
+                        joinedRoom.Value.State.Events.RemoveAll(x => filter.Room?.State?.Types?.Contains(x.Type) == false);
                         if(filter.Room?.State?.NotSenders?.Any() ?? false)
                             joinedRoom.Value.State.Events.RemoveAll(x => filter.Room?.State?.NotSenders?.Contains(x.Sender) ?? false);
                         

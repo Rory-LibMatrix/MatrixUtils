@@ -16,7 +16,7 @@
 
 @code {
     private string? _status;
-    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
     private Dictionary<UserProfileResponse, List<RoomInfo>> DMRooms { get; set; } = new();
 
     public string? Status {
@@ -28,19 +28,19 @@
     }
 
     protected override async Task OnInitializedAsync() {
-        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (HomeServer is null) return;
+        Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
         Status = "Loading global profile...";
-        if (HomeServer.WhoAmI?.UserId is null) return;
+        if (Homeserver.WhoAmI?.UserId is null) return;
 
         Status = "Loading DM list from account data...";
-        var dms = await HomeServer.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        var dms = await Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
         DMRooms.Clear();
         foreach (var (userId, rooms) in dms) {
             var roomList = new List<RoomInfo>();
-            DMRooms.Add(await HomeServer.GetProfileAsync(userId), roomList);
+            DMRooms.Add(await Homeserver.GetProfileAsync(userId), roomList);
             foreach (var room in rooms) {
-                roomList.Add(new RoomInfo() { Room = HomeServer.GetRoom(room) });
+                roomList.Add(new RoomInfo() { Room = Homeserver.GetRoom(room) });
             }
             StateHasChanged();
         }

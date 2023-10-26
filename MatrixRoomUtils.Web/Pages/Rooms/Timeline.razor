@@ -11,7 +11,7 @@
 @foreach (var evt in Events) {
     <div type="@evt.Type" key="@evt.StateKey" itemid="@evt.EventId">
         <DynamicComponent Type="@ComponentType(evt)"
-                          Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events }, { "HomeServer", HomeServer!} })">
+                          Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events }, { "Homeserver", Homeserver!} })">
         </DynamicComponent>
     </div>
 }
@@ -24,13 +24,13 @@
     private List<MessagesResponse> Messages { get; } = new();
     private List<StateEventResponse> Events { get; } = new();
 
-    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("RoomId: " + RoomId);
-        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (HomeServer is null) return;
-        var room = HomeServer.GetRoom(RoomId);
+        Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+        var room = Homeserver.GetRoom(RoomId);
         MessagesResponse? msgs = null;
         do {
             msgs = await room.GetMessagesAsync(limit: 1000, from: msgs?.End, dir: "b");

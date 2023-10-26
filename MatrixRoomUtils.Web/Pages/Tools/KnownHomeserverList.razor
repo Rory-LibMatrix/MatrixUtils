@@ -24,22 +24,22 @@
     }
 }
 else {
-    @foreach (var server in HomeServers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList()) {
+    @foreach (var server in Homeservers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList()) {
         <p>@server.Server - @server.KnownUserCount</p>
     }
 }
 <hr/>
 
 @code {
-    List<HomeServerInfo> HomeServers = new();
+    List<HomeserverInfo> Homeservers = new();
     bool IsFinished { get; set; }
-    HomeServerInfoQueryProgress QueryProgress { get; set; } = new();
+    HomeserverInfoQueryProgress QueryProgress { get; set; } = new();
     AuthenticatedHomeserverGeneric hs { get; set; }
     protected override async Task OnInitializedAsync() {
         hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         var sw = Stopwatch.StartNew();
-        HomeServers = await GetHomeservers(progressCallback: async progress => {
+        Homeservers = await GetHomeservers(progressCallback: async progress => {
             if (sw.ElapsedMilliseconds > 1000) {
                 Console.WriteLine("Progress updated...");
                 QueryProgress = progress;
@@ -59,26 +59,25 @@ else {
         await base.OnInitializedAsync();
     }
 
-    private async Task<List<HomeServerInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeServerInfoQueryProgress, Task<bool>>? progressCallback = null) {
-        HomeServerInfoQueryProgress progress = new();
-        List<HomeServerInfo> homeServers = new();
+    private async Task<List<HomeserverInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeserverInfoQueryProgress, Task<bool>>? progressCallback = null) {
+        HomeserverInfoQueryProgress progress = new();
+        List<HomeserverInfo> homeServers = new();
 
         var rooms = await hs.GetJoinedRooms();
         progress.TotalRooms = rooms.Count;
 
         var semaphore = new SemaphoreSlim(4);
-        var semLock = new SemaphoreSlim(1);
         var tasks = rooms.Select(async room => {
             await semaphore.WaitAsync();
-            progress.ProcessedUsers.Add(room, new HomeServerInfoQueryProgress.State());
+            progress.ProcessedUsers.Add(room, new HomeserverInfoQueryProgress.State());
             Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
-            var states = room.GetFullStateAsync();
+            var states = room.GetMembersAsync();
             await foreach (var state in states) {
                 if (state.Type is not "m.room.member") continue;
                 progress.ProcessedUsers[room].Total++;
 
                 if (homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) continue;
-                homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
+                homeServers.Add(new HomeserverInfo { Server = state.StateKey.Split(':')[1] });
                 Console.WriteLine($"Added new homeserver {state.StateKey.Split(':')[1]}");
             }
             semaphore.Release();
@@ -86,56 +85,8 @@ else {
             progress.ProcessedRooms++;
             if (progressCallback is not null)
                 await progressCallback.Invoke(progress);
-
-
-
-    //         states.RemoveAll(x => x.Type != "m.room.member" || (x.TypedContent as RoomMemberEventContent).Membership != "join");
-    //         Console.WriteLine($"Room {room.RoomId} has {states.Count} members");
-    //         if (states.Count > memberLimit) {
-    //             Console.WriteLine("Skipping!");
-    //             semaphore.Release();
-    //             progress.ProcessedUsers.Remove(room);
-    //             progress.TotalRooms--;
-    //             return;
-    //         }
-    //         progress.ProcessedUsers[room].Total = states.Count;
-    //         var updateInterval = progress.ProcessedUsers[room].Total >= 1000 ? 1000 : 100;
-    //         while (progress.ProcessedUsers.Any(x => x.Value.Total == 0) && progress.ProcessedUsers[room].Total >= 1000) {
-    //             progress.ProcessedUsers[room].Blocked = true;
-    //             await Task.Delay(1000);
-    // // if(progressCallback is not null)
-    // //     await progressCallback.Invoke(progress);
-    //         }
-    //         progress.ProcessedUsers[room].Blocked = false;
-    //         var processedStates = 0;
-    //         foreach (var state in states) {
-    //             await semLock.WaitAsync();
-    //             semLock.Release();
-    //             if (progress.ProcessedUsers.Count(x => x.Value.Total == 0) > 5 && progress.ProcessedUsers[room].Total >= 200) {
-    //                 progress.ProcessedUsers[room].Slowmode = true;
-    //                 await Task.Delay(progress.ProcessedUsers[room].Total >= 500 ? 1000 : 100);
-    //             }
-    //             else {
-    //                 progress.ProcessedUsers[room].Slowmode = false;
-    //             }
-    //             if (!homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) {
-    //                 homeServers.Add(new HomeServerInfo { Server = state.StateKey.Split(':')[1] });
-    //             }
-    //             var hs = homeServers.First(x => x.Server == state.StateKey.Split(':')[1]);
-    //             if (!hs.KnownUsers.Contains(state.StateKey.Split(':')[0]))
-    //                 hs.KnownUsers.Add(state.StateKey.Split(':')[0]);
-    //             if (++progress.ProcessedUsers[room].Processed % updateInterval == 0 && progressCallback is not null) {
-    //                 await semLock.WaitAsync();
-    //                 var _ = await progressCallback.Invoke(progress);
-    //                 semLock.Release();
-    //             }
-    //         }
-            // Console.WriteLine("Collected states!");
-            // progress.ProcessedRooms++;
-            // progress.ProcessedUsers[room].IsFinished = true;
-            // progressCallback?.Invoke(progress);
-            // semaphore.Release();
         });
+        // var results = tasks.ToAsyncEnumerable();
         await Task.WhenAll(tasks);
 
         Console.WriteLine("Calculating member counts...");
@@ -145,17 +96,17 @@ else {
         return homeServers;
     }
 
-    class HomeServerInfo {
+    class HomeserverInfo {
         public string Server { get; set; }
         public int? KnownUserCount { get; set; }
         public List<string> KnownUsers { get; } = new();
     }
 
-    class HomeServerInfoQueryProgress {
+    class HomeserverInfoQueryProgress {
         public int ProcessedRooms { get; set; }
         public int TotalRooms { get; set; }
         public Dictionary<GenericRoom, State> ProcessedUsers { get; } = new();
-        public List<HomeServerInfo> CurrentState { get; set; } = new();
+        public List<HomeserverInfo> CurrentState { get; set; } = new();
 
         public class State {
             public int Processed { get; set; }

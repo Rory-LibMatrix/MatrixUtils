@@ -51,7 +51,7 @@ else {
     string get_request_result { get; set; } = "";
 
     private async Task SendGetRequest() {
-        var field = typeof(RemoteHomeServer).GetRuntimeFields().First(x => x.ToString().Contains("<_httpClient>k__BackingField"));
+        var field = typeof(RemoteHomeserver).GetRuntimeFields().First(x => x.ToString().Contains("<_httpClient>k__BackingField"));
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs == null) return;
         var httpClient = field.GetValue(hs) as MatrixHttpClient;

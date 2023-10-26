@@ -42,7 +42,7 @@
                 }
                 else {
                     <FancyTextBox @bind-Value="@creationEvent.Name"></FancyTextBox>
-                    <p>(#<FancyTextBox @bind-Value="@creationEvent.RoomAliasName"></FancyTextBox>:@HomeServer.WhoAmI.UserId.Split(':').Last())</p>
+                    <p>(#<FancyTextBox @bind-Value="@creationEvent.RoomAliasName"></FancyTextBox>:@Homeserver.WhoAmI.UserId.Split(':').Last())</p>
                 }
             </td>
         </tr>
@@ -88,7 +88,7 @@
         <tr>
             <td>Room icon:</td>
             <td>
-                <img src="@hsResolver.ResolveMediaUri(HomeServer.ServerName, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+                <img src="@hsResolver.ResolveMediaUri(Homeserver.ServerName, roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
                     <InputFile OnChange="RoomIconFilePicked"></InputFile>
@@ -156,7 +156,7 @@
                 <details>
                     <summary>@creationEvent.InitialState.Count(x => x.Type == "m.room.member") members</summary>
                     @* <button @onclick="() => { RuntimeCache.LoginSessions.Select(x => x.Value.LoginResponse.UserId).ToList().ForEach(InviteMember); }">Invite all logged in accounts</button> *@
-                    @foreach (var member in creationEvent.InitialState.Where(x => x.Type == "m.room.member" && x.StateKey != HomeServer.UserId)) {
+                    @foreach (var member in creationEvent.InitialState.Where(x => x.Type == "m.room.member" && x.StateKey != Homeserver.UserId)) {
                         <UserListItem UserId="@member.StateKey"></UserListItem>
                     }
                 </details>
@@ -249,7 +249,7 @@
     private CreateRoomRequest? creationEvent { get; set; }
 
     private Dictionary<string, CreateRoomRequest>? Presets { get; set; } = new();
-    private AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     private MatrixException? _matrixException { get; set; }
 
@@ -259,8 +259,8 @@
     private RoomAvatarEventContent? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventContent;
 
     protected override async Task OnInitializedAsync() {
-        HomeServer = await MRUStorage.GetCurrentSessionOrNavigate();
-        if (HomeServer is null) return;
+        Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
 
         foreach (var x in Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IRoomCreationTemplate))).ToList()) {
             Console.WriteLine($"Found room creation template in class: {x.FullName}");
@@ -280,7 +280,7 @@
     private void JsonChanged() => Console.WriteLine(creationEvent.ToJson());
 
     private async Task RoomIconFilePicked(InputFileChangeEventArgs obj) {
-        var res = await HomeServer.UploadFile(obj.File.Name, obj.File.OpenReadStream(), obj.File.ContentType);
+        var res = await Homeserver.UploadFile(obj.File.Name, obj.File.OpenReadStream(), obj.File.ContentType);
         Console.WriteLine(res);
         (creationEvent["m.room.avatar"].TypedContent as RoomAvatarEventContent).Url = res;
         StateHasChanged();
@@ -291,7 +291,7 @@
         Console.WriteLine(creationEvent.ToJson());
         creationEvent.CreationContent.Add("rory.gay.created_using", "Rory&::MatrixRoomUtils (https://mru.rory.gay)");
         try {
-            var id = await HomeServer.CreateRoom(creationEvent);
+            var id = await Homeserver.CreateRoom(creationEvent);
         }
         catch (MatrixException e) {
             _matrixException = e;
@@ -299,7 +299,7 @@
     }
 
     private void InviteMember(string mxid) {
-        if (!creationEvent.InitialState.Any(x => x.Type == "m.room.member" && x.StateKey == mxid) && HomeServer.UserId != mxid)
+        if (!creationEvent.InitialState.Any(x => x.Type == "m.room.member" && x.StateKey == mxid) && Homeserver.UserId != mxid)
             creationEvent.InitialState.Add(new StateEvent {
                 Type = "m.room.member",
                 StateKey = mxid,

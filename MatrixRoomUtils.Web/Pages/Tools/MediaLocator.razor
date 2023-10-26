@@ -89,12 +89,12 @@
         homeservers.Clear();
         var lines = content.Split("\n");
 
-        var rhs = new RemoteHomeServer("rory.gay");
+        var rhs = new RemoteHomeserver("rory.gay");
         var sem = new SemaphoreSlim(128, 128);
         lines.ToList().ForEach(async line => {
             await sem.WaitAsync();
             try {
-                homeservers.Add(await hsResolver.ResolveHomeserverFromWellKnown(line));
+                homeservers.Add((await hsResolver.ResolveHomeserverFromWellKnown(line)).client);
                 StateHasChanged();
             }
             catch (Exception e) {

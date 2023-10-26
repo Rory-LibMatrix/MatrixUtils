@@ -36,14 +36,14 @@
     public string? ProfileName { get; set; } = null;
 
     [Parameter]
-    public AuthenticatedHomeserverGeneric? HomeServer { get; set; }
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     private static SemaphoreSlim _semaphoreSlim = new(128);
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        HomeServer ??= await MRUStorage.GetCurrentSessionOrNavigate();
-        if(HomeServer is null) return;
+        Homeserver ??= await MRUStorage.GetCurrentSessionOrNavigate();
+        if(Homeserver is null) return;
 
         await _semaphoreSlim.WaitAsync();
 
@@ -58,11 +58,11 @@
         }
 
         if (User is null && UserId is not null) {
-            User ??= await HomeServer.GetProfileAsync(UserId);
+            User ??= await Homeserver.GetProfileAsync(UserId);
         }
 
 
-        ProfileAvatar ??= HomeServer.ResolveMediaUri(User.AvatarUrl);
+        ProfileAvatar ??= Homeserver.ResolveMediaUri(User.AvatarUrl);
         ProfileName ??= User.DisplayName;
 
         _semaphoreSlim.Release();

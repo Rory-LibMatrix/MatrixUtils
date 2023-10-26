@@ -14,28 +14,31 @@ Small collection of tools to do not-so-everyday things.
 <hr/>
 <form>
     <table>
-        @foreach (var (auth, user) in _users.OrderByDescending(x => x.Value.RoomCount)) {
-            var _auth = auth;
+        @foreach (var __auth in _auth.OrderByDescending(x => x.UserInfo.RoomCount)) {
+            var _auth = __auth.UserAuth;
             <tr class="user-entry">
                 <td>
-                    <img class="avatar" src="@user.AvatarUrl"/>
+                    <img class="avatar" src="@__auth.UserInfo.AvatarUrl"/>
                 </td>
                 <td class="user-info">
                     @* <div class="user-info"> *@
                     <p>
                         <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(() => SwitchSession(_auth))" style="text-decoration-line: unset;"/>
-                        <b>@user.DisplayName</b> on <b>@_auth.Homeserver</b>
-                        @if (_auth.Proxy != null) {
-                            <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
-                        }
-                    </p>
-                    <p>Member of @user.RoomCount rooms</p>
+                        <b>@__auth.UserInfo.DisplayName</b> on <b>@_auth.Homeserver</b><br/>
 
-                    <p>Not proxied</p>
+                    </p>
+                    <span style="display: inline-block; width: 128px;">@__auth.UserInfo.RoomCount rooms</span>
+                    <span style="color: #888888">@__auth.ServerVersion.Server.Name @__auth.ServerVersion.Server.Version</span>
+                    @if (_auth.Proxy != null) {
+                        <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
+                    }
+                    else {
+                        <p>Not proxied</p>
+                    }
                 </td>
                 <td>
                     <p>
-                        <LinkButton OnClick="@(()=>ManageUser(_auth))">Manage</LinkButton>
+                        <LinkButton OnClick="@(() => ManageUser(_auth))">Manage</LinkButton>
                         <LinkButton OnClick="@(() => RemoveUser(_auth))">Remove</LinkButton>
                         <LinkButton OnClick="@(() => RemoveUser(_auth, true))">Log out</LinkButton>
                     </p>
@@ -48,11 +51,19 @@ Small collection of tools to do not-so-everyday things.
 
 @code
 {
-    private Dictionary<UserAuth, UserInfo> _users = new();
+    private class AuthInfo {
+        public UserAuth UserAuth { get; set; }
+        public UserInfo UserInfo { get; set; }
+        public ServerVersionResponse ServerVersion { get; set; }
+    }
+
+    // private Dictionary<UserAuth, UserInfo> _users = new();
+    private List<AuthInfo> _auth = new();
 
     protected override async Task OnInitializedAsync() {
         _currentSession = await MRUStorage.GetCurrentToken();
-        _users.Clear();
+    // _users.Clear();
+        _auth.Clear();
         var tokens = await MRUStorage.GetAllTokens();
         var profileTasks = tokens.Select(async token => {
             UserInfo userInfo = new();
@@ -73,7 +84,12 @@ Small collection of tools to do not-so-everyday things.
             Console.WriteLine(profile.ToJson());
             userInfo.AvatarUrl = string.IsNullOrWhiteSpace(profile.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId : hs.ResolveMediaUri(profile.AvatarUrl);
             userInfo.RoomCount = (await roomCountTask).Count;
-            _users.Add(token, userInfo);
+    // _users.Add(token, userInfo);
+            _auth.Add(new() {
+                UserInfo = userInfo,
+                UserAuth = token,
+                ServerVersion = await hs.GetServerVersionAsync()
+            });
     // StateHasChanged();
         });
         await Task.WhenAll(profileTasks);
@@ -93,8 +109,8 @@ Small collection of tools to do not-so-everyday things.
             }
         }
         catch (Exception e) {
-            if(e is MatrixException {ErrorCode: "M_UNKNOWN_TOKEN" }) {
-                //todo: handle this
+            if (e is MatrixException {ErrorCode: "M_UNKNOWN_TOKEN" }) {
+    //todo: handle this
                 return;
             }
             Console.WriteLine(e);
@@ -115,6 +131,6 @@ Small collection of tools to do not-so-everyday things.
 
     private async Task ManageUser(UserAuth auth) {
         await SwitchSession(auth);
-        NavigationManager.NavigateTo("/User/Manage");
+        NavigationManager.NavigateTo("/User/Profile");
     }
 }

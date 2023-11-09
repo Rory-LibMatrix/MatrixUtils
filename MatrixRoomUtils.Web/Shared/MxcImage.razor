@@ -1,0 +1,43 @@
+<img class="@Class" src="@ResolvedUri" style="@Style"/>
+@code {
+    private string _mxcUri;
+    private string _style;
+    private string _resolvedUri;
+
+    [Parameter]
+    public string MxcUri {
+        get => _mxcUri ?? "";
+        set {
+            _mxcUri = value;
+            UriHasChanged(value);
+        }
+    }
+    
+    [Parameter]
+    public string Style {
+        get => _style;
+        set {
+            _style = value;
+            StateHasChanged();
+        }
+    }
+    [Parameter]
+    public RemoteHomeserver? Homeserver { get; set; }
+
+    private string ResolvedUri {
+        get => _resolvedUri;
+        set {
+            _resolvedUri = value;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UriHasChanged(string value) {
+        var uri = value[5..].Split('/');
+        ResolvedUri = (Homeserver ?? await hsProvider.GetRemoteHomeserver(uri[0])).ResolveMediaUri(value);
+    }
+
+    [Parameter]
+    public string Class { get; set; }
+
+}

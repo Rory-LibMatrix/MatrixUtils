@@ -40,7 +40,14 @@
             var roomList = new List<RoomInfo>();
             DMRooms.Add(await Homeserver.GetProfileAsync(userId), roomList);
             foreach (var room in rooms) {
-                roomList.Add(new RoomInfo() { Room = Homeserver.GetRoom(room) });
+                var roomInfo = new RoomInfo() { Room = Homeserver.GetRoom(room) };
+                roomList.Add(roomInfo);
+                roomInfo.StateEvents.Add(new() {
+                    Type = RoomNameEventContent.EventId,
+                    TypedContent = new RoomNameEventContent() {
+                        Name = await Homeserver.GetRoom(room).GetNameOrFallbackAsync(4)
+                    }
+                });
             }
             StateHasChanged();
         }
@@ -50,7 +57,5 @@
 
         await base.OnInitializedAsync();
     }
-
-
 
 }

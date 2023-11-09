@@ -94,7 +94,7 @@
         lines.ToList().ForEach(async line => {
             await sem.WaitAsync();
             try {
-                homeservers.Add((await hsResolver.ResolveHomeserverFromWellKnown(line)).client);
+                homeservers.Add((await hsResolver.ResolveHomeserverFromWellKnown(line)).Client);
                 StateHasChanged();
             }
             catch (Exception e) {

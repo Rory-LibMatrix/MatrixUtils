@@ -1,0 +1,235 @@
+@page "/ServerInfo/{Homeserver}"
+@using LibMatrix.Homeservers
+@using LibMatrix.Responses
+@using ArcaneLibs.Extensions
+<h3>ServerInfo</h3>
+<hr/>
+@if (ServerVersionResponse is not null) {
+    <p>Server version: @ServerVersionResponse.Server.Name @ServerVersionResponse.Server.Version</p>
+    <pre>@ServerVersionResponse?.ToJson(ignoreNull: true)</pre>
+    <br/>
+}
+@if (ClientVersionsResponse is not null) {
+    <p>Client versions:</p>
+    <details>
+        <summary>JSON data</summary>
+        <pre>@ClientVersionsResponse?.ToJson(ignoreNull: true)</pre>
+    </details>
+    <u>Spec versions</u>
+    <table>
+        <thead>
+            <td></td>
+            <td>Version</td>
+            <td>Release date</td>
+        </thead>
+        @foreach (var (version, info) in ClientVersions) {
+            <tr>
+                <td>@(ClientVersionsResponse.Versions.Contains(version) ? "\u2714" : "\u274c")</td>
+                <td><a href="@info.SpecUrl">@info.Name</a></td>
+                <td>@info.Released</td>
+            </tr>
+        }
+
+        @foreach (var version in ClientVersionsResponse.Versions) {
+            if (!ClientVersions.ContainsKey(version)) {
+                <tr>
+                    <td>@("\u2714")</td>
+                    <td><a href="https://spec.matrix.org/@version">Unknown version: @version</a></td>
+                    <td></td>
+                </tr>
+            }
+        }
+    </table>
+    <u>Unstable features</u>
+    <table>
+        <thead>
+            <td style="padding-right: 8px;">Supported</td>
+            <td style="padding-right: 8px;">Enabled</td>
+            <td style="padding-right: 8px;">Name</td>
+        </thead>
+        @* @foreach (var (version, info) in ClientVersions) { *@
+        @*     <tr> *@
+        @*          *@
+        @*             <td>@("\u2714")</td> *@
+        @*         <td>@(ClientVersionsResponse.Versions.Contains(version) ? "\u2714" : "\u274c")</td> *@
+        @*         <td>@info.Released</td> *@
+        @*     </tr> *@
+        @* } *@
+
+        @foreach (var version in ClientVersionsResponse.UnstableFeatures) {
+            if (!ClientVersions.ContainsKey(version.Key)) {
+                <tr>
+                    <td>@("\u2714")</td>
+                    <td>@(version.Value ? "\u2714" : "\u274c")</td>
+                    <td>@version.Key</td>
+                </tr>
+            }
+        }
+    </table>
+}
+
+
+@code {
+
+    [Parameter]
+    public string? Homeserver { get; set; }
+
+    public ServerVersionResponse? ServerVersionResponse { get; set; }
+    public ClientVersionsResponse? ClientVersionsResponse { get; set; }
+
+    protected override async Task OnParametersSetAsync() {
+        if (Homeserver is not null) {
+            var rhs = await hsProvider.GetRemoteHomeserver(Homeserver);
+            ServerVersionResponse = await rhs.GetServerVersionAsync();
+            ClientVersionsResponse = await rhs.GetClientVersionsAsync();
+        }
+        base.OnParametersSetAsync();
+    }
+
+    private class ClientVersionInfo {
+        public string Name { get; set; }
+        public string SpecUrl { get; set; }
+        public DateTime Released { get; set; }
+    }
+
+    private Dictionary<string, ClientVersionInfo> ClientVersions = new() {
+        {
+            "legacy",
+            new() {
+                Name = "Legacy: Last draft before  formal release of r0.0.0",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/legacy/"
+            }
+        },
+        {
+            "r0.0.0",
+            new() {
+                Name = "r0.0.0: Initial release: media repo, sync v2",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.0.0/"
+            }
+        },
+        {
+            "r0.0.1",
+            new() {
+                Name = "r0.0.1: User-interactive authentication, groups, read receipts, presence",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.0.1/"
+            }
+        },
+        {
+            "r0.1.0",
+            new() {
+                Name = "r0.1.0: Device management, account data, push rules, VoIP",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.1.0/"
+            }
+        },
+        {
+            "r0.2.0",
+            new() {
+                Name = "r0.2.0: Clarifications",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/client_server/r0.2.0.html"
+            }
+        },
+        {
+            "r0.3.0",
+            new() {
+                Name = "r0.3.0: Device management",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/client_server/r0.3.0.html"
+            }
+        },
+        {
+            "r0.4.0",
+            new() {
+                Name = "r0.4.0: Room directory",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.4.0/"
+            }
+        },
+        {
+            "r0.5.0",
+            new() {
+                Name = "r0.5.0: Push rules, VoIP, groups, read receipts, presence",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.5.0/"
+            }
+        },
+        {
+            "r0.6.0",
+            new() {
+                Name = "r0.6.0: Unbinding 3PIDs, clean up bindings from register",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.6.0/"
+            }
+        },
+        {
+            "r0.6.1",
+            new(){
+                Name = "r0.6.1: Moderation policies, better alias handling",
+                Released = DateTime.Parse("2014-07-01 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/legacy/r0.6.1/"
+            }
+        },
+        {
+            "v1.1",
+            new() {
+                Name = "v1.1: Key backup, knocking",
+                Released = DateTime.Parse("2021-11-09 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/v1.1/"
+            }
+        }, {
+            "v1.2",
+            new() {
+                Name = "v1.2: ",
+                Released = DateTime.Parse("2022-02-02 00:00:00 +0000"),
+                SpecUrl = "https://spec.matrix.org/v1.2/"
+            }
+        }, {
+            "v1.3",
+            new() {
+                Name = "v1.3: ",
+                Released = DateTime.Parse("2022-06-15 00:00:00 +0100"),
+                SpecUrl = "https://spec.matrix.org/v1.3/"
+            }
+        }, {
+            "v1.4",
+            new() {
+                Name = "v1.4: ",
+                Released = DateTime.Parse("2022-09-29 00:00:00 +0100"),
+                SpecUrl = "https://spec.matrix.org/v1.4/"
+            }
+        }, {
+            "v1.5",
+            new() {
+                Name = "v1.5: ",
+                Released = DateTime.Parse("2022-11-17 08:22:11 -0700"),
+                SpecUrl = "https://spec.matrix.org/v1.5/"
+            }
+        }, {
+            "v1.6",
+            new () {
+                Name = "v1.6: ",
+                Released = DateTime.Parse("2023-02-14 08:25:40 -0700"),
+                SpecUrl = "https://spec.matrix.org/v1.6"
+            }
+        }, {
+            "v1.7",
+            new () {
+                Name = "v1.7: ",
+                Released = DateTime.Parse("2023-05-25 09:47:21 -0600"),
+                SpecUrl = "https://spec.matrix.org/v1.7"
+            }
+        }, {
+            "v1.8",
+            new () {
+                Name = "v1.8: Room version 11",
+                Released = DateTime.Parse("2023-08-23 09:23:53 -0600"),
+                SpecUrl = "https://spec.matrix.org/v1.8"
+            }
+        }
+    };
+
+}

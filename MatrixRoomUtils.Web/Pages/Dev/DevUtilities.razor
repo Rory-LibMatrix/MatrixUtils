@@ -16,7 +16,7 @@ else {
         <summary>Room List</summary>
         @foreach (var room in Rooms) {
             <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@room.Replace('.', '~')">
-                <RoomListItem RoomId="@room"></RoomListItem>
+                <RoomListItem RoomInfo="@(new RoomInfo() { Room = hs.GetRoom(room) })" LoadData="true"></RoomListItem>
             </a>
         }
     </details>
@@ -37,10 +37,11 @@ else {
 
 @code {
     public List<string> Rooms { get; set; } = new();
+    public AuthenticatedHomeserverGeneric? hs { get; set; }
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var hs = await MRUStorage.GetCurrentSessionOrNavigate();
+        hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs == null) return;
         Rooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
         Console.WriteLine("Fetched joined rooms!");

@@ -1,5 +1,7 @@
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Homeservers
+@using LibMatrix.Responses
 <h3>BaseTimelineItem</h3>
 
 @code {
@@ -12,5 +14,20 @@
 
     [Parameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+    public List<StateEventResponse> EventsBefore => Events.TakeWhile(e => e.EventId != Event.EventId).ToList();
+
+    public List<StateEventResponse> MatchingEventsBefore => EventsBefore.Where(x => x.Type == Event.Type && x.StateKey == Event.StateKey).ToList();
+
+    public StateEventResponse? PreviousState => MatchingEventsBefore.LastOrDefault();
+
+    public RoomMemberEventContent? CurrentSenderMemberEventContent => EventsBefore.LastOrDefault(x => x.Type == "m.room.member" && x.StateKey == Event.Sender)?
+        .TypedContent as RoomMemberEventContent;
+
+    public UserProfileResponse CurrentSenderProfile => new() { DisplayName = CurrentSenderMemberEventContent?.DisplayName, AvatarUrl = CurrentSenderMemberEventContent?.AvatarUrl };
+
+    public bool HasPreviousMessage => EventsBefore.Last() is { Type: "m.room.message" } response && response.Sender == Event.Sender;
+
+
 
 }

@@ -25,7 +25,18 @@ public class RoomInfo : NotifyPropertyChanged {
             @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
         }
         catch (MatrixException e) {
-            if (e is { ErrorCode: "M_NOT_FOUND" }) @event.RawContent = default!;
+            if (e is { ErrorCode: "M_NOT_FOUND" }) {
+                if (type == "m.room.name")
+                    @event = new() {
+                        Type = type,
+                        StateKey = stateKey,
+                        TypedContent = new RoomNameEventContent() {
+                            Name = await Room.GetNameOrFallbackAsync()
+                        }
+                    };
+                else
+                    @event.RawContent = default!;
+            }
             else throw;
         }
 
@@ -60,7 +71,7 @@ public class RoomInfo : NotifyPropertyChanged {
     private string? _roomName;
     private RoomCreateEventContent? _creationEventContent;
     private string? _roomCreator;
-    
+
     public string? DefaultRoomName { get; set; }
 
     public RoomInfo() {

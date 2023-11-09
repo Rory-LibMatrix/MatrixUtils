@@ -2,11 +2,11 @@
 @using LibMatrix.EventTypes.Spec.State
 @inherits BaseTimelineItem
 
-<p>
+<i>
     @Event.Sender created the room with room version @CreationEventContent.RoomVersion
-    @(CreationEventContent.Federate ?? false ? "and" : "without") federating with other servers.<br/>
+    @(CreationEventContent.Federate ?? true ? "and" : "without") federating with other servers.<br/>
     This room is of type @(CreationEventContent.Type ?? "Untyped room (usually a chat room)")
-</p>
+</i>
 <pre>
     @Event.RawContent?.ToJson(indent: false)
 </pre>

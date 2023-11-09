@@ -1,0 +1,37 @@
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Responses
+@inherits BaseTimelineItem
+
+@if (currentEventContent is not null) {
+    @if (previousEventContent is null) {
+        <i><InlineUserItem User="@CurrentSenderProfile" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> set the room topic to</i><br/>
+        <pre>
+            @currentEventContent.Topic
+        </pre>
+    }
+    else {
+        <i><InlineUserItem User="@CurrentSenderProfile" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> changed the room topic from</i><br/>
+        <pre>
+            @previousEventContent.Topic
+        </pre><br/>
+        <i>to</i><br/>
+        <pre>
+            @currentEventContent.Topic
+        </pre>
+    }
+}
+else {
+    <details>
+        <summary>Unknown event @Event.Type (@Event.StateKey)</summary>
+        <pre>
+            @Event.ToJson()
+        </pre>
+    </details>
+}
+
+@code {
+    private RoomTopicEventContent? previousEventContent => PreviousState?.TypedContent as RoomTopicEventContent;
+
+    private RoomTopicEventContent? currentEventContent => Event.TypedContent as RoomTopicEventContent;
+}

@@ -1,10 +1,34 @@
 @using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec
 @inherits BaseTimelineItem
 
-<pre>
-    @Event.RawContent?.ToJson(indent: false)
-</pre>
+<span>
+    @if (!HasPreviousMessage) {
+        <span><InlineUserItem User="@CurrentSenderProfile" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem>:</span><br/>
+    }
+    @switch (currentEventContent.MessageType) {
+        case "m.text": {
+            @foreach (var line in currentEventContent.Body.Split('\n')) {
+                <span>@line</span><br/>
+            }
+            break;
+        }
+        case "m.image": {
+            <i>@currentEventContent.Body</i><br/>
+            <img src="@Homeserver.ResolveMediaUri(currentEventContent.Url)">
+            break;
+        }
+        default: {
+            <pre>
+               @Event.RawContent?.ToJson(indent: false)
+            </pre>
+            break;
+        }
+    }
+</span>
 
 @code {
+    private RoomMessageEventContent? previousEventContent => PreviousState?.TypedContent as RoomMessageEventContent;
 
+    private RoomMessageEventContent? currentEventContent => Event.TypedContent as RoomMessageEventContent;
 }

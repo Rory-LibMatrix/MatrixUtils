@@ -7,15 +7,15 @@
 
 <span>
     <span>@@</span><!--
-    --><FancyTextBox @bind-Value="@newRecordInput.username"></FancyTextBox><!--
+    --><FancyTextBox @bind-Value="@newRecordInput.Username"></FancyTextBox><!--
     --><span>:</span><!--
-    --><FancyTextBox @bind-Value="@newRecordInput.homeserver"></FancyTextBox>
+    --><FancyTextBox @bind-Value="@newRecordInput.Homeserver"></FancyTextBox>
     via
-    <FancyTextBox @bind-Value="@newRecordInput.password" IsPassword="true"></FancyTextBox>
+    <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
 </span>
 <span style="display: block;">
     <label>Password:</label>
-    <FancyTextBox @bind-Value="@newRecordInput.password" IsPassword="true"></FancyTextBox>
+    <FancyTextBox @bind-Value="@newRecordInput.Password" IsPassword="true"></FancyTextBox>
 </span>
 <button @onclick="AddRecord">Add account to queue</button>
 <br/>
@@ -34,18 +34,18 @@
     </thead>
     @foreach (var record in records) {
         var r = record;
-        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{r.username}:{r.homeserver}" && x.Proxy == r.proxy) ? "green" : "unset")">
+        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{r.Username}:{r.Homeserver}" && x.Proxy == r.Proxy) ? "green" : "unset")">
             <td style="border-width: 1px;">
-                <FancyTextBox @bind-Value="@r.homeserver"></FancyTextBox>
+                <FancyTextBox @bind-Value="@r.Username"></FancyTextBox>
             </td>
             <td style="border-width: 1px;">
-                <FancyTextBox @bind-Value="@r.username"></FancyTextBox>
+                <FancyTextBox @bind-Value="@r.Homeserver"></FancyTextBox>
             </td>
             <td style="border-width: 1px;">
-                <FancyTextBox @bind-Value="@r.password" IsPassword="true"></FancyTextBox>
+                <FancyTextBox @bind-Value="@r.Password" IsPassword="true"></FancyTextBox>
             </td>
             <td style="border-width: 1px;">
-                <FancyTextBox @bind-Value="@r.proxy"></FancyTextBox>
+                <FancyTextBox @bind-Value="@r.Proxy"></FancyTextBox>
             </td>
             <td>
                 <a role="button" @onclick="() => records.Remove(r)">Remove</a>
@@ -59,21 +59,20 @@
 <LogView></LogView>
 
 @code {
-    readonly List<(string homeserver, string username, string password, string? proxy)> records = new();
-    (string homeserver, string username, string password, string? proxy) newRecordInput = ("", "", "", null);
+    readonly List<LoginStruct> records = new();
+    private LoginStruct newRecordInput = new();
 
     List<UserAuth>? LoggedInSessions { get; set; } = new();
 
     async Task Login() {
         var loginTasks = records.Select(async record => {
-            var (homeserver, username, password, proxy) = record;
-            if (LoggedInSessions.Any(x => x.UserId == $"@{username}:{homeserver}" && x.Proxy == proxy)) return;
+            if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
             try {
-                var result = new UserAuth(await hsProvider.Login(homeserver, username, password, proxy)) {
-                    Proxy = proxy
+                var result = new UserAuth(await hsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
+                    Proxy = record.Proxy
                 };
                 if (result == null) {
-                    Console.WriteLine($"Failed to login to {homeserver} as {username}!");
+                    Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
                     return;
                 }
                 Console.WriteLine($"Obtained access token for {result.UserId}!");
@@ -82,7 +81,7 @@
                 LoggedInSessions = await MRUStorage.GetAllTokens();
             }
             catch (Exception e) {
-                Console.WriteLine($"Failed to login to {homeserver} as {username}!");
+                Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
                 Console.WriteLine(e);
             }
             StateHasChanged();
@@ -104,14 +103,21 @@
             if (parts.Length < 3)
                 continue;
             string? via = parts.Length > 3 ? parts[3] : null;
-            records.Add((parts[0], parts[1], parts[2], via));
+            records.Add(new() { Homeserver = parts[0], Username = parts[1], Password = parts[2], Proxy = via });
         }
     }
 
     private async Task AddRecord() {
         LoggedInSessions = await MRUStorage.GetAllTokens();
         records.Add(newRecordInput);
-        newRecordInput = ("", "", "", null);
+        newRecordInput = new();
+    }
+
+    private class LoginStruct {
+        public string? Homeserver { get; set; } = "";
+        public string? Username { get; set; } = "";
+        public string? Password { get; set; } = "";
+        public string? Proxy { get; set; }
     }
 
 }

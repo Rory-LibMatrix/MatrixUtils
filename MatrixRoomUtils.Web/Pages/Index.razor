@@ -3,6 +3,7 @@
 @using LibMatrix
 @using LibMatrix.Homeservers
 @using ArcaneLibs.Extensions
+@using MatrixRoomUtils.Web.Pages.Dev
 
 <PageTitle>Index</PageTitle>
 
@@ -28,12 +29,17 @@ Small collection of tools to do not-so-everyday things.
 
                     </p>
                     <span style="display: inline-block; width: 128px;">@__auth.UserInfo.RoomCount rooms</span>
-                    <span style="color: #888888">@__auth.ServerVersion.Server.Name @__auth.ServerVersion.Server.Version</span>
+                    <a style="color: #888888" href="@("/ServerInfo/"+__auth.Homeserver.ServerName+"/")">@__auth.ServerVersion.Server.Name @__auth.ServerVersion.Server.Version</a>
                     @if (_auth.Proxy != null) {
                         <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
                     }
                     else {
                         <p>Not proxied</p>
+                    }
+                    @if (DEBUG) {
+                        <p>T=@__auth.Homeserver.GetType().FullName</p>
+                        <p>D=@__auth.Homeserver.WhoAmI.DeviceId</p>
+                        <p>U=@__auth.Homeserver.WhoAmI.UserId</p>
                     }
                 </td>
                 <td>
@@ -51,10 +57,17 @@ Small collection of tools to do not-so-everyday things.
 
 @code
 {
+#if DEBUG
+    bool DEBUG = true;
+#else
+    bool DEBUG = false;
+#endif
+
     private class AuthInfo {
         public UserAuth UserAuth { get; set; }
         public UserInfo UserInfo { get; set; }
         public ServerVersionResponse ServerVersion { get; set; }
+        public AuthenticatedHomeserverGeneric Homeserver { get; set; }
     }
 
     // private Dictionary<UserAuth, UserInfo> _users = new();
@@ -69,7 +82,7 @@ Small collection of tools to do not-so-everyday things.
             UserInfo userInfo = new();
             AuthenticatedHomeserverGeneric hs;
             try {
-                hs = await hsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+                hs = await hsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
             }
             catch (MatrixException e) {
                 if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
@@ -88,7 +101,8 @@ Small collection of tools to do not-so-everyday things.
             _auth.Add(new() {
                 UserInfo = userInfo,
                 UserAuth = token,
-                ServerVersion = await hs.GetServerVersionAsync()
+                ServerVersion = await hs.GetServerVersionAsync(),
+                Homeserver = hs
             });
     // StateHasChanged();
         });
@@ -105,7 +119,7 @@ Small collection of tools to do not-so-everyday things.
     private async Task RemoveUser(UserAuth auth, bool logout = false) {
         try {
             if (logout) {
-                await (await hsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken)).Logout();
+                await (await hsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken, auth.Proxy)).Logout();
             }
         }
         catch (Exception e) {

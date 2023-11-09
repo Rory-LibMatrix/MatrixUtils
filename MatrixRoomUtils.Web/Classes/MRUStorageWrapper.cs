@@ -43,11 +43,11 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
             return null;
         }
 
-        return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken);
+        return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetSession(UserAuth userAuth) {
-        return await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken);
+        return await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken, userAuth.Proxy);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {

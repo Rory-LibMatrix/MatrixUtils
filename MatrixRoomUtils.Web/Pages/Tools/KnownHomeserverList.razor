@@ -7,116 +7,48 @@
 <hr/>
 
 @if (!IsFinished) {
-    <p>Loading... Please wait...</p>
-    <progress value="@QueryProgress.ProcessedRooms" max="@QueryProgress.TotalRooms"></progress>
-    <p>@QueryProgress.ProcessedRooms / @QueryProgress.TotalRooms</p>
-    @foreach (var (room, state) in QueryProgress.ProcessedUsers.Where(x => !x.Value.IsFinished).OrderByDescending(x => x.Value.Total).ToList()) {
-        @if (state.Blocked) {
-            <p>🔒 @room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
-        }
-        else if (state.Slowmode) {
-            <p>🐢 @room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
-        }
-        else {
-            <p>@room.RoomId - @state.Processed / @state.Total, @state.Timing.Elapsed elapsed...</p>
-        }
-        <progress value="@state.Processed" max="@state.Total"></progress>
-    }
+    <p>
+        <b>Loading...</b>
+    </p>
 }
-else {
-    @foreach (var server in Homeservers.OrderByDescending(x => x.KnownUserCount).ThenBy(x => x.Server).ToList()) {
-        <p>@server.Server - @server.KnownUserCount</p>
-    }
+
+@foreach (var (homeserver, members) in counts.OrderByDescending(x => x.Value)) {
+    <p>@homeserver - @members</p>
 }
 <hr/>
 
 @code {
-    List<HomeserverInfo> Homeservers = new();
+    Dictionary<string, List<string>> homeservers { get; set; } = new();
+    Dictionary<string, int> counts { get; set; } = new();
+    // List<HomeserverInfo> Homeservers = new();
     bool IsFinished { get; set; }
-    HomeserverInfoQueryProgress QueryProgress { get; set; } = new();
-    AuthenticatedHomeserverGeneric hs { get; set; }
+    // HomeserverInfoQueryProgress QueryProgress { get; set; } = new();
+    AuthenticatedHomeserverGeneric? hs { get; set; }
+
     protected override async Task OnInitializedAsync() {
         hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var sw = Stopwatch.StartNew();
-        Homeservers = await GetHomeservers(progressCallback: async progress => {
-            if (sw.ElapsedMilliseconds > 1000) {
-                Console.WriteLine("Progress updated...");
-                QueryProgress = progress;
-                StateHasChanged();
-                Console.WriteLine("Progress rendered!");
-                sw.Restart();
-                await Task.Delay(100);
-                return true;
+        var fetchTasks = (await hs.GetJoinedRooms()).Select(x=>x.GetMembersByHomeserverAsync()).ToAsyncEnumerable();
+        await foreach (var result in fetchTasks) {
+            foreach (var (resHomeserver, resMembers) in result) {
+                if (!homeservers.TryAdd(resHomeserver, resMembers)) {
+                    homeservers[resHomeserver].AddRange(resMembers);
+                }
+                counts[resHomeserver] = homeservers[resHomeserver].Count;
             }
-            Console.WriteLine($"Progress updated, but not rendering because only {sw.ElapsedMilliseconds}ms elapsed since last call...");
-            return false;
-        });
+            // StateHasChanged();
+            // await Task.Delay(250);
+        }
+
+        foreach (var resHomeserver in homeservers.Keys) {
+            homeservers[resHomeserver] = homeservers[resHomeserver].Distinct().ToList();
+            counts[resHomeserver] = homeservers[resHomeserver].Count;
+        }
 
         IsFinished = true;
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
-    }
-
-    private async Task<List<HomeserverInfo>> GetHomeservers(int memberLimit = 1000, Func<HomeserverInfoQueryProgress, Task<bool>>? progressCallback = null) {
-        HomeserverInfoQueryProgress progress = new();
-        List<HomeserverInfo> homeServers = new();
-
-        var rooms = await hs.GetJoinedRooms();
-        progress.TotalRooms = rooms.Count;
-
-        var semaphore = new SemaphoreSlim(4);
-        var tasks = rooms.Select(async room => {
-            await semaphore.WaitAsync();
-            progress.ProcessedUsers.Add(room, new HomeserverInfoQueryProgress.State());
-            Console.WriteLine($"Fetching states for room ({rooms.IndexOf(room)}/{rooms.Count}) ({room.RoomId})");
-            var states = room.GetMembersAsync();
-            await foreach (var state in states) {
-                if (state.Type is not "m.room.member") continue;
-                progress.ProcessedUsers[room].Total++;
-
-                if (homeServers.Any(x => x.Server == state.StateKey.Split(':')[1])) continue;
-                homeServers.Add(new HomeserverInfo { Server = state.StateKey.Split(':')[1] });
-                Console.WriteLine($"Added new homeserver {state.StateKey.Split(':')[1]}");
-            }
-            semaphore.Release();
-            progress.ProcessedUsers[room].IsFinished = true;
-            progress.ProcessedRooms++;
-            if (progressCallback is not null)
-                await progressCallback.Invoke(progress);
-        });
-        // var results = tasks.ToAsyncEnumerable();
-        await Task.WhenAll(tasks);
-
-        Console.WriteLine("Calculating member counts...");
-        homeServers.ForEach(x => x.KnownUserCount = x.KnownUsers.Count);
-        Console.WriteLine(homeServers.First(x => x.Server == "rory.gay").ToJson());
-        Console.WriteLine("Recalculated!");
-        return homeServers;
-    }
-
-    class HomeserverInfo {
-        public string Server { get; set; }
-        public int? KnownUserCount { get; set; }
-        public List<string> KnownUsers { get; } = new();
-    }
-
-    class HomeserverInfoQueryProgress {
-        public int ProcessedRooms { get; set; }
-        public int TotalRooms { get; set; }
-        public Dictionary<GenericRoom, State> ProcessedUsers { get; } = new();
-        public List<HomeserverInfo> CurrentState { get; set; } = new();
-
-        public class State {
-            public int Processed { get; set; }
-            public int Total { get; set; }
-            public bool Blocked { get; set; }
-            public bool Slowmode { get; set; }
-            public float Progress => (float)Processed / Total;
-            public bool IsFinished { get; set; }
-            public Stopwatch Timing { get; } = Stopwatch.StartNew();
-        }
     }
 
 }

@@ -4,9 +4,11 @@
         <TargetFramework>net7.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
         <LinkIncremental>true</LinkIncremental>
         <LangVersion>preview</LangVersion>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+        <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
     </PropertyGroup>
 
     <ItemGroup>

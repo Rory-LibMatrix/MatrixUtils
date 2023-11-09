@@ -15,7 +15,12 @@
             <i>@Event.StateKey changed their display name to @(roomMemberData.DisplayName ?? Event.Sender)</i>
             break;
         case "join":
-            <i><InlineUserItem User="@(new UserProfileResponse())" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+            @if (prevRoomMemberData is null) {
+                <i><InlineUserItem User="@(new UserProfileResponse() { DisplayName = roomMemberData.DisplayName, AvatarUrl = roomMemberData.AvatarUrl })" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> joined</i>
+            }
+            else {
+                <i><InlineUserItem User="@(new UserProfileResponse() { DisplayName = prevRoomMemberData.DisplayName, AvatarUrl = prevRoomMemberData.AvatarUrl })" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem> changed their profile to <InlineUserItem User="@(new UserProfileResponse() { DisplayName = roomMemberData.DisplayName, AvatarUrl = roomMemberData.AvatarUrl })" Homeserver="@Homeserver" UserId="@Event.StateKey"></InlineUserItem></i>
+            }
             break;
         case "leave":
             <i>@Event.StateKey left</i>
@@ -43,5 +48,6 @@ else {
 @code {
 
     private RoomMemberEventContent? roomMemberData => Event.TypedContent as RoomMemberEventContent;
+    private RoomMemberEventContent? prevRoomMemberData => PreviousState?.TypedContent as RoomMemberEventContent;
 
 }

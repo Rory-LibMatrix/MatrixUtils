@@ -47,10 +47,14 @@
     private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
 
     private Type ComponentType(StateEvent Event) => Event.TypedContent switch {
-        RoomMessageEventContent => typeof(TimelineMessageItem),
+        RoomCanonicalAliasEventContent => typeof(TimelineCanonicalAliasItem),
+        RoomHistoryVisibilityEventContent => typeof(TimelineHistoryVisibilityItem),
+        RoomTopicEventContent => typeof(TimelineRoomTopicItem),
         RoomMemberEventContent => typeof(TimelineMemberItem),
+        RoomMessageEventContent => typeof(TimelineMessageItem),
         RoomCreateEventContent => typeof(TimelineRoomCreateItem),
+        RoomNameEventContent => typeof(TimelineRoomNameItem),
         _ => typeof(TimelineUnknownItem)
-        };
+    };
 
 }

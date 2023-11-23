@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#!nix-shell -i "bash -x" -p bash nuget-to-nix git dotnet-sdk_7 nix curl jq yq
+#!nix-shell -i "bash -x" -p bash nuget-to-nix git dotnet-sdk_8 nix curl jq yq
 projects=(
   MatrixRoomUtils.Web
 )

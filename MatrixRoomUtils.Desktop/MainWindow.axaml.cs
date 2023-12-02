@@ -28,7 +28,7 @@ public partial class MainWindow : Window {
 
 
         // for (int i = 0; i < 100; i++) {
-            // roomList.Children.Add(new RoomListEntry());
+        // roomList.Children.Add(new RoomListEntry());
         // }
     }
 
@@ -45,6 +45,6 @@ public partial class MainWindow : Window {
 
     // public Command
     // protected void LoadedCommand() {
-        // _logger.LogInformation("async command");
+    // _logger.LogInformation("async command");
     // }
 }

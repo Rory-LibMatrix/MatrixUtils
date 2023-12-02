@@ -19,19 +19,10 @@
     </ItemGroup>
 
     <ItemGroup>
-
-        <ProjectReference Condition="Exists('..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" />
-        <PackageReference Condition="!Exists('..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="ArcaneLibs" Version="*-preview*" />
+        <ProjectReference Condition="Exists('..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" />
+        <PackageReference Condition="!Exists('..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="ArcaneLibs.Blazor.Components" Version="*-preview*" />
         <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
         <ProjectReference Include="..\MatrixRoomUtils.LibDMSpace\MatrixRoomUtils.LibDMSpace.csproj" />
-
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Classes\AccountData\" />
-    </ItemGroup>
-
-
-
 
 </Project>

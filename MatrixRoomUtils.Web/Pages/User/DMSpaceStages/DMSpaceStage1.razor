@@ -97,7 +97,7 @@ else {
     public async Task<(string id, string name)?> GetFeasibleSpaces(GenericRoom room) {
         try {
             var pls = await room.GetPowerLevelsAsync();
-            if (!pls.UserHasPermission(DmSpace.Homeserver.WhoAmI.UserId, "m.space.child")) {
+            if (!pls.UserHasStatePermission(DmSpace.Homeserver.WhoAmI.UserId, "m.space.child")) {
                 Console.WriteLine($"No permission to send m.space.child in {room.RoomId}...");
                 return null;
             }

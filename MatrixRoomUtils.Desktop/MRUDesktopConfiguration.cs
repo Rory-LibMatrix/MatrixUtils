@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using ArcaneLibs.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -9,6 +10,7 @@ namespace MatrixRoomUtils.Desktop;
 public class MRUDesktopConfiguration {
     private static ILogger<MRUDesktopConfiguration> _logger;
 
+    [RequiresUnreferencedCode("Uses reflection binding")]
     public MRUDesktopConfiguration(ILogger<MRUDesktopConfiguration> logger, IConfiguration config, HostBuilderContext host) {
         _logger = logger;
         logger.LogInformation("Loading configuration for environment: {}...", host.HostingEnvironment.EnvironmentName);
@@ -24,7 +26,7 @@ public class MRUDesktopConfiguration {
     private static string ExpandPath(string path, bool retry = true) {
         _logger.LogInformation("Expanding path `{}`", path);
 
-        if (path.StartsWith("~")) {
+        if (path.StartsWith('~')) {
             path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..]);
         }
 
@@ -34,8 +36,8 @@ public class MRUDesktopConfiguration {
 
         _logger.LogInformation("Expanded path to `{}`", path);
         var tries = 0;
-        while(retry && path.ContainsAnyOf("~$".Split())) {
-            if(tries++ > 100)
+        while (retry && path.ContainsAnyOf("~$".Split())) {
+            if (tries++ > 100)
                 throw new Exception($"Path `{path}` contains unrecognised environment variables");
             path = ExpandPath(path, false);
         }

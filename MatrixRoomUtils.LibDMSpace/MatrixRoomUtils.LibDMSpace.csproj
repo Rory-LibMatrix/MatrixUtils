@@ -10,9 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Condition="Exists('..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj"/>
-        <PackageReference Condition="!Exists('..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="ArcaneLibs" Version="*-preview*"/>
-        <ProjectReference Include="..\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj" />
         <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj"/>
     </ItemGroup>
 </Project>

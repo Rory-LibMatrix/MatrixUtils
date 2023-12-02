@@ -49,7 +49,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
         else await ImportNativeDMsWithoutLayers();
     }
 
-#region Import Native DMs
+    #region Import Native DMs
 
     private async Task ImportNativeDMsWithoutLayers() {
         var mdirect = await homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
@@ -79,5 +79,5 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
         var mdirect = await homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
     }
 
-#endregion
+    #endregion
 }

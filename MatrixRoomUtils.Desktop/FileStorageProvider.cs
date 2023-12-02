@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using ArcaneLibs.Extensions;
 using LibMatrix.Extensions;
@@ -19,13 +20,14 @@ public class FileStorageProvider : IStorageProvider {
         new Logger<FileStorageProvider>(new LoggerFactory()).LogInformation("test");
         Console.WriteLine($"Initialised FileStorageProvider with path {targetPath}");
         TargetPath = targetPath;
-        if(!Directory.Exists(targetPath)) {
+        if (!Directory.Exists(targetPath)) {
             Directory.CreateDirectory(targetPath);
         }
     }
 
     public async Task SaveObjectAsync<T>(string key, T value) => await File.WriteAllTextAsync(Path.Join(TargetPath, key), value?.ToJson());
 
+    [RequiresUnreferencedCode("This API uses reflection to deserialize JSON")]
     public async Task<T?> LoadObjectAsync<T>(string key) => JsonSerializer.Deserialize<T>(await File.ReadAllTextAsync(Path.Join(TargetPath, key)));
 
     public Task<bool> ObjectExistsAsync(string key) => Task.FromResult(File.Exists(Path.Join(TargetPath, key)));

@@ -7,7 +7,7 @@ namespace MatrixRoomUtils.Desktop;
 
 public class MRUStorageWrapper(TieredStorageService storageService, HomeserverProviderService homeserverProviderService) {
     public async Task<List<LoginResponse>?> GetAllTokens() {
-        if(!await storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
+        if (!await storageService.DataStorageProvider.ObjectExistsAsync("mru.tokens")) {
             return null;
         }
         return await storageService.DataStorageProvider.LoadObjectAsync<List<LoginResponse>>("mru.tokens") ??
@@ -15,7 +15,7 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     public async Task<LoginResponse?> GetCurrentToken() {
-        if(!await storageService.DataStorageProvider.ObjectExistsAsync("token")) {
+        if (!await storageService.DataStorageProvider.ObjectExistsAsync("token")) {
             return null;
         }
         var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<LoginResponse>("token");
@@ -41,7 +41,7 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
 
         tokens.Add(loginResponse);
         await storageService.DataStorageProvider.SaveObjectAsync("mru.tokens", tokens);
-        if(await GetCurrentToken() is null)
+        if (await GetCurrentToken() is null)
             await SetCurrentToken(loginResponse);
     }
 

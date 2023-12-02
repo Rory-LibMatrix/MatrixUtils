@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Microsoft.Extensions.Hosting;
 using Tmds.DBus.Protocol;
 

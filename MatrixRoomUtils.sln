@@ -14,11 +14,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MxApiExtensions", "MxApiExt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MxApiExtensions", "MxApiExtensions\MxApiExtensions\MxApiExtensions.csproj", "{41200A7B-D2DB-4656-B66B-5206A63B367A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ArcaneLibs", "ArcaneLibs", "{B00C5CB6-6200-4B41-96BE-C6EAF1085A14}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ArcaneLibs", "LibMatrix\ArcaneLibs", "{B00C5CB6-6200-4B41-96BE-C6EAF1085A14}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs", "ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj", "{B00E29F5-1ED8-40A0-A70D-DE9F23FC572F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs", "LibMatrix\ArcaneLibs\ArcaneLibs\ArcaneLibs.csproj", "{B00E29F5-1ED8-40A0-A70D-DE9F23FC572F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs.Blazor.Components", "ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj", "{2D6F31D7-3139-44EC-9D11-486282DD4ED1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs.Blazor.Components", "LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj", "{2D6F31D7-3139-44EC-9D11-486282DD4ED1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MxApiExtensions.Classes", "MxApiExtensions\MxApiExtensions.Classes\MxApiExtensions.Classes.csproj", "{99C016AA-AFBA-4D32-A687-D1FABC0F5212}"
 EndProject
@@ -28,7 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExampleBots", "ExampleBots"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.ExampleBot", "LibMatrix\ExampleBots\LibMatrix.ExampleBot\LibMatrix.ExampleBot.csproj", "{2CB12623-4918-4176-9B4A-88D846CCD3ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaModeratorPoC", "LibMatrix\ExampleBots\MediaModeratorPoC\MediaModeratorPoC.csproj", "{48DBB05F-B007-4B24-89B3-3CC177C79007}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModerationBot", "LibMatrix\ExampleBots\ModerationBot\ModerationBot.csproj", "{48DBB05F-B007-4B24-89B3-3CC177C79007}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{A4BCBF5F-4936-44B9-BAB3-FAF240BDF40D}"
 EndProject

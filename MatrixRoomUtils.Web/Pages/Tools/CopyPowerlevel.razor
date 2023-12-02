@@ -58,7 +58,7 @@
         try {
             var pls = await room.GetPowerLevelsAsync();
             // if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) == pls.UsersDefault) return "I am default PL in " + room.RoomId;
-            if (!pls.UserHasPermission(hs.WhoAmI.UserId, RoomPowerLevelEventContent.EventId)) return "I do not have permission to send PL in " + room.RoomId;
+            if (!pls.UserHasStatePermission(hs.WhoAmI.UserId, RoomPowerLevelEventContent.EventId)) return "I do not have permission to send PL in " + room.RoomId;
             foreach (var ahs in hss) {
                 if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) == pls.GetUserPowerLevel(ahs.WhoAmI.UserId)) {
                     log.Add("I am same PL in " + room.RoomId);

@@ -8,6 +8,7 @@
 @using LibMatrix.Extensions
 @using LibMatrix.Responses
 @using System.Collections.ObjectModel
+@using System.Diagnostics
 @inject ILogger<Index> logger
 <h3>Room list</h3>
 
@@ -60,36 +61,36 @@
         }
     };
 
-    private static SyncFilter profileUpdateFilter = new() {
-        AccountData = new SyncFilter.EventFilter {
-            NotTypes = new List<string> { "*" },
-            Limit = 1
-        },
-        Presence = new SyncFilter.EventFilter {
-            NotTypes = new List<string> { "*" },
-            Limit = 1
-        },
-        Room = new SyncFilter.RoomFilter {
-            AccountData = new SyncFilter.RoomFilter.StateFilter {
-                NotTypes = new List<string> { "*" },
-                Limit = 1
-            },
-            Ephemeral = new SyncFilter.RoomFilter.StateFilter {
-                NotTypes = new List<string> { "*" },
-                Limit = 1
-            },
-            State = new SyncFilter.RoomFilter.StateFilter {
-                Types = new List<string> {
-                    "m.room.member"
-                },
-                Senders = new()
-            },
-            Timeline = new SyncFilter.RoomFilter.StateFilter {
-                NotTypes = new List<string> { "*" },
-                Limit = 1
-            }
-        }
-    };
+    // private static SyncFilter profileUpdateFilter = new() {
+    //     AccountData = new SyncFilter.EventFilter {
+    //         NotTypes = new List<string> { "*" },
+    //         Limit = 1
+    //     },
+    //     Presence = new SyncFilter.EventFilter {
+    //         NotTypes = new List<string> { "*" },
+    //         Limit = 1
+    //     },
+    //     Room = new SyncFilter.RoomFilter {
+    //         AccountData = new SyncFilter.RoomFilter.StateFilter {
+    //             NotTypes = new List<string> { "*" },
+    //             Limit = 1
+    //         },
+    //         Ephemeral = new SyncFilter.RoomFilter.StateFilter {
+    //             NotTypes = new List<string> { "*" },
+    //             Limit = 1
+    //         },
+    //         State = new SyncFilter.RoomFilter.StateFilter {
+    //             Types = new List<string> {
+    //                 "m.room.member"
+    //             },
+    //             Senders = new()
+    //         },
+    //         Timeline = new SyncFilter.RoomFilter.StateFilter {
+    //             NotTypes = new List<string> { "*" },
+    //             Limit = 1
+    //         }
+    //     }
+    // };
 
     protected override async Task OnInitializedAsync() {
         Homeserver = await MRUStorage.GetCurrentSessionOrNavigate();
@@ -103,20 +104,23 @@
 
         var syncHelper = new SyncHelper(Homeserver, logger) {
             Timeout = 10000,
-            Filter = filter
+            Filter = filter,
+            MinimumDelay = TimeSpan.FromMilliseconds(5000)
         };
-        profileUpdateFilter.Room.State.Senders.Add(Homeserver.WhoAmI.UserId);
-        var profileSyncHelper = new SyncHelper(Homeserver, logger) {
-            Timeout = 10000,
-            Filter = profileUpdateFilter
-        };
+        // profileUpdateFilter.Room.State.Senders.Add(Homeserver.WhoAmI.UserId);
+        // var profileSyncHelper = new SyncHelper(Homeserver, logger) {
+        //     Timeout = 10000,
+        //     Filter = profileUpdateFilter,
+        //     MinimumDelay = TimeSpan.FromMilliseconds(5000)
+        // };
         RunSyncLoop(syncHelper);
-        RunSyncLoop(profileSyncHelper);
+        // RunSyncLoop(profileSyncHelper);
         RunQueueProcessor();
         await base.OnInitializedAsync();
     }
-
+    
     private async Task RunQueueProcessor() {
+        var renderTimeSw = Stopwatch.StartNew();
         while (true) {
             try {
                 if (queue.Count == 0) {
@@ -126,7 +130,7 @@
                     }
                     Console.WriteLine("Queue no longer empty!");
                 }
-                if (queue.TryDequeue(out var queueEntry)) {
+                while (queue.TryDequeue(out var queueEntry)) {
                     var (roomId, roomData) = queueEntry;
                     Console.WriteLine($"Dequeued room {roomId}");
                     RoomInfo room;
@@ -159,9 +163,9 @@
                     if (queue.Count > 10) RenderContents = false;
                     await Task.Delay(RenderContents ? 25 : 25);
                 }
-                else {
-                    Console.WriteLine("Failed to dequeue item");
-                }
+                // else {
+                    // Console.WriteLine("Failed to dequeue item");
+                // }
             }
             catch (Exception e) {
                 Console.WriteLine("QueueWorker exception: " + e);

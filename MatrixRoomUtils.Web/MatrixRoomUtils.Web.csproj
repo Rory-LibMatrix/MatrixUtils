@@ -9,6 +9,7 @@
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
         <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
+<!--        <RunAOTCompilation>true</RunAOTCompilation>-->
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,6 +24,50 @@
         <PackageReference Condition="!Exists('..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="ArcaneLibs.Blazor.Components" Version="*-preview*" />
         <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
         <ProjectReference Include="..\MatrixRoomUtils.LibDMSpace\MatrixRoomUtils.LibDMSpace.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Update="appsettings.Development.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Update="appsettings.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Bold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-BoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-ExtraBold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-ExtraBoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-ExtraLight.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-ExtraLightItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Italic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Light.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-LightItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Medium.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-MediumItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Regular.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-SemiBold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-SemiBoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-Thin.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMono-ThinItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Bold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-BoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-ExtraBold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-ExtraBoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-ExtraLight.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-ExtraLightItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Italic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Light.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-LightItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Medium.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-MediumItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Regular.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-SemiBold.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-SemiBoldItalic.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-Thin.ttf" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\jetbrains-mono\ttf\JetBrainsMonoNL-ThinItalic.ttf" />
     </ItemGroup>
 
 </Project>

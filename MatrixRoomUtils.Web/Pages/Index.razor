@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject ILogger<Index> logger
 @using LibMatrix.Responses
 @using LibMatrix
 @using LibMatrix.Homeservers
@@ -26,7 +27,6 @@ Small collection of tools to do not-so-everyday things.
                     <p>
                         <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(() => SwitchSession(_auth))" style="text-decoration-line: unset;"/>
                         <b>@__auth.UserInfo.DisplayName</b> on <b>@_auth.Homeserver</b><br/>
-
                     </p>
                     <span style="display: inline-block; width: 128px;">@__auth.UserInfo.RoomCount rooms</span>
                     <a style="color: #888888" href="@("/ServerInfo/"+__auth.Homeserver.ServerName+"/")">@__auth.ServerVersion.Server.Name @__auth.ServerVersion.Server.Version</a>
@@ -91,20 +91,24 @@ Small collection of tools to do not-so-everyday things.
                 }
                 throw;
             }
+            catch (HttpRequestException e) {
+                logger.LogError(e, $"Failed to instantiate AuthenticatedHomeserver for {_auth}, homeserver may be offline?", token.UserId);
+                return;
+            }
             var roomCountTask = hs.GetJoinedRooms();
             var profile = await hs.GetProfileAsync(hs.WhoAmI.UserId);
             userInfo.DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId;
             Console.WriteLine(profile.ToJson());
-            userInfo.AvatarUrl = string.IsNullOrWhiteSpace(profile.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId : hs.ResolveMediaUri(profile.AvatarUrl);
-            userInfo.RoomCount = (await roomCountTask).Count;
-    // _users.Add(token, userInfo);
             _auth.Add(new() {
-                UserInfo = userInfo,
+                UserInfo = new() {
+                    AvatarUrl = string.IsNullOrWhiteSpace(profile.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + hs.WhoAmI.UserId : hs.ResolveMediaUri(profile.AvatarUrl),
+                    RoomCount = (await roomCountTask).Count,
+                    DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId
+                },
                 UserAuth = token,
                 ServerVersion = await hs.GetServerVersionAsync(),
                 Homeserver = hs
             });
-    // StateHasChanged();
         });
         await Task.WhenAll(profileTasks);
         await base.OnInitializedAsync();

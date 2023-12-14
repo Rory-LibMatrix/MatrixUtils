@@ -161,7 +161,7 @@
                     }
                     RenderContents |= queue.Count == 0;
                     if (queue.Count > 10) RenderContents = false;
-                    await Task.Delay(RenderContents ? 25 : 12);
+                    await Task.Delay(RenderContents ? 25 : 6);
                 }
                 // else {
                     // Console.WriteLine("Failed to dequeue item");

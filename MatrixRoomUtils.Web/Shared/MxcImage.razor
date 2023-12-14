@@ -8,10 +8,14 @@
     public string MxcUri {
         get => _mxcUri ?? "";
         set {
+            Console.WriteLine($"New MXC uri: {value}");
             _mxcUri = value;
             UriHasChanged(value);
         }
     }
+    
+    //mxcuri binding
+    
     
     [Parameter]
     public string Style {
@@ -34,7 +38,13 @@
 
     private async Task UriHasChanged(string value) {
         var uri = value[5..].Split('/');
-        ResolvedUri = (Homeserver ?? await hsProvider.GetRemoteHomeserver(uri[0])).ResolveMediaUri(value);
+        Console.WriteLine($"UriHasChanged: {value} {uri[0]}");
+        if (Homeserver is null) {
+            Console.WriteLine($"Homeserver is null, creating new remotehomeserver for {uri[0]}");
+            Homeserver = await hsProvider.GetRemoteHomeserver(uri[0]);
+        }
+        ResolvedUri = Homeserver.ResolveMediaUri(value);
+        Console.WriteLine($"ResolvedUri: {ResolvedUri}");
     }
 
     [Parameter]

@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Helpers;
 using LibMatrix.Interfaces.Services;
 using LibMatrix.Services;

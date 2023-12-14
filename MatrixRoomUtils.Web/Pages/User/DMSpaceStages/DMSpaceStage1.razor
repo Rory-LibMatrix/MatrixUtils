@@ -84,7 +84,7 @@ else {
     private async Task Execute() {
         if (string.IsNullOrWhiteSpace(DmSpace.DmSpaceConfiguration.DMSpaceId)) {
             var crr = CreateRoomRequest.CreatePrivate(DmSpace.Homeserver, "Direct Messages");
-            crr._creationContentBaseType.Type = "m.space";
+            crr.CreationContentBaseType.Type = "m.space";
             DmSpace.DmSpaceConfiguration.DMSpaceId = (await DmSpace.Homeserver.CreateRoom(crr)).RoomId;
         }
         await DmSpace.Homeserver!.SetAccountDataAsync(DMSpaceConfiguration.EventId, DmSpace.DmSpaceConfiguration);

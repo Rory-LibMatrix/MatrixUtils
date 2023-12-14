@@ -46,7 +46,8 @@
                     Type = RoomNameEventContent.EventId,
                     TypedContent = new RoomNameEventContent() {
                         Name = await Homeserver.GetRoom(room).GetNameOrFallbackAsync(4)
-                    }
+                    },
+                    RoomId = room, Sender = null, EventId = null
                 });
             }
             StateHasChanged();

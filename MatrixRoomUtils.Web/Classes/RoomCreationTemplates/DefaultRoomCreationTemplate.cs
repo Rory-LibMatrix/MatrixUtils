@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Responses;
 
 namespace MatrixRoomUtils.Web.Classes.RoomCreationTemplates;
@@ -28,7 +29,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 new() {
                     Type = "m.room.join_rules",
                     TypedContent = new RoomJoinRulesEventContent {
-                        JoinRule = "public"
+                        JoinRule = RoomJoinRulesEventContent.JoinRules.Public
                     }
                 },
                 new() {

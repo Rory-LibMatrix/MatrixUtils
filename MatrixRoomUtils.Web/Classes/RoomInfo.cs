@@ -3,13 +3,14 @@ using System.Text.Json.Nodes;
 using ArcaneLibs;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;
+using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Interfaces;
 using LibMatrix.RoomTypes;
 
 namespace MatrixRoomUtils.Web.Classes;
 
 public class RoomInfo : NotifyPropertyChanged {
-    public GenericRoom? Room { get; set; }
+    public required GenericRoom Room { get; set; }
     public ObservableCollection<StateEventResponse?> StateEvents { get; } = new();
 
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
@@ -18,9 +19,11 @@ public class RoomInfo : NotifyPropertyChanged {
         @event = new StateEventResponse {
             RoomId = Room.RoomId,
             Type = type,
-            StateKey = stateKey
+            StateKey = stateKey,
+            Sender = null, //TODO implement
+            EventId = null
         };
-        if (Room is null) return null;
+        // if (Room is null) return null;
         try {
             @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
         }
@@ -32,7 +35,11 @@ public class RoomInfo : NotifyPropertyChanged {
                         StateKey = stateKey,
                         TypedContent = new RoomNameEventContent() {
                             Name = await Room.GetNameOrFallbackAsync()
-                        }
+                        },
+                        //TODO implement
+                        RoomId = null,
+                        Sender = null,
+                        EventId = null
                     };
                 else
                     @event.RawContent = default!;
@@ -78,11 +85,11 @@ public class RoomInfo : NotifyPropertyChanged {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
                 foreach (StateEventResponse newState in args.NewItems) {
-                    if (newState.TypedContent is RoomNameEventContent roomNameContent)
+                    if (newState.GetType == typeof(RoomNameEventContent) && newState.TypedContent is RoomNameEventContent roomNameContent)
                         RoomName = roomNameContent.Name;
-                    else if (newState.TypedContent is RoomAvatarEventContent roomAvatarContent)
+                    else if (newState.GetType == typeof(RoomAvatarEventContent) && newState.TypedContent is RoomAvatarEventContent roomAvatarContent)
                         RoomIcon = roomAvatarContent.Url;
-                    else if (newState.TypedContent is RoomCreateEventContent roomCreateContent) {
+                    else if (newState.GetType == typeof(RoomCreateEventContent) && newState.TypedContent is RoomCreateEventContent roomCreateContent) {
                         CreationEventContent = roomCreateContent;
                         RoomCreator = newState.Sender;
                     }

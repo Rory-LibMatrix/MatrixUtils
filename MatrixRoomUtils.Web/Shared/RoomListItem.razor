@@ -91,13 +91,15 @@ else {
                         LoadData = false;
                         RoomInfo.StateEvents.Add(new() {
                             Type = "m.room.create",
-                            TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }
+                            TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }, 
+                            RoomId = null, Sender = null, EventId = null //TODO: implement
                         });
                         RoomInfo.StateEvents.Add(new() {
                             Type = "m.room.name",
                             TypedContent = new RoomNameEventContent() {
                                 Name = "M_FORBIDDEN: Are you a member of this room? " + RoomInfo.Room.RoomId
-                            }
+                            },
+                            RoomId = null, Sender = null, EventId = null //TODO: implement
                         });
                     }
                 }

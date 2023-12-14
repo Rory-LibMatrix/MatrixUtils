@@ -1,4 +1,5 @@
 using LibMatrix;
+using LibMatrix.EventTypes;
 using LibMatrix.Interfaces;
 using LibMatrix.Responses;
 using LibMatrix.RoomTypes;
@@ -21,7 +22,9 @@ public class RoomInfo {
         @event = new StateEventResponse {
             RoomId = Room.RoomId,
             Type = type,
-            StateKey = stateKey
+            StateKey = stateKey,
+            Sender = null, //TODO: implement
+            EventId = null
         };
         try {
             @event.TypedContent = await Room.GetStateAsync<EventContent>(type, stateKey);

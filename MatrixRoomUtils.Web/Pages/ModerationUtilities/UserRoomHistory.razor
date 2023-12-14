@@ -91,7 +91,8 @@ else {
                     Type = RoomNameEventContent.EventId,
                     TypedContent = new RoomNameEventContent() {
                         Name = await room.GetNameOrFallbackAsync(4)
-                    }
+                    },
+                    RoomId = null, Sender = null, EventId = null //TODO implement
                 });
                 StateHasChanged();
                 if (mxid != UserId) {

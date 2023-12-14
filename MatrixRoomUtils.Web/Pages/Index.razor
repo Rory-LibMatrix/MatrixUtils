@@ -92,7 +92,7 @@ Small collection of tools to do not-so-everyday things.
                 throw;
             }
             catch (HttpRequestException e) {
-                logger.LogError(e, $"Failed to instantiate AuthenticatedHomeserver for {_auth}, homeserver may be offline?", token.UserId);
+                logger.LogError(e, $"Failed to instantiate AuthenticatedHomeserver for {token.ToJson()}, homeserver may be offline?", token.UserId);
                 return;
             }
             var roomCountTask = hs.GetJoinedRooms();

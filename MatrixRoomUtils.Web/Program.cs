@@ -16,10 +16,15 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-builder.Configuration.AddJsonStream(await new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) }.GetStreamAsync("/appsettings.json"));
+try {
+    builder.Configuration.AddJsonStream(await new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) }.GetStreamAsync("/appsettings.json"));
 #if DEBUG
-builder.Configuration.AddJsonStream(await new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) }.GetStreamAsync("/appsettings.Development.json"));
+    builder.Configuration.AddJsonStream(await new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) }.GetStreamAsync("/appsettings.Development.json"));
 #endif
+}
+catch (Exception e) {
+    Console.WriteLine("Could not load appsettings: " + e);
+}
 
 builder.Services.AddBlazoredLocalStorage(config => {
     config.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;

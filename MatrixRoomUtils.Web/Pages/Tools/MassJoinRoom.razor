@@ -69,7 +69,7 @@
         try {
             try {
                 var joinRule = await room.GetJoinRuleAsync();
-                if (joinRule.JoinRule == "public") return "Room is public, no invite needed";
+                if (joinRule.JoinRule == RoomJoinRulesEventContent.JoinRules.Public) return "Room is public, no invite needed";
             }
             catch { }
             var pls = await room.GetPowerLevelsAsync();

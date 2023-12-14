@@ -4,6 +4,7 @@
 @using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
 @using MatrixRoomUtils.Web.Classes.RoomCreationTemplates
@@ -49,15 +50,15 @@
         <tr>
             <td>Room type:</td>
             <td>
-                @if (creationEvent._creationContentBaseType is null) {
+                @if (creationEvent.CreationContentBaseType is null) {
                     <p style="color: red;">creationEvent._creationContentBaseType is null!</p>
                 }
                 else {
-                    <InputSelect @bind-Value="@creationEvent._creationContentBaseType.Type">
+                    <InputSelect @bind-Value="@creationEvent.CreationContentBaseType.Type">
                         <option value="">Room</option>
                         <option value="m.space">Space</option>
                     </InputSelect>
-                    <FancyTextBox @bind-Value="@creationEvent._creationContentBaseType.Type"></FancyTextBox>
+                    <FancyTextBox @bind-Value="@creationEvent.CreationContentBaseType.Type"></FancyTextBox>
                 }
             </td>
         </tr>

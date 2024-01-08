@@ -4,9 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MatrixRoomUtils.Desktop.Components.NavigationStack">
-    <DockPanel x:Name="dock">
-        <StackPanel x:Name="navPanel"></StackPanel>
-        <UserControl x:Name="content"></UserControl>
-    </DockPanel>
-
+    <StackPanel x:Name="dock">
+        <Label>NagivationStack</Label>
+        <StackPanel x:Name="navPanel" Orientation="Horizontal"></StackPanel>
+        <ContentControl x:Name="content"></ContentControl>
+    </StackPanel>
 </UserControl>

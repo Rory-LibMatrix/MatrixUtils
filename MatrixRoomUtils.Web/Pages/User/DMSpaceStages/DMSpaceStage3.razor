@@ -7,6 +7,8 @@
 @using MatrixRoomUtils.LibDMSpace.StateEvents
 @using ArcaneLibs.Extensions
 @using System.Text.Json.Serialization
+@using MatrixRoomUtils.Abstractions
+
 <b>
     <u>DM Space setup tool - stage 3: Preview space layout</u>
 </b>
@@ -154,9 +156,9 @@ else {
         }
         catch { }
 
-        var membersEnum = room.GetMembersAsync();
+        var membersEnum = room.GetMembersEnumerableAsync(true);
         await foreach (var member in membersEnum)
-            if (member.TypedContent is RoomMemberEventContent memberEvent && !string.IsNullOrWhiteSpace(memberEvent.Membership) && memberEvent.Membership == "join")
+            if (member.TypedContent is RoomMemberEventContent memberEvent)
                 roomMembers.Add(new() { DisplayName = memberEvent.DisplayName, AvatarUrl = memberEvent.AvatarUrl, Id = member.StateKey });
 
         if (string.IsNullOrWhiteSpace(roomInfo.RoomName) || roomInfo.RoomName == room.RoomId) {

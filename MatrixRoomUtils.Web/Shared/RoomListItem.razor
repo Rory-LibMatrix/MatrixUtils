@@ -5,6 +5,7 @@
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
 @using LibMatrix.RoomTypes
+@using MatrixRoomUtils.Abstractions
 @using MatrixRoomUtils.Web.Classes.Constants
 @if (RoomInfo is not null) {
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
@@ -70,12 +71,16 @@ else {
     private bool _loadData = false;
     private static AuthenticatedHomeserverGeneric? hs { get; set; }
 
+    private bool _hooked;
     protected override async Task OnParametersSetAsync() {
         if (RoomInfo != null) {
-            RoomInfo.PropertyChanged += (_, a) => {
-                Console.WriteLine(a.PropertyName);
-                StateHasChanged();
-            };
+            if (!_hooked) {
+                _hooked = true;
+                RoomInfo.PropertyChanged += (_, a) => {
+                    Console.WriteLine(a.PropertyName);
+                    StateHasChanged();
+                };
+            }
 
             if (LoadData) {
                 try {

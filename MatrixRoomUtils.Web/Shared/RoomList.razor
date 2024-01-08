@@ -5,6 +5,7 @@
 @using LibMatrix.EventTypes.Spec.State
 @using System.Collections.ObjectModel
 @using LibMatrix.Responses
+@using MatrixRoomUtils.Abstractions
 @using _Imports = MatrixRoomUtils.Web._Imports
 @if (!StillFetching) {
     <p>Fetching room details... @RoomsWithTypes.Sum(x => x.Value.Count) out of @Rooms.Count done!</p>
@@ -34,18 +35,23 @@ else {
 
     private Dictionary<string, List<RoomInfo>> RoomsWithTypes => Rooms is null ? new() : Rooms.GroupBy(x => GetRoomTypeName(x.CreationEventContent?.Type)).ToDictionary(x => x.Key, x => x.ToList());
 
+    private bool hooked;
     protected override async Task OnParametersSetAsync() {
         var hs = await MRUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        Rooms.CollectionChanged += (_, args) => {
-            foreach (RoomInfo item in args.NewItems) {
-                item.PropertyChanged += (_, args2) => {
-                    Console.WriteLine(args2);
-                    if(args2.PropertyName == nameof(item.CreationEventContent))
-                        StateHasChanged();
-                };
-            }
-        };
+        if (!hooked) {
+            Rooms.CollectionChanged += (_, args) => {
+                foreach (RoomInfo item in args.NewItems) {
+                    item.PropertyChanged += (_, args2) => {
+                        // Console.WriteLine(args2);
+                        
+                        if (args2.PropertyName == nameof(item.CreationEventContent))
+                            StateHasChanged();
+                    };
+                }
+            };
+            hooked = true;
+        }
 
         // GlobalProfile ??= await hs.GetProfileAsync(hs.WhoAmI.UserId);
 
@@ -53,10 +59,10 @@ else {
     }
 
     private string GetRoomTypeName(string? roomType) => roomType switch {
+        null => "Room",
         "m.space" => "Space",
         "msc3588.stories.stories-room" => "Story room",
         "support.feline.policy.lists.msc.v1" => "MSC3784 Policy list (v1)",
-        null => "Room",
         _ => roomType
         };
 
@@ -89,4 +95,3 @@ else {
     // }
 
 }
-

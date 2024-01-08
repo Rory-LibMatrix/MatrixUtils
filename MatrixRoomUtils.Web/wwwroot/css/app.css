@@ -1,8 +1,16 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 @import url('jetbrains-mono/jetbrains-mono.css');
 
+.avatar48 {
+    width: 48px;
+    height: 48px;
+    aspect-ratio: unset;
+    border-radius: 50%;
+}
+
 .details-compact > summary {
-    line-height: 0px;
+    line-height: 0;
+    white-space: nowrap;
 }
 
 .details-compact[open] > summary {

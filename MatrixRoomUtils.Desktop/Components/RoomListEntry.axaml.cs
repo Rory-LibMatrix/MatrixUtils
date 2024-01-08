@@ -7,29 +7,28 @@ using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Helpers;
 using LibMatrix.Interfaces.Services;
 using LibMatrix.Services;
+using MatrixRoomUtils.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MatrixRoomUtils.Desktop.Components;
 
 public partial class RoomListEntry : UserControl {
-    private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly RoomInfo _roomInfo;
+    public RoomInfo Room { get; set; }
 
-    public RoomListEntry(IServiceScopeFactory serviceScopeFactory, RoomInfo roomInfo) {
-        _serviceScopeFactory = serviceScopeFactory;
-        _roomInfo = roomInfo;
+    public RoomListEntry() {
         InitializeComponent();
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        RoomName.Content = _roomInfo.Room.RoomId;
+        RoomName.Content = Room.Room.RoomId;
         Task.WhenAll(GetRoomName(), GetRoomIcon());
     }
 
     private async Task GetRoomName() {
         try {
-            var nameEvent = await _roomInfo.GetStateEvent("m.room.name");
+            var nameEvent = await Room.GetStateEvent("m.room.name");
             if (nameEvent?.TypedContent is RoomNameEventContent nameData)
                 RoomName.Content = nameData.Name;
         }
@@ -41,18 +40,22 @@ public partial class RoomListEntry : UserControl {
 
     private async Task GetRoomIcon() {
         try {
-            var avatarEvent = await _roomInfo.GetStateEvent("m.room.avatar");
+            using var hc = new HttpClient();
+            var avatarEvent = await Room.GetStateEvent("m.room.avatar");
             if (avatarEvent?.TypedContent is RoomAvatarEventContent avatarData) {
                 var mxcUrl = avatarData.Url;
-                await using var svc = _serviceScopeFactory.CreateAsyncScope();
-                var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>()?.GetCurrentSessionOrPrompt()!;
-                var hsResolver = svc.ServiceProvider.GetService<HomeserverResolverService>();
-                var storage = svc.ServiceProvider.GetService<TieredStorageService>()?.CacheStorageProvider;
-                var resolvedUrl = await hsResolver.ResolveMediaUri(hs.ServerName, mxcUrl);
+                var resolvedUrl = await Room.Room.GetResolvedRoomAvatarUrlAsync();
+                
+                // await using var svc = _serviceScopeFactory.CreateAsyncScope();
+                // var hs = await svc.ServiceProvider.GetService<MRUStorageWrapper>()?.GetCurrentSessionOrPrompt()!;
+                // var hsResolver = svc.ServiceProvider.GetService<HomeserverResolverService>();
+                // var storage = svc.ServiceProvider.GetService<TieredStorageService>()?.CacheStorageProvider;
+                // var resolvedUrl = await hsResolver.ResolveMediaUri(hs.ServerName, mxcUrl);
+                var storage = new FileStorageProvider("cache");
                 var storageKey = $"media/{mxcUrl.Replace("mxc://", "").Replace("/", ".")}";
                 try {
                     if (!await storage.ObjectExistsAsync(storageKey))
-                        await storage.SaveStreamAsync(storageKey, await hs.ClientHttpClient.GetStreamAsync(resolvedUrl));
+                        await storage.SaveStreamAsync(storageKey, await hc.GetStreamAsync(resolvedUrl));
 
                     RoomIcon.Source = new Bitmap(await storage.LoadStreamAsync(storageKey) ?? throw new NullReferenceException());
                 }

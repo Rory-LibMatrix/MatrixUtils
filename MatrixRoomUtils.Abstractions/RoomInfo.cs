@@ -4,10 +4,9 @@ using ArcaneLibs;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
-using LibMatrix.Interfaces;
 using LibMatrix.RoomTypes;
 
-namespace MatrixRoomUtils.Web.Classes;
+namespace MatrixRoomUtils.Abstractions;
 
 public class RoomInfo : NotifyPropertyChanged {
     public required GenericRoom Room { get; set; }
@@ -44,7 +43,9 @@ public class RoomInfo : NotifyPropertyChanged {
                 else
                     @event.RawContent = default!;
             }
-            else throw;
+            else {
+                throw;
+            }
         }
 
         StateEvents.Add(@event);
@@ -84,12 +85,12 @@ public class RoomInfo : NotifyPropertyChanged {
     public RoomInfo() {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
-                foreach (StateEventResponse newState in args.NewItems) {
-                    if (newState.GetType == typeof(RoomNameEventContent) && newState.TypedContent is RoomNameEventContent roomNameContent)
+                foreach (StateEventResponse newState in args.NewItems) { // TODO: switch statement benchmark?
+                    if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
                         RoomName = roomNameContent.Name;
-                    else if (newState.GetType == typeof(RoomAvatarEventContent) && newState.TypedContent is RoomAvatarEventContent roomAvatarContent)
+                    else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })
                         RoomIcon = roomAvatarContent.Url;
-                    else if (newState.GetType == typeof(RoomCreateEventContent) && newState.TypedContent is RoomCreateEventContent roomCreateContent) {
+                    else if (newState is { Type: RoomCreateEventContent.EventId, TypedContent: RoomCreateEventContent roomCreateContent }) {
                         CreationEventContent = roomCreateContent;
                         RoomCreator = newState.Sender;
                     }

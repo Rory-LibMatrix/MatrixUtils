@@ -1,3 +1,4 @@
+using Avalonia;
 using LibMatrix;
 using LibMatrix.Homeservers;
 using LibMatrix.Responses;
@@ -74,8 +75,11 @@ public class MRUStorageWrapper(TieredStorageService storageService, HomeserverPr
         if (session is null) {
             // _navigationManager.NavigateTo("/Login");
             var wnd = new LoginWindow(this);
+            wnd.Position = MainWindow.Instance.Position + new PixelPoint(50, 50);
             await wnd.ShowDialog(MainWindow.Instance);
-            while (wnd.IsVisible) await Task.Delay(100);
+            while (wnd.IsVisible) {
+                await Task.Delay(100);
+            }
             session = await GetCurrentSession();
         }
 

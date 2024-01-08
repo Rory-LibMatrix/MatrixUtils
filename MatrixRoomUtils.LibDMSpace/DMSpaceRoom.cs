@@ -24,7 +24,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
     }
 
     public async Task<EventIdResponse> AddChildAsync(GenericRoom room) {
-        var members = room.GetMembersAsync(true);
+        var members = room.GetMembersEnumerableAsync(true);
         Dictionary<string, int> memberCountByHs = new();
         await foreach (var member in members) {
             var server = member.StateKey.Split(':')[1];
@@ -61,12 +61,12 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
                     }
                 };
                 // Add all DM room members
-                var members = homeserver.GetRoom(roomid).GetMembersAsync();
+                var members = homeserver.GetRoom(roomid).GetMembersEnumerableAsync();
                 await foreach (var member in members)
                     if (member.StateKey != userId)
                         dri.RemoteUsers.Add(member.StateKey);
                 // Remove members of DM space
-                members = GetMembersAsync();
+                members = GetMembersEnumerableAsync();
                 await foreach (var member in members)
                     if (dri.RemoteUsers.Contains(member.StateKey))
                         dri.RemoteUsers.Remove(member.StateKey);

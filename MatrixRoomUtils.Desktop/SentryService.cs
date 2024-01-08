@@ -6,7 +6,7 @@ namespace MatrixRoomUtils.Desktop;
 
 public class SentryService : IDisposable {
     private IDisposable? _sentrySdkDisposable;
-    public SentryService(IServiceScopeFactory scopeFactory, ILogger logger) {
+    public SentryService(IServiceScopeFactory scopeFactory, ILogger<SentryService> logger) {
         var config = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<MRUDesktopConfiguration>();
         if (config.SentryDsn is null) {
             logger.LogWarning("Sentry DSN is not set, skipping Sentry initialisation");

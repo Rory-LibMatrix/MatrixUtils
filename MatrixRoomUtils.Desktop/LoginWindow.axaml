@@ -4,14 +4,22 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:desktop="clr-namespace:MatrixRoomUtils.Desktop"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="MatrixRoomUtils.Desktop.LoginWindow"
         Title="LoginWindow"
+        x:Class="MatrixRoomUtils.Desktop.LoginWindow"
         x:DataType="desktop:LoginWindow"
         DataContext="{Binding $self}"
-        >
+        SizeToContent="WidthAndHeight" CanResize="False"
+        MinWidth="250">
     <StackPanel>
-        <TextBox Text="{Binding Username, Mode=TwoWay}" />
-        <MaskedTextBox PasswordChar="*" Text="{Binding Password, Mode=TwoWay}" />
+        <Label>Log in</Label>
+        <StackPanel Orientation="Horizontal">
+            <Label Width="100">User ID</Label>
+            <TextBox MinWidth="250" Text="{Binding Username, Mode=TwoWay}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label Width="100">Password</Label>
+            <MaskedTextBox MinWidth="250" PasswordChar="*" Text="{Binding Password, Mode=TwoWay}" />
+        </StackPanel>
         <Button Click="Login">Login</Button>
     </StackPanel>
 </Window>

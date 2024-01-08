@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using LibMatrix.Services;
+using MatrixRoomUtils.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -9,10 +11,6 @@ namespace MatrixRoomUtils.Desktop;
 
 public partial class App : Application {
     public IHost host { get; set; }
-
-    public override void Initialize() {
-        AvaloniaXamlLoader.Load(this);
-    }
 
     public override void OnFrameworkInitializationCompleted() {
         host = Host.CreateDefaultBuilder().ConfigureServices((ctx, services) => {
@@ -42,6 +40,10 @@ public partial class App : Application {
             var scope = scopeFac.CreateScope();
             desktop.MainWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
         }
+        
+        if(Environment.GetEnvironmentVariable("AVALONIA_THEME")?.Equals("dark", StringComparison.OrdinalIgnoreCase) ?? false)
+            RequestedThemeVariant = ThemeVariant.Dark;
+        
         base.OnFrameworkInitializationCompleted();
     }
 }

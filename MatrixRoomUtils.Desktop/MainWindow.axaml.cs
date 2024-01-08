@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using MatrixRoomUtils.Abstractions;
+using MatrixRoomUtils.Desktop.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +28,6 @@ public partial class MainWindow : Window {
         _logger.LogInformation("Cache location: {}", _configuration.CacheStoragePath);
         _logger.LogInformation("Data location: {}", _configuration.DataStoragePath);
 
-
         // for (int i = 0; i < 100; i++) {
         // roomList.Children.Add(new RoomListEntry());
         // }
@@ -39,8 +40,14 @@ public partial class MainWindow : Window {
         var rooms = await hs.GetJoinedRooms();
         foreach (var room in rooms) {
             // roomList.Children.Add(new RoomListEntry(_scopeFactory, new RoomInfo(room)));
+
+            windowContent.Push("home", new RoomListEntry() {
+                Room = new RoomInfo() {
+                    Room = room
+                }
+            });
+            base.OnLoaded(e);
         }
-        base.OnLoaded(e);
     }
 
     // public Command

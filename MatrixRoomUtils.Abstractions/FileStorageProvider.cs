@@ -5,7 +5,7 @@ using LibMatrix.Extensions;
 using LibMatrix.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
-namespace MatrixRoomUtils.Desktop;
+namespace MatrixRoomUtils.Abstractions;
 
 public class FileStorageProvider : IStorageProvider {
     private readonly ILogger<FileStorageProvider> _logger;
@@ -17,7 +17,7 @@ public class FileStorageProvider : IStorageProvider {
     /// </summary>
     /// <param name="targetPath"></param>
     public FileStorageProvider(string targetPath) {
-        new Logger<FileStorageProvider>(new LoggerFactory()).LogInformation("test");
+        // new Logger<FileStorageProvider>(new LoggerFactory()).LogInformation("test");
         Console.WriteLine($"Initialised FileStorageProvider with path {targetPath}");
         TargetPath = targetPath;
         if (!Directory.Exists(targetPath)) {

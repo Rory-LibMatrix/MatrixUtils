@@ -1,6 +1,7 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/SourceGeneratedFilesToSkip/=MatrixRoomUtils_002EDesktop_005CAvalonia_002EGenerators_002FAvalonia_002EGenerators_002ENameGenerator_002EAvaloniaNameSourceGenerator_002FMatrixRoomUtils_002EDesktop_002EComponents_002ENavigationStack_002Eg_002Ecs/@EntryIndexedValue">ExplicitlyExcluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/SourceGeneratedFilesToSkip/=MatrixRoomUtils_002EDesktop_005CAvalonia_002EGenerators_002FAvalonia_002EGenerators_002ENameGenerator_002EAvaloniaNameSourceGenerator_002FMatrixRoomUtils_002EDesktop_002EComponents_002ERoomListEntry_002Eg_002Ecs/@EntryIndexedValue">ExplicitlyExcluded</s:String>
+	
 	<s:String x:Key="/Default/CodeInspection/Highlighting/SweaWarningsMode/@EntryValue">DoNotShowAndRun</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=eac3956f_002D7f23_002D4a95_002Dbcf9_002Dc3bb0c1010f5/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from Solution" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Solution /&gt;

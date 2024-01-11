@@ -1,0 +1,92 @@
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using System.Reflection
+@using ArcaneLibs.Attributes
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using System.Collections.Frozen
+@using LibMatrix.EventTypes
+<ModalWindow Title="@((string.IsNullOrWhiteSpace(PolicyEvent.EventId) ? "Creating new " : "Editing ") + (PolicyEvent.MappedType.GetFriendlyNameOrNull()?.ToLower() ?? "event"))"
+             OnCloseClicked="@OnClose" X="60" Y="60" MinWidth="300">
+    @{
+        var policyData = (PolicyEvent.TypedContent as PolicyRuleEventContent)!;
+    }
+    @if (string.IsNullOrWhiteSpace(PolicyEvent.EventId)) {
+        <span>Policy type:</span>
+        <select @bind="@PolicyEvent.Type">
+            <option>Select a value</option>
+            @foreach (var (type, mappedType) in PolicyTypes) {
+                <option value="@type">@mappedType.GetFriendlyName().ToLower()</option>
+            }
+        </select>
+    }
+
+
+    @{
+        // enumerate all properties with friendly name
+        var props = PolicyEvent.MappedType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(x => (x.GetFriendlyNameOrNull() ?? x.GetJsonPropertyNameOrNull()) is not null)
+            .Where(x => x.GetCustomAttribute<TableHideAttribute>() is null)
+            .ToFrozenSet();
+        var propNames = props.Select(x => x.GetFriendlyNameOrNull() ?? x.GetJsonPropertyName()!).ToFrozenSet();
+    }
+    <table>
+        <thead style="border-bottom: solid #ffffff44 1px;">
+            <tr>
+                <th>Property</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var prop in props) {
+                <tr>
+                    <td style="padding-right: 8px;">
+                        <span>@prop.GetFriendlyName()</span>
+                        @if (Nullable.GetUnderlyingType(prop.PropertyType) is not null) {
+                            <span style="color: red;">*</span>
+                        }
+                    </td>
+                    @{
+                        var getter = prop.GetGetMethod();
+                        var setter = prop.GetSetMethod();
+                    }
+                    @switch (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) {
+                        case Type t when t == typeof(string):
+                            <FancyTextBox Value="@(getter?.Invoke(policyData, null) as string)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(policyData, [e]); StateHasChanged(); })"></FancyTextBox>
+                            break;
+                        default:
+                            <p style="color: red;">Unsupported type: @prop.PropertyType</p>
+                            break;
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br/>
+    <pre>
+        @PolicyEvent.ToJson(true, false)
+    </pre>
+    <LinkButton OnClick="@(() => { OnClose.Invoke(); return Task.CompletedTask; })">Cancel</LinkButton>
+    <LinkButton OnClick="@(() => { OnSave.Invoke(PolicyEvent); return Task.CompletedTask; })">Save</LinkButton>
+    @* <span>Target entity: </span> *@
+    @* <FancyTextBox @bind-Value="@policyData.Entity"></FancyTextBox><br/> *@
+    @* <span>Reason: </span> *@
+    @* <FancyTextBox @bind-Value="@policyData.Reason"></FancyTextBox> *@
+</ModalWindow>
+
+@code {
+
+    [Parameter]
+    public StateEventResponse? PolicyEvent { get; set; }
+
+    [Parameter]
+    public required Action OnClose { get; set; }
+    
+    [Parameter]
+    public required Action<StateEventResponse> OnSave { get; set; }
+
+    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+
+    private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
+        .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
+
+}

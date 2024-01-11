@@ -50,6 +50,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.EventTypes", "Lib
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Abstractions", "MatrixRoomUtils.Abstractions\MatrixRoomUtils.Abstractions.csproj", "{FE20ED20-0D55-4D74-822B-E2AC7A54C487}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLIRainbow", "CLIRainbow\CLIRainbow.csproj", "{D237350C-C1BB-4E67-B3D5-066889E1FB8B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -132,6 +134,10 @@ Global
 		{FE20ED20-0D55-4D74-822B-E2AC7A54C487}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE20ED20-0D55-4D74-822B-E2AC7A54C487}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE20ED20-0D55-4D74-822B-E2AC7A54C487}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D237350C-C1BB-4E67-B3D5-066889E1FB8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D237350C-C1BB-4E67-B3D5-066889E1FB8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D237350C-C1BB-4E67-B3D5-066889E1FB8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D237350C-C1BB-4E67-B3D5-066889E1FB8B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F4E241C3-0300-4B87-8707-BCBDEF1F0185} = {8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}

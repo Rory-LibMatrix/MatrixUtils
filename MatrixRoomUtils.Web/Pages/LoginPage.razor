@@ -1,36 +1,50 @@
 @page "/Login"
 @using System.Text.Json
+@using System.Text.Json.Serialization
+@using LibMatrix
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 <h3>Login</h3>
 <hr/>
 
-<span>
+<span style="display: block;">
+    <label>User ID:</label>
     <span>@@</span><!--
     --><FancyTextBox @bind-Value="@newRecordInput.Username"></FancyTextBox><!--
     --><span>:</span><!--
     --><FancyTextBox @bind-Value="@newRecordInput.Homeserver"></FancyTextBox>
-    via
-    <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
 </span>
 <span style="display: block;">
     <label>Password:</label>
     <FancyTextBox @bind-Value="@newRecordInput.Password" IsPassword="true"></FancyTextBox>
 </span>
-<button @onclick="AddRecord">Add account to queue</button>
+<span style="display: block">
+    <label>Proxy (<a href="https://cgit.rory.gay/matrix/MxApiExtensions.git">MxApiExtensions</a> or similar):</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
+</span>
+<br/>
+<LinkButton OnClick="@AddRecord">Add account to queue</LinkButton>
+<LinkButton OnClick="@(() => Login(newRecordInput))">Log in</LinkButton>
+<br/>
 <br/>
 
+<h4>Import from TSV</h4>
+<hr/>
+<span>Import credentials from a TSV (Tab Separated Values) file</span><br/>
+<span>Columns: username, homeserver, password, proxy</span><br/>
+<span>Keep in mind there is no column header!</span><br/>
+<br/>
 <InputFile OnChange="@FileChanged" accept=".tsv"></InputFile>
 <br/>
-<br/><br/>
-<h4>Parsed records</h4>
-<hr/>
+<br/>
+
 <table border="1">
-    <thead>
-        <td>Username</td>
-        <td>Homeserver</td>
-        <td>Password</td>
-        <td>Proxy</td>
+    <thead style="border-bottom: 1px solid white;">
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Username</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Homeserver</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Password</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Proxy</th>
+        <th style="min-width: 150px; text-align: center;">Actions</th>
     </thead>
     @foreach (var record in records) {
         var r = record;
@@ -47,16 +61,28 @@
             <td style="border-width: 1px;">
                 <FancyTextBox @bind-Value="@r.Proxy"></FancyTextBox>
             </td>
-            <td>
+            <td style="border-width: 1px;">
                 <a role="button" @onclick="() => records.Remove(r)">Remove</a>
             </td>
         </tr>
+        @if (r.Exception is MatrixException me) {
+            <tr>
+                <td style="border-width: 1px;">Exception:</td>
+                <td style="border-width: 1px;">@me.ErrorCode</td>
+                <td style="border-width: 1px;" colspan="3">@me.Error</td>
+            </tr>
+        }
+        else if (r.Exception is { } e) {
+            <tr>
+                <td style="border-width: 1px;">Exception:</td>
+                <td style="border-width: 1px;" colspan="4">@e.Message</td>
+            </tr>
+        }
     }
 </table>
 <br/>
-<button @onclick="Login">Login</button>
-<br/>
-<LogView></LogView>
+<LinkButton OnClick="@LoginAll">Log in</LinkButton>
+
 
 @code {
     readonly List<LoginStruct> records = new();
@@ -64,29 +90,37 @@
 
     List<UserAuth>? LoggedInSessions { get; set; } = new();
 
-    async Task Login() {
-        var loginTasks = records.Select(async record => {
-            if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
-            try {
-                var result = new UserAuth(await hsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
-                    Proxy = record.Proxy
-                };
-                if (result == null) {
-                    Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
-                    return;
-                }
-                Console.WriteLine($"Obtained access token for {result.UserId}!");
-
-                await MRUStorage.AddToken(result);
-                LoggedInSessions = await MRUStorage.GetAllTokens();
-            }
-            catch (Exception e) {
-                Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
-                Console.WriteLine(e);
-            }
-            StateHasChanged();
-        });
+    async Task LoginAll() {
+        var loginTasks = records.Select(Login);
         await Task.WhenAll(loginTasks);
+    }
+
+    async Task Login(LoginStruct record) {
+        if (!records.Contains(record)) 
+            records.Add(record);
+        if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
+        StateHasChanged();
+        try {
+            var result = new UserAuth(await hsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
+                Proxy = record.Proxy
+            };
+            if (result == null) {
+                Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+                return;
+            }
+
+            Console.WriteLine($"Obtained access token for {result.UserId}!");
+
+            await MRUStorage.AddToken(result);
+            LoggedInSessions = await MRUStorage.GetAllTokens();
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+            Console.WriteLine(e);
+            record.Exception = e;
+        }
+
+        StateHasChanged();
     }
 
     private async Task FileChanged(InputFileChangeEventArgs obj) {
@@ -118,6 +152,9 @@
         public string? Username { get; set; } = "";
         public string? Password { get; set; } = "";
         public string? Proxy { get; set; }
+        
+        [JsonIgnore]
+        internal Exception? Exception { get; set; }
     }
 
 }

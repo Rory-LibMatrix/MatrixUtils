@@ -121,7 +121,7 @@ Small collection of tools to do not-so-everyday things.
                 return;
 
             }
-            catch (HttpRequestException e) {
+            catch (Exception e) {
                 logger.LogError(e, $"Failed to instantiate AuthenticatedHomeserver for {token.ToJson()}, homeserver may be offline?", token.UserId);
                 _offlineSessions.Add(token);
                 return;
@@ -140,7 +140,7 @@ Small collection of tools to do not-so-everyday things.
                     DisplayName = profile.DisplayName ?? hs.WhoAmI.UserId
                 },
                 UserAuth = token,
-                ServerVersion = await hs.GetServerVersionAsync(),
+                ServerVersion = await (hs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null)),
                 Homeserver = hs
             });
         });

@@ -80,7 +80,7 @@
     protected override async Task OnParametersSetAsync() {
         if (Homeserver is not null) {
             var rhs = await hsProvider.GetRemoteHomeserver(Homeserver);
-            ServerVersionResponse = await rhs.GetServerVersionAsync();
+            ServerVersionResponse = await (rhs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null));
             ClientVersionsResponse = await rhs.GetClientVersionsAsync();
         }
         base.OnParametersSetAsync();

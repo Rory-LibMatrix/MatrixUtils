@@ -1,3 +1,5 @@
+root = true
+
 [*]
 charset = utf-8
 end_of_line = lf
@@ -1795,3 +1797,9 @@ resharper_zero_index_from_end_highlighting = warning
 
 # ReSharper properties
 resharper_csharp_int_align_comments = true
+
+[*.html]
+indent_size = 4
+tab_width = 4
+indent_style = space
+ij_html_do_not_indent_children_of_tags = 

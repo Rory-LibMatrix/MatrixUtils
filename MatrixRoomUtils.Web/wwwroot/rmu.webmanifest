@@ -1,16 +1,22 @@
 {
   "name": "Rory&::MatrixUtils",
-  "short_name": "MRU",
+  "short_name": "RMU",
   "description": "A collection of Matrix utilities.",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ],
-  "start_url": "/index.html",
-  "display": "fullscreen",
+  "start_url": "./",
+  "id": "./",
+  "display": "minimal-ui",
   "theme_color": "#052767",
   "background_color": "#3A0647"
 }

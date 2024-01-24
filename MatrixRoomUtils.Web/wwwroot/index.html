@@ -1,63 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-    <title>MatrixRoomUtils.Web</title>
-    <base href="/"/>
-    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
-    <link href="css/app.css" rel="stylesheet"/>
-    <link href="favicon.png" rel="icon" type="image/png"/>
-    <link href="MatrixRoomUtils.Web.styles.css" rel="stylesheet"/>
-    <link rel="manifest" href="mru.webmanifest" />
-</head>
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+        <title>MatrixUtils.Web</title>
+        <base href="/"/>
+        <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet"/>
+        <link href="css/app.css" rel="stylesheet"/>
+        <link rel="manifest" href="rmu.webmanifest"/>
+        <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png"/>
+        <link href="favicon.png" rel="icon" type="image/png"/>
+        <link href="MatrixUtils.Web.styles.css" rel="stylesheet"/>
+    </head>
 
-<body>
-<div id="app">
-    <svg class="loading-progress">
-        <circle cx="50%" cy="50%" r="40%"/>
-        <circle cx="50%" cy="50%" r="40%"/>
-    </svg>
-    <div class="loading-progress-text"></div>
-</div>
+    <body>
+        <div id="app">
+            <svg class="loading-progress">
+                <circle cx="50%" cy="50%" r="40%"/>
+                <circle cx="50%" cy="50%" r="40%"/>
+            </svg>
+            <div class="loading-progress-text"></div>
+        </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a class="reload" href="">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
-<script>
-    function BlazorFocusElement(element) {
-        if (element == null) return;
-        if (element instanceof HTMLElement) {
-            console.log(element);
-            element.focus();
-        } else if (element.hasOwnProperty("__internalId")) {
-            console.log("Element is not an HTMLElement", element);
-        }
-    }
+        <div id="blazor-error-ui">
+            An unhandled error has occurred.
+            <a class="reload" href="">Reload</a>
+            <a class="dismiss">🗙</a>
+        </div>
+        <script>
+            function BlazorFocusElement(element) {
+                if (element == null) return;
+                if (element instanceof HTMLElement) {
+                    console.log(element);
+                    element.focus();
+                } else if (element.hasOwnProperty("__internalId")) {
+                    console.log("Element is not an HTMLElement", element);
+                }
+            }
 
-    function getWidth(element) {
-        console.log("getWidth", element);
-        if (element == null) return 0;
-        if (element instanceof HTMLElement) {
-            return element.offsetWidth
-        } else if (element.hasOwnProperty("__internalId")) {
-            console.log("Element is not an HTMLElement", element);
-            return 0;
-        }
-        return 0;
-    }
+            function getWidth(element) {
+                console.log("getWidth", element);
+                if (element == null) return 0;
+                if (element instanceof HTMLElement) {
+                    return element.offsetWidth
+                } else if (element.hasOwnProperty("__internalId")) {
+                    console.log("Element is not an HTMLElement", element);
+                    return 0;
+                }
+                return 0;
+            }
 
-    function getWindowDimensions() {
-        return {
-            width: window.innerWidth,
-            height: window.innerHeight
-        };
-    }
-</script>
-<script src="_framework/blazor.webassembly.js"></script>
-</body>
+            function getWindowDimensions() {
+                return {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                };
+            }
+        </script>
+        <script src="_framework/blazor.webassembly.js"></script>
+        <script>navigator.serviceWorker.register('service-worker.js');</script>
+    </body>
 
 </html>

@@ -1,10 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Web", "MatrixRoomUtils.Web\MatrixRoomUtils.Web.csproj", "{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Web", "MatrixUtils.Web\MatrixUtils.Web.csproj", "{D38DA95D-DD83-4340-96A4-6F59FC6AE3D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Web.Server", "MatrixRoomUtils.Web.Server\MatrixRoomUtils.Web.Server.csproj", "{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Web.Server", "MatrixUtils.Web.Server\MatrixUtils.Web.Server.csproj", "{F997F26F-2EC1-4D18-B3DD-C46FB2AD65C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Desktop", "MatrixRoomUtils.Desktop\MatrixRoomUtils.Desktop.csproj", "{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Desktop", "MatrixUtils.Desktop\MatrixUtils.Desktop.csproj", "{27C08A4F-5AF0-4C2C-AFCB-050E3388C116}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LibMatrix", "LibMatrix", "{8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}"
 EndProject
@@ -44,11 +44,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.Tests", "LibMatri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDataGenerator", "LibMatrix\Tests\TestDataGenerator\TestDataGenerator.csproj", "{F3312DE9-4335-4E85-A4CF-2616427A651E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.LibDMSpace", "MatrixRoomUtils.LibDMSpace\MatrixRoomUtils.LibDMSpace.csproj", "{EDD2FBAB-2DEC-4527-AE9C-20E21D0D6B14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.LibDMSpace", "MatrixUtils.LibDMSpace\MatrixUtils.LibDMSpace.csproj", "{EDD2FBAB-2DEC-4527-AE9C-20E21D0D6B14}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.EventTypes", "LibMatrix\LibMatrix.EventTypes\LibMatrix.EventTypes.csproj", "{1CAA2B6D-0365-4C8B-96EE-26026514FEE2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixRoomUtils.Abstractions", "MatrixRoomUtils.Abstractions\MatrixRoomUtils.Abstractions.csproj", "{FE20ED20-0D55-4D74-822B-E2AC7A54C487}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Abstractions", "MatrixUtils.Abstractions\MatrixUtils.Abstractions.csproj", "{FE20ED20-0D55-4D74-822B-E2AC7A54C487}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.JsonSerializerContextGenerator", "LibMatrix\Utilities\LibMatrix.JsonSerializerContextGenerator\LibMatrix.JsonSerializerContextGenerator.csproj", "{CC836863-0EE8-44BD-BF39-45076F57C416}"
 EndProject

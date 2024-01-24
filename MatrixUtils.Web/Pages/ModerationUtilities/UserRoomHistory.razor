@@ -1,0 +1,115 @@
+@page "/UserRoomHistory/{UserId}"
+@using LibMatrix.Homeservers
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.RoomTypes
+@using ArcaneLibs.Extensions
+@using MatrixUtils.Abstractions
+<h3>UserRoomHistory</h3>
+
+<span>Enter mxid: </span>
+<FancyTextBox @bind-Value="@UserId"></FancyTextBox>
+
+@if (string.IsNullOrWhiteSpace(UserId)) {
+    <p>UserId is null!</p>
+}
+else {
+    <p>Checked @checkedRooms.Count so far...</p>
+    @if (currentHs is not null) {
+        <p>Checking rooms from @currentHs.UserId's perspective</p>
+    }
+    else if (checkedRooms.Count > 1) {
+        <p>Done!</p>
+    }
+    @foreach (var (state, rooms) in matchingStates) {
+        <u>@state</u>
+        <br/>
+        @foreach (var roomInfo in rooms) {
+            <RoomListItem RoomInfo="roomInfo" LoadData="true"></RoomListItem>
+        }
+    }
+}
+
+@code {
+    private string? _userId;
+
+    [Parameter]
+    public string? UserId {
+        get => _userId;
+        set {
+            _userId = value;
+            FindMember(value);
+        }
+    }
+
+    private List<AuthenticatedHomeserverGeneric> hss = new();
+    private AuthenticatedHomeserverGeneric? currentHs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var sessions = await RMUStorage.GetAllTokens();
+        foreach (var userAuth in sessions) {
+            var session = await RMUStorage.GetSession(userAuth);
+            if (session is not null) {
+                hss.Add(session);
+                StateHasChanged();
+            }
+        }
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+        if (!string.IsNullOrWhiteSpace(UserId)) FindMember(UserId);
+    }
+
+    public Dictionary<string, List<RoomInfo>> matchingStates = new();
+    public List<string> checkedRooms = new();
+    private SemaphoreSlim _semaphoreSlim = new(1, 1);
+
+    public async Task FindMember(string mxid) {
+        await _semaphoreSlim.WaitAsync();
+        if (mxid != UserId) {
+            _semaphoreSlim.Release();
+            return; //abort if changed
+        }
+        matchingStates.Clear();
+        foreach (var homeserver in hss) {
+            currentHs = homeserver;
+            var rooms = await homeserver.GetJoinedRooms();
+            rooms.RemoveAll(x => checkedRooms.Contains(x.RoomId));
+            checkedRooms.AddRange(rooms.Select(x => x.RoomId));
+            var tasks = rooms.Select(x => GetMembershipAsync(x, mxid)).ToAsyncEnumerable();
+            await foreach (var (room, state) in tasks) {
+                if (state is null) continue;
+                if (!matchingStates.ContainsKey(state.Membership))
+                    matchingStates.Add(state.Membership, new());
+                var roomInfo = new RoomInfo() {
+                    Room = room
+                };
+                matchingStates[state.Membership].Add(roomInfo);
+                roomInfo.StateEvents.Add(new() {
+                    Type = RoomNameEventContent.EventId,
+                    TypedContent = new RoomNameEventContent() {
+                        Name = await room.GetNameOrFallbackAsync(4)
+                    },
+                    RoomId = null, Sender = null, EventId = null //TODO implement
+                });
+                StateHasChanged();
+                if (mxid != UserId) {
+                    _semaphoreSlim.Release();
+                    return; //abort if changed
+                }
+            }
+            StateHasChanged();
+        }
+        currentHs = null;
+        StateHasChanged();
+        _semaphoreSlim.Release();
+    }
+
+    public async Task<(GenericRoom roomId, RoomMemberEventContent? content)> GetMembershipAsync(GenericRoom room, string mxid) {
+        return (room, await room.GetStateOrNullAsync<RoomMemberEventContent>(RoomMemberEventContent.EventId, mxid));
+    }
+
+}

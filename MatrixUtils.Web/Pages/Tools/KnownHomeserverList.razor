@@ -1,0 +1,54 @@
+@page "/Tools/KnownHomeserverList"
+@using System.Diagnostics
+@using ArcaneLibs.Extensions
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+<h3>Known Homeserver List</h3>
+<hr/>
+
+@if (!IsFinished) {
+    <p>
+        <b>Loading...</b>
+    </p>
+}
+
+@foreach (var (homeserver, members) in counts.OrderByDescending(x => x.Value)) {
+    <p>@homeserver - @members</p>
+}
+<hr/>
+
+@code {
+    Dictionary<string, List<string>> homeservers { get; set; } = new();
+    Dictionary<string, int> counts { get; set; } = new();
+    // List<HomeserverInfo> Homeservers = new();
+    bool IsFinished { get; set; }
+    // HomeserverInfoQueryProgress QueryProgress { get; set; } = new();
+    AuthenticatedHomeserverGeneric? hs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var fetchTasks = (await hs.GetJoinedRooms()).Select(x=>x.GetMembersByHomeserverAsync()).ToAsyncEnumerable();
+        await foreach (var result in fetchTasks) {
+            foreach (var (resHomeserver, resMembers) in result) {
+                if (!homeservers.TryAdd(resHomeserver, resMembers)) {
+                    homeservers[resHomeserver].AddRange(resMembers);
+                }
+                counts[resHomeserver] = homeservers[resHomeserver].Count;
+            }
+            // StateHasChanged();
+            // await Task.Delay(250);
+        }
+
+        foreach (var resHomeserver in homeservers.Keys) {
+            homeservers[resHomeserver] = homeservers[resHomeserver].Distinct().ToList();
+            counts[resHomeserver] = homeservers[resHomeserver].Count;
+        }
+
+        IsFinished = true;
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+}

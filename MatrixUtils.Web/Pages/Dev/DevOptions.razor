@@ -1,0 +1,71 @@
+﻿@page "/Dev/Options"
+@using ArcaneLibs.Extensions
+@using System.Text.Unicode
+@using System.Text
+@using System.Text.Json
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Developer options</PageTitle>
+
+<h3>Rory&::MatrixUtils - Developer options</h3>
+<hr/>
+
+<p>
+    <span>Import local storage: </span>
+    <InputFile OnChange="ImportLocalStorage"></InputFile>
+</p>
+<p>
+    <span>Export local storage: </span>
+    <button @onclick="@ExportLocalStorage">Export</button>
+</p>
+
+@if (userSettings is not null) {
+    <InputCheckbox @bind-Value="@userSettings.DeveloperSettings.EnableLogViewers" @oninput="@LogStuff"></InputCheckbox>
+    <label> Enable log views</label>
+    <br/>
+    <InputCheckbox @bind-Value="@userSettings.DeveloperSettings.EnableConsoleLogging" @oninput="@LogStuff"></InputCheckbox>
+    <label> Enable console logging</label>
+    <br/>
+    <InputCheckbox @bind-Value="@userSettings.DeveloperSettings.EnablePortableDevtools" @oninput="@LogStuff"></InputCheckbox>
+    <label> Enable portable devtools</label>
+    <br/>
+}
+<br/>
+
+@code {
+
+    private RMUStorageWrapper.Settings? userSettings { get; set; }
+    protected override async Task OnInitializedAsync() {
+        // userSettings = await TieredStorage.DataStorageProvider.LoadObjectAsync<RMUStorageWrapper.Settings>("rmu.settings");
+        
+        await base.OnInitializedAsync();
+    }
+
+    private async Task LogStuff() {
+        await Task.Delay(100);
+        Console.WriteLine($"Settings: {userSettings.ToJson()}");
+        await TieredStorage.DataStorageProvider.SaveObjectAsync("rmu.settings", userSettings);
+    }
+
+    private async Task ExportLocalStorage() {
+        var keys = await TieredStorage.DataStorageProvider.GetAllKeysAsync();
+        var data = new Dictionary<string, object>();
+        foreach (var key in keys) {
+            data.Add(key, await TieredStorage.DataStorageProvider.LoadObjectAsync<object>(key));
+        }
+        var dataUri = "data:application/json;base64,";
+        dataUri += Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(data))); 
+        await JSRuntime.InvokeVoidAsync("window.open", dataUri, "_blank");
+    }
+
+    private async Task ImportLocalStorage(InputFileChangeEventArgs obj) {
+        if (obj.FileCount != 1) return;
+        var data = await JsonSerializer.DeserializeAsync<Dictionary<string, object>>(obj.File.OpenReadStream());
+        foreach (var (key, value) in data) {
+            await TieredStorage.DataStorageProvider.SaveObjectAsync(key, value);
+        }
+        NavigationManager.NavigateTo(NavigationManager.Uri, true, true);
+    }
+
+}

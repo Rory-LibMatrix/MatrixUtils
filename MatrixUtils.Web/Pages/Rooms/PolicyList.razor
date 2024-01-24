@@ -1,0 +1,267 @@
+@page "/Rooms/{RoomId}/Policies"
+@using LibMatrix
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using System.Diagnostics
+@using LibMatrix.RoomTypes
+@using System.Collections.Frozen
+@using System.Reflection
+@using ArcaneLibs.Attributes
+@using LibMatrix.EventTypes
+
+@using MatrixUtils.Web.Shared.PolicyEditorComponents
+
+<h3>Policy list editor - Editing @RoomId</h3>
+<hr/>
+@* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
+<LinkButton OnClick="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
+
+@if (Loading) {
+    <p>Loading...</p>
+}
+else if (PolicyEventsByType is not { Count: > 0 }) {
+    <p>No policies yet</p>
+}
+else {
+    @foreach (var (type, value) in PolicyEventsByType) {
+        <p>
+            @(GetValidPolicyEventsByType(type).Count) active,
+            @(GetInvalidPolicyEventsByType(type).Count) invalid
+            (@value.Count total)
+            @(GetPolicyTypeName(type).ToLower())
+        </p>
+    }
+
+    @foreach (var type in KnownPolicyTypes.OrderByDescending(t => GetPolicyEventsByType(t).Count)) {
+        <details>
+            <summary>
+                <span>
+                    @($"{GetPolicyTypeName(type)}: {GetPolicyEventsByType(type).Count} policies")
+                </span>
+                <hr style="margin: revert;"/>
+            </summary>
+            <table class="table table-striped table-hover" style="width: fit-content; border-width: 1px; vertical-align: middle;">
+                @{
+                    var policies = GetValidPolicyEventsByType(type);
+                    var invalidPolicies = GetInvalidPolicyEventsByType(type);
+                    // enumerate all properties with friendly name
+                    var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(x => (x.GetFriendlyNameOrNull() ?? x.GetJsonPropertyNameOrNull()) is not null)
+                        .Where(x => x.GetCustomAttribute<TableHideAttribute>() is null)
+                        .ToFrozenSet();
+                    var propNames = props.Select(x => x.GetFriendlyNameOrNull() ?? x.GetJsonPropertyName()!).ToFrozenSet();
+                }
+                <thead>
+                    <tr>
+                        @foreach (var name in propNames) {
+                            <th style="border-width: 1px">@name</th>
+                        }
+                        <th style="border-width: 1px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody style="border-width: 1px;">
+                    @foreach (var policy in policies.OrderBy(x => x.RawContent?["entity"]?.GetValue<string>())) {
+                        <tr>
+                            @{
+                                var typedContent = policy.TypedContent!;
+                                var proxySafeProps = typedContent.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(x => props.Any(y => y.Name == x.Name))
+                                    .ToFrozenSet();
+                                Console.WriteLine($"{proxySafeProps?.Count} proxy safe props found in {policies.FirstOrDefault()?.TypedContent?.GetType()}");
+                            }
+                            @foreach (var prop in proxySafeProps ?? Enumerable.Empty<PropertyInfo>()) {
+                                <td>@prop.GetGetMethod()?.Invoke(typedContent, null)</td>
+                            }
+                            <td>
+                                <div style="display: ruby;">
+                                    @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, policy.Type)) {
+                                        <LinkButton OnClick="@(() => { CurrentlyEditingEvent = policy; return Task.CompletedTask; })">Edit</LinkButton>
+                                        <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Remove</LinkButton>
+                                        @if (policy.IsLegacyType) {
+                                            <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <details>
+                <summary>
+                    <u>
+                        @("Invalid " + GetPolicyTypeName(type).ToLower())
+                    </u>
+                </summary>
+                <table class="table table-striped table-hover" style="width: fit-content; border-width: 1px; vertical-align: middle;">
+                    <thead>
+                        <tr>
+                            <th style="border-width: 1px">State key</th>
+                            <th style="border-width: 1px">Json contents</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var policy in invalidPolicies) {
+                            <tr>
+                                <td>@policy.StateKey</td>
+                                <td>
+                                    <pre>@policy.RawContent.ToJson(true, false)</pre>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        </details>
+    }
+}
+
+@if (CurrentlyEditingEvent is not null) {
+    <PolicyEditorModal PolicyEvent="@CurrentlyEditingEvent" OnClose="@(() => CurrentlyEditingEvent = null)" OnSave="@(e => UpdatePolicyAsync(e))"></PolicyEditorModal>
+}
+
+@code {
+
+#if DEBUG
+    private const bool Debug = true;
+#else
+    private const bool Debug = false;
+#endif
+
+    private bool Loading { get; set; } = true;
+    //get room list
+    // - sync withroom list filter
+    // Type = support.feline.msc3784
+    //support.feline.policy.lists.msc.v1
+
+    [Parameter]
+    public string RoomId { get; set; } = null!;
+
+    private bool _enableAvatars;
+    private StateEventResponse? _currentlyEditingEvent;
+
+    // static readonly Dictionary<string, string?> Avatars = new();
+    // static readonly Dictionary<string, RemoteHomeserver> Servers = new();
+
+    // private static List<StateEventResponse> PolicyEvents { get; set; } = new();
+    private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
+
+    private StateEventResponse? CurrentlyEditingEvent {
+        get => _currentlyEditingEvent;
+        set {
+            _currentlyEditingEvent = value;
+            StateHasChanged();
+        }
+    }
+
+    // public bool EnableAvatars {
+    //     get => _enableAvatars;
+    //     set {
+    //         _enableAvatars = value;
+    //         if (value) GetAllAvatars();
+    //     }
+    // }
+
+    private AuthenticatedHomeserverGeneric Homeserver { get; set; }
+    private GenericRoom Room { get; set; }
+    private RoomPowerLevelEventContent PowerLevels { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var sw = Stopwatch.StartNew();
+        await base.OnInitializedAsync();
+        Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
+        if (Homeserver is null) return;
+        Room = Homeserver.GetRoom(RoomId!);
+        PowerLevels = (await Room.GetPowerLevelsAsync())!;
+        await LoadStatesAsync();
+        Console.WriteLine($"Policy list editor initialized in {sw.Elapsed}!");
+    }
+
+    private async Task LoadStatesAsync() {
+        Loading = true;
+        var states = Room.GetFullStateAsync();
+        PolicyEventsByType.Clear();
+        await foreach (var state in states) {
+            if (state is null) continue;
+            if (!state.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
+            if (!PolicyEventsByType.ContainsKey(state.MappedType)) PolicyEventsByType.Add(state.MappedType, new());
+            PolicyEventsByType[state.MappedType].Add(state);
+        }
+
+        Loading = false;
+        StateHasChanged();
+    }
+
+    // private async Task GetAllAvatars() {
+    //     // if (!_enableAvatars) return;
+    //     Console.WriteLine("Getting avatars...");
+    //     var users = GetValidPolicyEventsByType(typeof(UserPolicyRuleEventContent)).Select(x => x.RawContent!["entity"]!.GetValue<string>()).Where(x => x.Contains(':') && !x.Contains("*")).ToList();
+    //     Console.WriteLine($"Got {users.Count} users!");
+    //     var usersByHomeServer = users.GroupBy(x => x!.Split(':')[1]).ToDictionary(x => x.Key!, x => x.ToList());
+    //     Console.WriteLine($"Got {usersByHomeServer.Count} homeservers!");
+    //     var homeserverTasks = usersByHomeServer.Keys.Select(x => RemoteHomeserver.TryCreate(x)).ToAsyncEnumerable();
+    //     await foreach (var server in homeserverTasks) {
+    //         if (server is null) continue;
+    //         var profileTasks = usersByHomeServer[server.BaseUrl].Select(x => TryGetProfile(server, x)).ToList();
+    //         await Task.WhenAll(profileTasks);
+    //         profileTasks.RemoveAll(x => x.Result is not { Value: { AvatarUrl: not null } });
+    //         foreach (var profile in profileTasks.Select(x => x.Result!.Value)) {
+    //             // if (profile is null) continue;
+    //             if (!string.IsNullOrWhiteSpace(profile.Value.AvatarUrl)) {
+    //                 var url = await hsResolver.ResolveMediaUri(server.BaseUrl, profile.Value.AvatarUrl);
+    //                 Avatars.TryAdd(profile.Key, url);
+    //             }
+    //             else Avatars.TryAdd(profile.Key, null);
+    //         }
+    //
+    //         StateHasChanged();
+    //     }
+    // }
+    //
+    // private async Task<KeyValuePair<string, UserProfileResponse>?> TryGetProfile(RemoteHomeserver server, string mxid) {
+    //     try {
+    //         return new KeyValuePair<string, UserProfileResponse>(mxid, await server.GetProfileAsync(mxid));
+    //     }
+    //     catch {
+    //         return null;
+    //     }
+    // }
+
+    private List<StateEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
+
+    private List<StateEventResponse> GetValidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+        .Where(x => !string.IsNullOrWhiteSpace(x.RawContent?["entity"]?.GetValue<string>())).ToList();
+
+    private List<StateEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+        .Where(x => string.IsNullOrWhiteSpace(x.RawContent?["entity"]?.GetValue<string>())).ToList();
+
+    private string? GetPolicyTypeNameOrNull(Type type) => type.GetFriendlyNamePluralOrNull()
+                                                          ?? type.GetCustomAttributes<MatrixEventAttribute>()
+                                                              .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.EventName))?.EventName;
+
+    private string GetPolicyTypeName(Type type) => GetPolicyTypeNameOrNull(type) ?? type.Name;
+
+    private async Task RemovePolicyAsync(StateEventResponse policyEvent) {
+        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey, new { });
+        PolicyEventsByType[policyEvent.MappedType].Remove(policyEvent);
+        await LoadStatesAsync();
+    }
+
+    private async Task UpdatePolicyAsync(StateEventResponse policyEvent) {
+        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey, policyEvent.RawContent);
+        await LoadStatesAsync();
+    }
+
+    private async Task UpgradePolicyAsync(StateEventResponse policyEvent) {
+        policyEvent.RawContent["upgraded_from_type"] = policyEvent.Type;
+        await LoadStatesAsync();
+    }
+
+    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+
+    // event types, unnamed
+    private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
+        .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
+
+}

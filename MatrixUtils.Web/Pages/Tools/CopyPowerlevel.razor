@@ -1,0 +1,84 @@
+@page "/Tools/CopyPowerlevel"
+@using System.Diagnostics
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+<h3>Copy powerlevel</h3>
+<hr/>
+
+<p>Users: </p>
+@foreach (var hs in hss) {
+    <p>@hs.WhoAmI.UserId</p>
+}
+
+<br/>
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+@foreach (var line in Enumerable.Reverse(log)) {
+    <p>@line</p>
+}
+
+@code {
+    private List<string> log { get; set; } = new();
+    List<AuthenticatedHomeserverGeneric> hss { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var sessions = await RMUStorage.GetAllTokens();
+        foreach (var userAuth in sessions) {
+            var session = await RMUStorage.GetSession(userAuth);
+            if (session is not null) {
+                hss.Add(session);
+                StateHasChanged();
+            }
+        }
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Execute() {
+        foreach (var hs in hss) {
+            var rooms = await hs.GetJoinedRooms();
+            var tasks = rooms.Select(x=>Execute(hs, x)).ToAsyncEnumerable();
+            await foreach (var a in tasks) {
+                if (!string.IsNullOrWhiteSpace(a)) {
+                    log.Add(a);
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async Task<string> Execute(AuthenticatedHomeserverGeneric hs, GenericRoom room) {
+        try {
+            var pls = await room.GetPowerLevelsAsync();
+            // if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) == pls.UsersDefault) return "I am default PL in " + room.RoomId;
+            if (!pls.UserHasStatePermission(hs.WhoAmI.UserId, RoomPowerLevelEventContent.EventId)) return "I do not have permission to send PL in " + room.RoomId;
+            foreach (var ahs in hss) {
+                if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) == pls.GetUserPowerLevel(ahs.WhoAmI.UserId)) {
+                    log.Add("I am same PL in " + room.RoomId);
+                    continue;
+                }
+                
+                pls.SetUserPowerLevel(ahs.WhoAmI.UserId, pls.GetUserPowerLevel(hs.WhoAmI.UserId));
+                await room.SendStateEventAsync(RoomPowerLevelEventContent.EventId, pls);
+                log.Add($"Updated powerlevel of {room.RoomId} to {pls.GetUserPowerLevel(ahs.WhoAmI.UserId)}");
+            }
+
+        }
+        catch (MatrixException e) {
+            return $"Failed to update PLs in {room.RoomId}: {e.Message}";
+        }
+        catch (Exception e) {
+            return $"Failed to update PLs in {room.RoomId}: {e.Message}";
+        }
+        StateHasChanged();
+        return "";
+    }
+
+}

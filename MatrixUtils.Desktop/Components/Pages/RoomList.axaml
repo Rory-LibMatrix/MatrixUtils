@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:components="clr-namespace:MatrixUtils.Desktop.Components.Pages"
+             xmlns:components1="clr-namespace:MatrixUtils.Desktop.Components"
+             xmlns:abstractions="clr-namespace:MatrixUtils.Abstractions;assembly=MatrixUtils.Abstractions"
+
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MatrixUtils.Desktop.Components.Pages.RoomList"
+             x:DataType="components:RoomList"
+             DataContext="{Binding $self}"
+             >
+    <ListBox ItemsSource="{Binding Rooms}">
+        <ListBox.ItemTemplate>
+            <DataTemplate DataType="abstractions:RoomInfo">
+                <components1:RoomListEntry Room="{Binding Path=.}"/>
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</UserControl>

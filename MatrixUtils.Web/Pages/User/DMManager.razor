@@ -1,0 +1,62 @@
+@page "/User/DirectMessages"
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Responses
+@using MatrixUtils.Abstractions
+<h3>Direct Messages</h3>
+<hr/>
+
+@foreach (var (targetUser, rooms) in DMRooms) {
+    <div>
+        <InlineUserItem User="targetUser"></InlineUserItem>
+        @foreach (var room in rooms) {
+            <RoomListItem RoomInfo="room" LoadData="true"></RoomListItem>
+        }
+    </div>
+}
+
+@code {
+    private string? _status;
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    private Dictionary<UserProfileResponse, List<RoomInfo>> DMRooms { get; set; } = new();
+
+    public string? Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+        Status = "Loading global profile...";
+        if (Homeserver.WhoAmI?.UserId is null) return;
+
+        Status = "Loading DM list from account data...";
+        var dms = await Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        DMRooms.Clear();
+        foreach (var (userId, rooms) in dms) {
+            var roomList = new List<RoomInfo>();
+            DMRooms.Add(await Homeserver.GetProfileAsync(userId), roomList);
+            foreach (var room in rooms) {
+                var roomInfo = new RoomInfo() { Room = Homeserver.GetRoom(room) };
+                roomList.Add(roomInfo);
+                roomInfo.StateEvents.Add(new() {
+                    Type = RoomNameEventContent.EventId,
+                    TypedContent = new RoomNameEventContent() {
+                        Name = await Homeserver.GetRoom(room).GetNameOrFallbackAsync(4)
+                    },
+                    RoomId = room, Sender = null, EventId = null
+                });
+            }
+            StateHasChanged();
+        }
+
+        StateHasChanged();
+        Status = null;
+
+        await base.OnInitializedAsync();
+    }
+
+}

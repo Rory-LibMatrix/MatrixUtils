@@ -1,0 +1,63 @@
+@using MatrixUtils.Web.Classes.Constants
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Homeservers
+@using LibMatrix.Responses
+@using MatrixUtils.Abstractions
+<details>
+    <summary>@RoomType (@Rooms.Count)</summary>
+    @foreach (var room in Rooms) {
+        <div class="room-list-item">
+            <RoomListItem RoomInfo="@room" ShowOwnProfile="@(RoomType == "Room")"></RoomListItem>
+            @* @if (RoomVersionDangerLevel(room) != 0 && *@
+            @*      (room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.power_levels")?.TypedContent is RoomPowerLevelEventContent powerLevels && powerLevels.UserHasPermission(Homeserver.UserId, "m.room.tombstone"))) { *@
+            @*     <MatrixUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixUtils.Web.Shared.SimpleComponents.LinkButton> *@
+            @* } *@
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</LinkButton>
+
+            @if (room.CreationEventContent?.Type == "m.space") {
+                <RoomListSpace Space="@room"></RoomListSpace>
+            }
+            else if (room.CreationEventContent?.Type == "support.feline.policy.lists.msc.v1" || RoomType == "org.matrix.mjolnir.policy") {
+                <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Policies")">Manage policies</LinkButton>
+            }
+        </div>
+    }
+</details>
+<br/>
+
+@code {
+
+    [Parameter]
+    public KeyValuePair<string, List<RoomInfo>> Category { get; set; }
+
+    [Parameter]
+    public UserProfileResponse? GlobalProfile { get; set; }
+
+    [CascadingParameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
+
+    private string RoomType => Category.Key;
+    private List<RoomInfo> Rooms => Category.Value;
+
+    private int RoomVersionDangerLevel(RoomInfo room) {
+        var creationEvent = room.StateEvents.FirstOrDefault(x => x?.Type == "m.room.create");
+        if (creationEvent is null) return 0;
+        return creationEvent.TypedContent is not RoomCreateEventContent roomVersionContent ? 0
+            : RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion) ? 2
+                : roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion ? 1 : 0;
+    }
+    
+    public static string GetRoomTypeName(string roomType) {
+        return roomType switch {
+            null => "Room",
+            "m.space" => "Space",
+            "org.matrix.mjolnir.policy" => "Policy room",
+            
+            _ => roomType
+        };
+    }
+
+}

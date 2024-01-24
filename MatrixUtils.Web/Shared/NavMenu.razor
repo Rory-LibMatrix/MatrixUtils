@@ -1,0 +1,96 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Rory&::MatrixUtils</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="About">
+                <span class="oi oi-info" aria-hidden="true"></span> About RMU
+            </NavLink>
+        </div>
+
+        <!-- Main tools -->
+        
+        <div class="nav-item px-3">
+            <h5 style="margin-left: 1em;">Main tools</h5>
+            <hr style="margin-bottom: 0em;"/>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Rooms">
+                <span class="oi oi-plus" aria-hidden="true"></span> Room list
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="User/Profile">
+                <span class="oi oi-plus" aria-hidden="true"></span> Manage profile
+            </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="User/DirectMessages">
+                <span class="oi oi-plus" aria-hidden="true"></span> Manage DMs
+            </NavLink>
+        </div>
+
+        <!-- Extra tools -->
+        
+        <div class="nav-item px-3">
+            <h5 style="margin-left: 1em;">Extra tools</h5>
+            <hr style="margin-bottom: 0em;"/>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HSAdmin">
+                <span class="oi oi-plus" aria-hidden="true"></span> Homeserver admin
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Tools">
+                <span class="oi oi-plus" aria-hidden="true"></span> Other tools
+            </NavLink>
+        </div>
+
+        <!-- RMU -->
+        
+        <div class="nav-item px-3">
+            <h5 style="margin-left: 1em;">RMU</h5>
+            <hr style="margin-bottom: 0em;"/>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Dev/Options">
+                <span class="oi oi-plus" aria-hidden="true"></span> Developer options
+            </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Dev/Utilities">
+                <span class="oi oi-plus" aria-hidden="true"></span> Developer utilities
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+}

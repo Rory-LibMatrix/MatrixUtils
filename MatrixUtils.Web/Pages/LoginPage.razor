@@ -1,0 +1,160 @@
+@page "/Login"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using LibMatrix
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JsRuntime
+<h3>Login</h3>
+<hr/>
+
+<span style="display: block;">
+    <label>User ID:</label>
+    <span>@@</span><!--
+    --><FancyTextBox @bind-Value="@newRecordInput.Username"></FancyTextBox><!--
+    --><span>:</span><!--
+    --><FancyTextBox @bind-Value="@newRecordInput.Homeserver"></FancyTextBox>
+</span>
+<span style="display: block;">
+    <label>Password:</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Password" IsPassword="true"></FancyTextBox>
+</span>
+<span style="display: block">
+    <label>Proxy (<a href="https://cgit.rory.gay/matrix/MxApiExtensions.git">MxApiExtensions</a> or similar):</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
+</span>
+<br/>
+<LinkButton OnClick="@AddRecord">Add account to queue</LinkButton>
+<LinkButton OnClick="@(() => Login(newRecordInput))">Log in</LinkButton>
+<br/>
+<br/>
+
+<h4>Import from TSV</h4>
+<hr/>
+<span>Import credentials from a TSV (Tab Separated Values) file</span><br/>
+<span>Columns: username, homeserver, password, proxy</span><br/>
+<span>Keep in mind there is no column header!</span><br/>
+<br/>
+<InputFile OnChange="@FileChanged" accept=".tsv"></InputFile>
+<br/>
+<br/>
+
+<table border="1">
+    <thead style="border-bottom: 1px solid white;">
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Username</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Homeserver</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Password</th>
+        <th style="min-width: 150px; text-align: center; border-right: 1px solid white;">Proxy</th>
+        <th style="min-width: 150px; text-align: center;">Actions</th>
+    </thead>
+    @foreach (var record in records) {
+        var r = record;
+        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{r.Username}:{r.Homeserver}" && x.Proxy == r.Proxy) ? "green" : "unset")">
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.Username"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.Homeserver"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.Password" IsPassword="true"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <FancyTextBox @bind-Value="@r.Proxy"></FancyTextBox>
+            </td>
+            <td style="border-width: 1px;">
+                <a role="button" @onclick="() => records.Remove(r)">Remove</a>
+            </td>
+        </tr>
+        @if (r.Exception is MatrixException me) {
+            <tr>
+                <td style="border-width: 1px;">Exception:</td>
+                <td style="border-width: 1px;">@me.ErrorCode</td>
+                <td style="border-width: 1px;" colspan="3">@me.Error</td>
+            </tr>
+        }
+        else if (r.Exception is { } e) {
+            <tr>
+                <td style="border-width: 1px;">Exception:</td>
+                <td style="border-width: 1px;" colspan="4">@e.Message</td>
+            </tr>
+        }
+    }
+</table>
+<br/>
+<LinkButton OnClick="@LoginAll">Log in</LinkButton>
+
+
+@code {
+    readonly List<LoginStruct> records = new();
+    private LoginStruct newRecordInput = new();
+
+    List<UserAuth>? LoggedInSessions { get; set; } = new();
+
+    async Task LoginAll() {
+        var loginTasks = records.Select(Login);
+        await Task.WhenAll(loginTasks);
+    }
+
+    async Task Login(LoginStruct record) {
+        if (!records.Contains(record)) 
+            records.Add(record);
+        if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
+        StateHasChanged();
+        try {
+            var result = new UserAuth(await hsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
+                Proxy = record.Proxy
+            };
+            if (result == null) {
+                Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+                return;
+            }
+
+            Console.WriteLine($"Obtained access token for {result.UserId}!");
+
+            await RMUStorage.AddToken(result);
+            LoggedInSessions = await RMUStorage.GetAllTokens();
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+            Console.WriteLine(e);
+            record.Exception = e;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task FileChanged(InputFileChangeEventArgs obj) {
+        LoggedInSessions = await RMUStorage.GetAllTokens();
+        Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions {
+            WriteIndented = true
+        }));
+        await using var rs = obj.File.OpenReadStream();
+        using var sr = new StreamReader(rs);
+        var tsvData = await sr.ReadToEndAsync();
+        records.Clear();
+        foreach (var line in tsvData.Split('\n')) {
+            string?[] parts = line.Split('\t');
+            if (parts.Length < 3)
+                continue;
+            string? via = parts.Length > 3 ? parts[3] : null;
+            records.Add(new() { Homeserver = parts[0], Username = parts[1], Password = parts[2], Proxy = via });
+        }
+    }
+
+    private async Task AddRecord() {
+        LoggedInSessions = await RMUStorage.GetAllTokens();
+        records.Add(newRecordInput);
+        newRecordInput = new();
+    }
+
+    private class LoginStruct {
+        public string? Homeserver { get; set; } = "";
+        public string? Username { get; set; } = "";
+        public string? Password { get; set; } = "";
+        public string? Proxy { get; set; }
+        
+        [JsonIgnore]
+        internal Exception? Exception { get; set; }
+    }
+
+}

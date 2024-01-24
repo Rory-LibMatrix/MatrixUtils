@@ -1,0 +1,60 @@
+@page "/Rooms/{RoomId}/Timeline"
+@using MatrixUtils.Web.Shared.TimelineComponents
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Homeservers
+<h3>RoomManagerTimeline</h3>
+<hr/>
+<p>Loaded @Events.Count events...</p>
+
+@foreach (var evt in Events) {
+    <div type="@evt.Type" key="@evt.StateKey" itemid="@evt.EventId">
+        <DynamicComponent Type="@ComponentType(evt)"
+                          Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events }, { "Homeserver", Homeserver!} })">
+        </DynamicComponent>
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public string RoomId { get; set; }
+
+    private List<MessagesResponse> Messages { get; } = new();
+    private List<StateEventResponse> Events { get; } = new();
+
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        Console.WriteLine("RoomId: " + RoomId);
+        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+        var room = Homeserver.GetRoom(RoomId);
+        MessagesResponse? msgs = null;
+        do {
+            msgs = await room.GetMessagesAsync(limit: 1000, from: msgs?.End, dir: "b");
+            Messages.Add(msgs);
+            Console.WriteLine($"Got {msgs.Chunk.Count} messages");
+            msgs.Chunk.Reverse();
+            Events.InsertRange(0, msgs.Chunk);
+        } while (msgs.End is not null);
+
+
+        await base.OnInitializedAsync();
+    }
+
+    private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
+
+    private Type ComponentType(StateEvent Event) => Event.TypedContent switch {
+        RoomCanonicalAliasEventContent => typeof(TimelineCanonicalAliasItem),
+        RoomHistoryVisibilityEventContent => typeof(TimelineHistoryVisibilityItem),
+        RoomTopicEventContent => typeof(TimelineRoomTopicItem),
+        RoomMemberEventContent => typeof(TimelineMemberItem),
+        RoomMessageEventContent => typeof(TimelineMessageItem),
+        RoomCreateEventContent => typeof(TimelineRoomCreateItem),
+        RoomNameEventContent => typeof(TimelineRoomNameItem),
+        _ => typeof(TimelineUnknownItem)
+    };
+
+}

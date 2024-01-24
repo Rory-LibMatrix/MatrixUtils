@@ -1,0 +1,191 @@
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Responses
+@using MatrixUtils.LibDMSpace
+@using MatrixUtils.LibDMSpace.StateEvents
+@using ArcaneLibs.Extensions
+@using System.Text.Json.Serialization
+@using MatrixUtils.Abstractions
+
+<b>
+    <u>DM Space setup tool - stage 3: Preview space layout</u>
+</b>
+<p>This gives you a preview of how your settings would impact layout!</p>
+
+@if (!string.IsNullOrWhiteSpace(Status)) {
+    <p>@Status</p>
+}
+
+@if (DmSpace is not null) {
+    @if (dmSpaceInfo is not null && dmSpaceRoomInfo is not null) {
+        <p>
+            <InputCheckbox @bind-Value="dmSpaceInfo.LayerByUser"></InputCheckbox>
+            Create sub-spaces per user
+        </p>
+        @if (!dmSpaceInfo.LayerByUser) {
+            <RoomListItem RoomInfo="@dmSpaceRoomInfo"></RoomListItem>
+            @foreach (var (userId, room) in dmRooms.OrderBy(x => x.Key.RoomName)) {
+                @foreach (var roomInfo in room) {
+                    <div style="margin-left: 32px;">
+                        <RoomListItem RoomInfo="@roomInfo"></RoomListItem>
+                    </div>
+                }
+            }
+        }
+        else {
+            <RoomListItem RoomInfo="@dmSpaceRoomInfo"></RoomListItem>
+            @foreach (var (userId, room) in dmRooms.OrderBy(x => x.Key.RoomName)) {
+                <div style="margin-left: 32px;">
+                    <RoomListItem RoomInfo="@userId"></RoomListItem>
+                </div>
+                @foreach (var roomInfo in room) {
+                    <div style="margin-left: 64px;">
+                        <RoomListItem RoomInfo="@roomInfo"></RoomListItem>
+                    </div>
+                }
+            }
+        }
+    }
+    else {
+        <b>Error: dmSpaceInfo is null!</b>
+    }
+}
+else {
+    <b>Error: DmSpaceConfiguration is null!</b>
+}
+
+<br/>
+<LinkButton OnClick="@Execute">Next</LinkButton>
+
+@code {
+
+    private string? Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
+    }
+
+    private string? _status;
+
+    [CascadingParameter]
+    public DMSpace? DmSpace { get; set; }
+
+    private Dictionary<RoomInfo, List<RoomInfo>> dmRooms { get; set; } = new();
+    private DMSpaceInfo? dmSpaceInfo { get; set; }
+    private RoomInfo? dmSpaceRoomInfo { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+    }
+
+    SemaphoreSlim _semaphore = new(1, 1);
+
+    protected override async Task OnParametersSetAsync() {
+        if (DmSpace is null)
+            return;
+        await _semaphore.WaitAsync();
+        var hs = DmSpace.Homeserver;
+        var dmSpaceRoom = new DMSpaceRoom(hs, DmSpace.DmSpaceConfiguration.DMSpaceId);
+        dmSpaceRoomInfo = new() {
+            RoomName = await dmSpaceRoom.GetNameAsync(),
+            CreationEventContent = await dmSpaceRoom.GetCreateEventAsync(),
+            RoomIcon = "mxc://feline.support/uUxBwaboPkMGtbZcAGZaIzpK",
+            Room = dmSpaceRoom
+        };
+        dmSpaceInfo = await dmSpaceRoom.GetDmSpaceInfo();
+        Status = "Loading DM list from account data...";
+        var dms = await DmSpace.Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        dmRooms.Clear();
+
+        Status = "DM list optimised, fetching info...";
+        var results = dms.Select(async x => {
+            var (userId, rooms) = x;
+            UserProfileWithId userProfile;
+            try {
+                var profile = await DmSpace.Homeserver.GetProfileAsync(userId);
+                userProfile = new() {
+                    AvatarUrl = profile.AvatarUrl,
+                    Id = userId,
+                    DisplayName = profile.DisplayName
+                };
+            }
+            catch {
+                userProfile = new() {
+                    AvatarUrl = "mxc://feline.support/uUxBwaboPkMGtbZcAGZaIzpK",
+                    DisplayName = userId,
+                    Id = userId
+                };
+            }
+            var roomList = new List<RoomInfo>();
+            var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncEnumerable();
+            await foreach (var result in tasks)
+                roomList.Add(result);
+            return (userProfile, roomList);
+        }).ToAsyncEnumerable();
+        await foreach (var res in results) {
+            dmRooms.Add(new RoomInfo() {
+                Room = dmSpaceRoom,
+                RoomIcon = res.userProfile.AvatarUrl,
+                RoomName = res.userProfile.DisplayName,
+                CreationEventContent = await dmSpaceRoom.GetCreateEventAsync()
+            }, res.roomList);
+        }
+        _semaphore.Release();
+        Status = null;
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task Execute() {
+        var hs = DmSpace.Homeserver;
+        var dmSpaceRoom = new DMSpaceRoom(hs, DmSpace.DmSpaceConfiguration.DMSpaceId);
+        NavigationManager.NavigateTo("/User/DMSpace/Setup?stage=3");
+    }
+
+    private async Task<RoomInfo> GetRoomInfo(GenericRoom room) {
+        var roomInfo = new RoomInfo() {
+            Room = room
+        };
+        var roomMembers = new List<UserProfileWithId>();
+        roomInfo.CreationEventContent = await room.GetCreateEventAsync();
+        try {
+            roomInfo.RoomName = await room.GetNameAsync();
+        }
+        catch { }
+
+        var membersEnum = room.GetMembersEnumerableAsync(true);
+        await foreach (var member in membersEnum)
+            if (member.TypedContent is RoomMemberEventContent memberEvent)
+                roomMembers.Add(new() { DisplayName = memberEvent.DisplayName, AvatarUrl = memberEvent.AvatarUrl, Id = member.StateKey });
+
+        if (string.IsNullOrWhiteSpace(roomInfo.RoomName) || roomInfo.RoomName == room.RoomId) {
+            List<string> displayNames = new List<string>();
+            foreach (var member in roomMembers)
+                if (!string.IsNullOrWhiteSpace(member.DisplayName))
+                    displayNames.Add(member.DisplayName);
+            roomInfo.RoomName = string.Join(", ", displayNames);
+        }
+        try {
+            string? roomIcon = (await room.GetAvatarUrlAsync())?.Url;
+            if (room is not null)
+                roomInfo.RoomIcon = roomIcon;
+        }
+        catch { }
+        return roomInfo;
+    }
+
+    private async Task<List<RoomInfo>> GetRoomInfoForRooms(List<GenericRoom> rooms) {
+        var tasks = rooms.Select(GetRoomInfo).ToList();
+        await Task.WhenAll(tasks);
+        return tasks.Select(x => x.Result).ToList();
+    }
+
+    private class UserProfileWithId : UserProfileResponse {
+        [JsonIgnore]
+        public string Id { get; set; }
+    }
+
+}

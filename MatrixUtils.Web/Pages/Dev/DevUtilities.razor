@@ -1,0 +1,78 @@
+@page "/Dev/Utilities"
+@using System.Reflection
+@using ArcaneLibs.Extensions
+@using LibMatrix.Extensions
+@using LibMatrix.Homeservers
+@using MatrixUtils.Abstractions
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+<h3>Debug Tools</h3>
+<hr/>
+@if (Rooms.Count == 0) {
+    <p>You are not in any rooms!</p>
+    @* <p>Loading progress: @checkedRoomCount/@totalRoomCount</p> *@
+}
+else {
+    <details>
+        <summary>Room List</summary>
+        @foreach (var room in Rooms) {
+            <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@room.Replace('.', '~')">
+                <RoomListItem RoomInfo="@(new RoomInfo() { Room = hs.GetRoom(room) })" LoadData="true"></RoomListItem>
+            </a>
+        }
+    </details>
+}
+
+<details open>
+    <summary>Send GET request to URL</summary>
+    <div class="input-group">
+        <input type="text" class="form-control" @bind-value="GetRequestUrl" placeholder="URL">
+        <button class="btn btn-outline-secondary" type="button" @onclick="SendGetRequest">Send</button>
+    </div>
+    <br/>
+    <pre>@GetRequestResult</pre>
+</details>
+
+<div style="margin-bottom: 4em;"></div>
+<LogView></LogView>
+
+@code {
+    public List<string> Rooms { get; set; } = new();
+    public AuthenticatedHomeserverGeneric? hs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs == null) return;
+        Rooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
+        Console.WriteLine("Fetched joined rooms!");
+    }
+
+    //send req
+    string GetRequestUrl { get; set; } = "";
+    string GetRequestResult { get; set; } = "";
+
+    private async Task SendGetRequest() {
+        var httpClient = hs?.ClientHttpClient;
+        try {
+            var res = await httpClient.GetAsync(GetRequestUrl);
+            if (res.IsSuccessStatusCode) {
+                if (res.Content.Headers.ContentType.MediaType == "application/json")
+                    GetRequestResult = (await res.Content.ReadFromJsonAsync<object>()).ToJson();
+                else
+                    GetRequestResult = await res.Content.ReadAsStringAsync();
+                StateHasChanged();
+                return;
+            }
+            if (res.Content.Headers.ContentType.MediaType == "application/json")
+                GetRequestResult = $"Error: {res.StatusCode}\n" + (await res.Content.ReadFromJsonAsync<object>()).ToJson();
+            else
+                GetRequestResult = $"Error: {res.StatusCode}\n" + await res.Content.ReadAsStringAsync();
+        }
+        catch (Exception e) {
+            GetRequestResult = $"Error: {e}";
+        }
+        StateHasChanged();
+    }
+
+}

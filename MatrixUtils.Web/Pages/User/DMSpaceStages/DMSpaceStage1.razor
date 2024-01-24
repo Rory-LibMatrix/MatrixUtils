@@ -1,0 +1,128 @@
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+@using LibMatrix
+@using LibMatrix.Responses
+@using MatrixUtils.LibDMSpace
+@using MatrixUtils.LibDMSpace.StateEvents
+@using Microsoft.Extensions.Primitives
+@using ArcaneLibs.Extensions
+<b>
+    <u>DM Space setup tool - stage 1: Configure space</u>
+</b>
+<p>You will need a space to use for DM rooms.</p>
+@if (DmSpace is not null) {
+    <p>
+        Selected space:
+        <InputSelect @bind-Value="DmSpace.DmSpaceConfiguration.DMSpaceId">
+            @foreach (var (id, name) in spaces) {
+                <option value="@id">@name</option>
+            }
+        </InputSelect>
+    </p>
+    <p>
+        <InputCheckbox @bind-Value="DmSpaceInfo.LayerByUser"></InputCheckbox>
+        Create sub-spaces per user
+    </p>
+}
+else {
+    <b>Error: DmSpaceConfiguration is null!</b>
+}
+
+<br/>
+<LinkButton OnClick="@Execute">Next</LinkButton>
+
+@if (!string.IsNullOrWhiteSpace(Status)) {
+    <p>@Status</p>
+}
+
+@code {
+
+    private string? Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
+    }
+
+    private Dictionary<string, string> spaces = new() { { "", "New space" } };
+    private string? _status;
+
+    [CascadingParameter]
+    public DMSpace? DmSpace { get; set; }
+
+    public DMSpaceInfo? DmSpaceInfo { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+    }
+
+    SemaphoreSlim _semaphoreSlim = new(1, 1);
+    protected override async Task OnParametersSetAsync() {
+        if (DmSpace is null)
+            return;
+        await _semaphoreSlim.WaitAsync();
+        DmSpace.DmSpaceConfiguration ??= new();
+        if (spaces.Count == 1) {
+            Status = "Looking for spaces...";
+            var userRoomsEnum = DmSpace.Homeserver.GetJoinedRoomsByType("m.space");
+            List<GenericRoom> userRooms = new(); 
+            await foreach (var room in userRoomsEnum) {
+                userRooms.Add(room);
+            }
+            var roomChecks = userRooms.Select(GetFeasibleSpaces).ToAsyncEnumerable();
+            await foreach(var room in roomChecks)
+                if(room.HasValue)
+                    spaces.TryAdd(room.Value.id, room.Value.name);
+            
+            Status = "Done!";
+        }
+        _semaphoreSlim.Release();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task Execute() {
+        if (string.IsNullOrWhiteSpace(DmSpace.DmSpaceConfiguration.DMSpaceId)) {
+            var crr = CreateRoomRequest.CreatePrivate(DmSpace.Homeserver, "Direct Messages");
+            crr.CreationContentBaseType.Type = "m.space";
+            DmSpace.DmSpaceConfiguration.DMSpaceId = (await DmSpace.Homeserver.CreateRoom(crr)).RoomId;
+        }
+        await DmSpace.Homeserver!.SetAccountDataAsync(DMSpaceConfiguration.EventId, DmSpace.DmSpaceConfiguration);
+        var space = DmSpace.Homeserver.GetRoom(DmSpace.DmSpaceConfiguration.DMSpaceId);
+        await space.SendStateEventAsync(DMSpaceInfo.EventId, DmSpaceInfo);
+
+        NavigationManager.NavigateTo("/User/DMSpace/Setup?stage=2");
+    }
+
+    public async Task<(string id, string name)?> GetFeasibleSpaces(GenericRoom room) {
+        try {
+            var pls = await room.GetPowerLevelsAsync();
+            if (!pls.UserHasStatePermission(DmSpace.Homeserver.WhoAmI.UserId, "m.space.child")) {
+                Console.WriteLine($"No permission to send m.space.child in {room.RoomId}...");
+                return null;
+            }
+            var roomName = await room.GetNameAsync();
+            Status = $"Found viable space: {roomName}";
+            if (string.IsNullOrWhiteSpace(DmSpace.DmSpaceConfiguration.DMSpaceId)) {
+                try {
+                    var dsi = await DmSpace.Homeserver.GetRoom(room.RoomId).GetStateOrNullAsync<DMSpaceInfo>(DMSpaceInfo.EventId) ?? new DMSpaceInfo();
+                    if (await room.GetStateOrNullAsync<DMSpaceInfo>(DMSpaceInfo.EventId) is not null && dsi is not null) {
+                        DmSpace.DmSpaceConfiguration.DMSpaceId = room.RoomId;
+                        DmSpaceInfo = dsi;
+                    }
+                }
+                catch (MatrixException e) {
+                    if (e.ErrorCode == "M_NOT_FOUND") Console.WriteLine($"{room.RoomId} is not a DM space.");
+                    else throw;
+                }
+            }
+            return (room.RoomId, roomName);
+        }
+        catch (MatrixException e) {
+            if (e.ErrorCode == "M_NOT_FOUND") Console.WriteLine($"m.room.power_levels does not exist in {room.RoomId}!!!");
+            else throw;
+        }
+        return null;
+    }
+
+}

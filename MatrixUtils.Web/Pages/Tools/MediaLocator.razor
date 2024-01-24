@@ -1,0 +1,111 @@
+@page "/Tools/MediaLocator"
+@using LibMatrix.Homeservers
+@inject HttpClient Http
+<h3>Media locator</h3>
+<hr/>
+
+<b>This is going to expose your IP address to all these homeservers!</b>
+<details>
+    <summary>Checked homeserver list (@homeservers.Count entries)</summary>
+    <ul>
+        @foreach (var hs in homeservers) {
+            <li>@hs</li>
+        }
+    </ul>
+</details>
+<button @onclick="addMoreHomeservers">Add more homeservers</button>
+<br/>
+<span>MXC URL: </span>
+<input type="text" @bind="mxcUrl"/>
+<button @onclick="executeSearch">Search</button>
+
+@if (successResults.Count > 0) {
+    <h4>Successes</h4>
+    <ul>
+        @foreach (var result in successResults) {
+            <li>@result</li>
+        }
+    </ul>
+}
+
+@if (errorResults.Count > 0) {
+    <h4>Errors</h4>
+    <ul>
+        @foreach (var result in errorResults) {
+            <li>@result</li>
+        }
+    </ul>
+}
+
+
+@code {
+    string mxcUrl { get; set; }
+    readonly List<string> successResults = new();
+    readonly List<string> errorResults = new();
+    readonly List<string> homeservers = new();
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+        homeservers.AddRange(new[] {
+            "matrix.org",
+            "feline.support",
+            "rory.gay",
+            "the-apothecary.club",
+            "envs.net",
+            "projectsegfau.lt"
+        });
+    }
+
+    Task executeSearch() {
+        var sem = new SemaphoreSlim(128, 128);
+        homeservers.ForEach(async hs => {
+            await sem.WaitAsync();
+            var httpClient = new HttpClient { BaseAddress = new Uri(hs) };
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
+            var rmu = mxcUrl.Replace("mxc://", $"{hs}/_matrix/media/v3/download/");
+            try {
+                var res = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, rmu));
+                if (res.IsSuccessStatusCode) {
+                    successResults.Add($"{hs}: found - {res.Content.Headers.ContentLength} bytes");
+                    StateHasChanged();
+                    return;
+                }
+                errorResults.Add($"Error: {hs} - {res.StatusCode}\n" + await res.Content.ReadAsStringAsync());
+            }
+            catch (Exception e) {
+                errorResults.Add($"Error: {e}");
+            }
+            finally {
+                sem.Release();
+            }
+            StateHasChanged();
+        });
+        return Task.CompletedTask;
+    }
+
+    async Task addMoreHomeservers() {
+        var res = await Http.GetAsync("/homeservers.txt");
+        var content = await res.Content.ReadAsStringAsync();
+        homeservers.Clear();
+        var lines = content.Split("\n");
+
+        var rhs = new RemoteHomeserver("rory.gay");
+        var sem = new SemaphoreSlim(128, 128);
+        lines.ToList().ForEach(async line => {
+            await sem.WaitAsync();
+            try {
+                homeservers.Add((await hsResolver.ResolveHomeserverFromWellKnown(line)).Client);
+                StateHasChanged();
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+            finally {
+                sem.Release();
+            }
+        });
+
+        StateHasChanged();
+    }
+
+}

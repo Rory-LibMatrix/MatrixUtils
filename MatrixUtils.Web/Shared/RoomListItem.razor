@@ -1,0 +1,196 @@
+@using System.Text.Json
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Helpers
+@using LibMatrix.Homeservers
+@using LibMatrix.Responses
+@using LibMatrix.RoomTypes
+@using MatrixUtils.Abstractions
+@using MatrixUtils.Web.Classes.Constants
+@if (RoomInfo is not null) {
+    <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
+        @if (OwnMemberState != null) {
+            <MxcImage Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))"
+                      MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
+            <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
+                @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
+            </span>
+            <span class="centerVertical noLeftPadding">-></span>
+        }
+        <MxcImage Class="avatar32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/>
+        <div class="inlineBlock">
+            <span class="centerVertical">@RoomInfo.RoomName</span>
+            @if (ChildContent is not null) {
+                @ChildContent
+            }
+        </div>
+
+    </div>
+}
+else {
+    <p>Warning: RoomInfo is null!</p>
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RoomInfo? RoomInfo {
+        get => _roomInfo;
+        set {
+            _roomInfo = value;
+            OnParametersSetAsync();
+        }
+    }
+
+    [Parameter]
+    public bool ShowOwnProfile { get; set; } = false;
+
+    [Parameter]
+    public RoomMemberEventContent? OwnMemberState { get; set; }
+
+    [CascadingParameter]
+    public UserProfileResponse? GlobalProfile { get; set; }
+
+    [Parameter]
+    public bool LoadData {
+        get => _loadData;
+        set {
+            _loadData = value;
+            OnParametersSetAsync();
+        }
+    }
+
+    private bool HasOldRoomVersion { get; set; } = false;
+    private bool HasDangerousRoomVersion { get; set; } = false;
+
+    private static SemaphoreSlim _semaphoreSlim = new(8);
+    private RoomInfo? _roomInfo;
+    private bool _loadData = false;
+    private static AuthenticatedHomeserverGeneric? hs { get; set; }
+
+    private bool _hooked;
+    protected override async Task OnParametersSetAsync() {
+        if (RoomInfo != null) {
+            if (!_hooked) {
+                _hooked = true;
+                RoomInfo.PropertyChanged += (_, a) => {
+                    Console.WriteLine(a.PropertyName);
+                    StateHasChanged();
+                };
+            }
+
+            if (LoadData) {
+                try {
+                    await RoomInfo.GetStateEvent("m.room.create");
+                    if (ShowOwnProfile)
+                        OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.WhoAmI.UserId)).TypedContent as RoomMemberEventContent;
+
+                    await RoomInfo.GetStateEvent("m.room.name");
+                    await RoomInfo.GetStateEvent("m.room.avatar");
+                }
+                catch (MatrixException e) {
+                    if (e.ErrorCode == "M_FORBIDDEN") {
+                        LoadData = false;
+                        RoomInfo.StateEvents.Add(new() {
+                            Type = "m.room.create",
+                            TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }, 
+                            RoomId = null, Sender = null, EventId = null //TODO: implement
+                        });
+                        RoomInfo.StateEvents.Add(new() {
+                            Type = "m.room.name",
+                            TypedContent = new RoomNameEventContent() {
+                                Name = "M_FORBIDDEN: Are you a member of this room? " + RoomInfo.Room.RoomId
+                            },
+                            RoomId = null, Sender = null, EventId = null //TODO: implement
+                        });
+                    }
+                }
+            }
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+
+        await _semaphoreSlim.WaitAsync();
+
+        hs ??= await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        try {
+            await CheckRoomVersion();
+    // await GetRoomInfo();
+    // await LoadOwnProfile();
+        }
+        catch (MatrixException e) {
+            if (e is not { ErrorCode: "M_FORBIDDEN" }) {
+                throw;
+            }
+    // RoomName = "Error: " + e.Message;
+    // RoomIcon = "/blobfox_outage.gif";
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to load room info for {RoomInfo.Room.RoomId}: {e.Message}");
+        }
+        _semaphoreSlim.Release();
+    }
+
+    private async Task LoadOwnProfile() {
+        if (!ShowOwnProfile) return;
+        try {
+    // OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
+            GlobalProfile ??= await hs.GetProfileAsync(hs.UserId);
+        }
+        catch (MatrixException e) {
+            if (e is { ErrorCode: "M_FORBIDDEN" }) {
+                Console.WriteLine($"Failed to get profile for {hs.UserId}: {e.Message}");
+                ShowOwnProfile = false;
+            }
+            else {
+                throw;
+            }
+        }
+    }
+
+    private async Task CheckRoomVersion() {
+        while (RoomInfo?.CreationEventContent is null) {
+            Console.WriteLine($"Room creation event content for {RoomInfo.Room.RoomId} is null...");
+            await Task.Delay(Random.Shared.Next(1000, 2500));
+        }
+        var ce = RoomInfo.CreationEventContent;
+        if (int.TryParse(ce.RoomVersion, out var rv)) {
+            if (rv < 10)
+                HasOldRoomVersion = true;
+        }
+        else // treat unstable room versions as dangerous
+            HasDangerousRoomVersion = true;
+
+        if (RoomConstants.DangerousRoomVersions.Contains(ce.RoomVersion)) {
+            HasDangerousRoomVersion = true;
+    // RoomName = "Dangerous room: " + RoomName;
+        }
+    }
+
+    // private async Task GetRoomInfo() {
+    //     try {
+    //         RoomName ??= ((await RoomInfo.GetStateEvent("m.room.name"))?.TypedContent as RoomNameEventContent)?.Name ?? RoomId;
+    //
+    //         var state = (await RoomInfo.GetStateEvent("m.room.avatar")).TypedContent as RoomAvatarEventContent;
+    //         if (state?.Url is { } url) {
+    //             RoomIcon = await hsResolver.ResolveMediaUri(hs.ServerName, url);
+    // // Console.WriteLine($"Got avatar for room {RoomId}: {roomIcon} ({url})");
+    //         }
+    //     }
+    //     catch (MatrixException e) {
+    //         if (e is not { ErrorCode: "M_FORBIDDEN" }) {
+    //             throw;
+    //         }
+    //     }
+    // }
+
+}

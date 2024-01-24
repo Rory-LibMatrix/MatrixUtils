@@ -4,7 +4,7 @@ then
   echo "tree is clean"
 else
   echo "tree is dirty, please commit changes before running this"
-  exit
+#  exit
 fi
 
 BASE_DIR=`pwd`

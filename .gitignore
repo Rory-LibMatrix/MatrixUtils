@@ -9,6 +9,7 @@ matrix-sync.json
 MatrixRoomUtils.Bot/bot_data/
 appsettings.Local*.json
 nixpkgs/
+*.DotSettings.user
 
 test.tsv
 test-proxy.tsv

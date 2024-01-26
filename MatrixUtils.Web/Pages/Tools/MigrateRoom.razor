@@ -1,0 +1,104 @@
+@page "/Tools/MigrateRoom"
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.RoomTypes
+<h3>Migrate room</h3>
+<hr/>
+<span>Old room: </span>
+<FancyTextBox @bind-Value="@roomId"></FancyTextBox><br/>
+<span>New room: </span>
+<FancyTextBox @bind-Value="@newRoomId"></FancyTextBox><br/>
+
+<details>
+    <summary>Users:</summary>
+    @foreach (var user in users) {
+        <p>@user</p>
+    }
+</details>
+
+<br/>
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+@foreach (var line in Enumerable.Reverse(log)) {
+    <p>@line</p>
+}
+
+@code {
+    private string _roomId;
+    private List<string> log { get; set; } = new();
+    private List<string> users { get; set; } = new();
+
+    string roomId {
+        get => _roomId;
+        set {
+            _roomId = value;
+            TryFetchUsers();
+        }
+    }
+
+    private string newRoomId { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Execute() {
+        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        var oldRoom = hs.GetRoom(roomId);
+        var newRoom = hs.GetRoom(newRoomId);
+        var members = await oldRoom.GetMembersListAsync();
+        var tasks = members.Select(x => ExecuteInvite(hs, newRoom, x.StateKey)).ToAsyncEnumerable();
+        // var tasks = hss.Select(ExecuteInvite).ToAsyncEnumerable();
+        await foreach (var a in tasks) {
+            if (!string.IsNullOrWhiteSpace(a)) {
+                log.Add(a);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task<string> ExecuteInvite(AuthenticatedHomeserverGeneric hs, GenericRoom newRoom, string mxid) {
+        try {
+            var pls = await newRoom.GetPowerLevelsAsync();
+            if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) < pls.Invite) return "I do not have permission to send invite in " + newRoom.RoomId;
+            await newRoom.InviteUserAsync(mxid);
+            return $"Invited {mxid} to {newRoom.RoomId}";
+        }
+        catch (MatrixException e) {
+            log.Add($"Failed to invite {mxid} to {newRoom.RoomId}: {e.Message}");
+            if (e is { ErrorCode: "M_LIMIT_EXCEEDED" }) {
+                log.Add($"Retrying after {e.RetryAfterMs}");
+                await Task.Delay(e.RetryAfterMs!.Value);
+                return await ExecuteInvite(hs, newRoom, mxid);
+            }
+
+            return "";
+        }
+        catch (Exception e) {
+            return $"Failed to invite {mxid} to {newRoom.RoomId}: {e.Message}";
+        }
+
+        StateHasChanged();
+        return "";
+    }
+
+    private async Task TryFetchUsers() {
+        try {
+            var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+            if (hs is null) return;
+            var room = hs.GetRoom(roomId);
+            var members = await room.GetMembersListAsync();
+            users = members.Select(x => x.StateKey).ToList();
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+}

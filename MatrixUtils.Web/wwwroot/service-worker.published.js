@@ -8,8 +8,10 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
-const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/ ];
-const offlineAssetsExclude = [ /^service-worker\.js$/ ];
+const offlineAssetsInclude = [// Standard resources
+    /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /* Extra known-static paths */
+    /\/_matrix\/media\/.{2}\/download\//, /api\.dicebear\.com\/6\.x\/identicon\/svg/];
+const offlineAssetsExclude = [/^service-worker\.js$/];
 
 // Replace with your base path if you are hosting on a subfolder. Ensure there is a trailing '/'.
 const base = "/";
@@ -19,11 +21,14 @@ const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.ur
 async function onInstall(event) {
     console.info('Service worker: Install');
 
+    // Activate the new service worker as soon as the old one is retired.
+    self.skipWaiting();
+
     // Fetch and cache all matching items from the assets manifest
     const assetsRequests = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
+        .map(asset => new Request(asset.url, {integrity: asset.hash, cache: 'no-cache'}));
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
 }
 
@@ -43,12 +48,32 @@ async function onFetch(event) {
         // For all navigation requests, try to serve index.html from cache,
         // unless that request is for an offline resource.
         // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate'
-            && !manifestUrlList.some(url => url === event.request.url);
+        const shouldServeIndexHtml = event.request.mode === 'navigate' && !manifestUrlList.some(url => url === event.request.url);
 
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
+        const shouldCache = offlineAssetsInclude.some(pattern => pattern.test(request.url));
+
         const cache = await caches.open(cacheName);
         cachedResponse = await cache.match(request);
+        let exception;
+        let fetched;
+        if (!cachedResponse && shouldCache) {
+            console.log("Service worker caching: fetching ", request.url)
+            try {
+                fetched = true;
+                await cache.add(request);
+                cachedResponse = await cache.match(request);
+            } catch (e) {
+                exception = e;
+                console.error("cache.add error: ", e, request.url)
+            }
+        }
+        let consoleLog = {
+            fetched, shouldCache, request, exception, cachedResponse, url: request.url,
+        }
+        Object.keys(consoleLog).forEach(key => consoleLog[key] == null && delete consoleLog[key])
+        if(consoleLog.exception)
+            console.log("Service worker caching: ", consoleLog)
     }
 
     return cachedResponse || fetch(event.request);

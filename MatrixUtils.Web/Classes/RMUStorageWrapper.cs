@@ -12,7 +12,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     public async Task<UserAuth?> GetCurrentToken() {
-        var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("token");
+        var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("rmu.token");
         var allTokens = await GetAllTokens();
         if (allTokens is null or { Count: 0 }) {
             await SetCurrentToken(null);
@@ -94,5 +94,32 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
         await storageService.DataStorageProvider.SaveObjectAsync("rmu.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(UserAuth? auth) => await storageService.DataStorageProvider.SaveObjectAsync("token", auth);
+    public async Task SetCurrentToken(UserAuth? auth) => await storageService.DataStorageProvider.SaveObjectAsync("rmu.token", auth);
+
+    public async Task MigrateFromMRU() {
+        var dsp = storageService.DataStorageProvider!;
+        if(await dsp.ObjectExistsAsync("token")) {
+            var oldToken = await dsp.LoadObjectAsync<UserAuth>("token");
+            if (oldToken != null) {
+                await dsp.SaveObjectAsync("rmu.token", oldToken);
+                await dsp.DeleteObjectAsync("tokens");
+            }
+        }
+        
+        if(await dsp.ObjectExistsAsync("tokens")) {
+            var oldTokens = await dsp.LoadObjectAsync<List<UserAuth>>("tokens");
+            if (oldTokens != null) {
+                await dsp.SaveObjectAsync("rmu.tokens", oldTokens);
+                await dsp.DeleteObjectAsync("tokens");
+            }
+        }
+        
+        if(await dsp.ObjectExistsAsync("mru.tokens")) {
+            var oldTokens = await dsp.LoadObjectAsync<List<UserAuth>>("mru.tokens");
+            if (oldTokens != null) {
+                await dsp.SaveObjectAsync("rmu.tokens", oldTokens);
+                await dsp.DeleteObjectAsync("mru.tokens");
+            }
+        }
+    }
 }

@@ -1,0 +1,56 @@
+@page "/Tools/LeaveRoom"
+@using System.Diagnostics
+@using ArcaneLibs.Extensions
+@using LibMatrix.Homeservers
+@using LibMatrix.RoomTypes
+@using System.Collections.ObjectModel
+<h3>Leave room</h3>
+<hr/>
+<span>Room ID: </span>
+<InputText @bind-Value="@RoomId"></InputText>
+<br/>
+<LinkButton OnClick="@Leave">Leave</LinkButton>
+<br/><br/>
+@foreach (var line in Log) {
+    <p>@line</p>
+}
+@code {
+    AuthenticatedHomeserverGeneric? hs { get; set; }
+    ObservableCollection<string> Log { get; set; } = new ObservableCollection<string>();
+    [Parameter, SupplyParameterFromQuery(Name = "roomId")]
+    public string? RoomId { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        Log.CollectionChanged += (sender, args) => StateHasChanged();
+        
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Leave() {
+        if(string.IsNullOrWhiteSpace(RoomId)) return;
+        var room = hs.GetRoom(RoomId);
+        Log.Add("Got room object...");
+        try {
+            await room.LeaveAsync();
+            Log.Add("Left room!");
+        }
+        catch (Exception e) {
+            Log.Add(e.ToString());
+        }
+
+        try {
+            await room.ForgetAsync();
+            Log.Add("Forgot room!");
+        }
+        catch (Exception e) {
+            Log.Add(e.ToString());
+        }
+
+        Log.Add("Done!");
+    }
+
+}

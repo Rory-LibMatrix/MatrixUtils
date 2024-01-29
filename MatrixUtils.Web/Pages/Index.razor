@@ -20,7 +20,7 @@ Small collection of tools to do not-so-everyday things.
             var _auth = session.UserAuth;
             <tr class="user-entry">
                 <td>
-                    <img class="avatar" src="@session.UserInfo.AvatarUrl"/>
+                    <img class="avatar" src="@session.UserInfo.AvatarUrl" crossorigin="anonymous"/>
                 </td>
                 <td class="user-info">
                     <p>
@@ -108,6 +108,16 @@ Small collection of tools to do not-so-everyday things.
         _sessions.Clear();
         _offlineSessions.Clear();
         var tokens = await RMUStorage.GetAllTokens();
+        if (tokens is not { Count: > 0 }) {
+            Console.WriteLine("No tokens found, trying migration from MRU...");
+            await RMUStorage.MigrateFromMRU();
+            tokens = await RMUStorage.GetAllTokens();
+            if (tokens is not { Count: > 0 }) {
+                Console.WriteLine("No tokens found");
+                return;
+            }
+        }
+
         var profileTasks = tokens.Select(async token => {
             UserInfo userInfo = new();
             AuthenticatedHomeserverGeneric hs;
@@ -119,14 +129,13 @@ Small collection of tools to do not-so-everyday things.
                 if (e.ErrorCode != "M_UNKNOWN_TOKEN") throw;
                 NavigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
                 return;
-
             }
             catch (Exception e) {
                 logger.LogError(e, $"Failed to instantiate AuthenticatedHomeserver for {token.ToJson()}, homeserver may be offline?", token.UserId);
                 _offlineSessions.Add(token);
                 return;
             }
-            
+
             Console.WriteLine($"Got hs for {token.ToJson()}");
 
             var roomCountTask = hs.GetJoinedRooms();
@@ -143,8 +152,8 @@ Small collection of tools to do not-so-everyday things.
                 ServerVersion = await (hs.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null)),
                 Homeserver = hs
             });
-        });
-        Console.WriteLine("Waiting for profile tasks");
+        }).ToList();
+        Console.WriteLine($"Waiting for {profileTasks.Count} profile tasks");
         await Task.WhenAll(profileTasks);
         Console.WriteLine("Done waiting for profile tasks");
         await base.OnInitializedAsync();
@@ -176,7 +185,6 @@ Small collection of tools to do not-so-everyday things.
             await RMUStorage.SetCurrentToken((await RMUStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
         await OnInitializedAsync();
     }
-
 
     private async Task SwitchSession(UserAuth auth) {
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");

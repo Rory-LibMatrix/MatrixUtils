@@ -18,7 +18,13 @@
 <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile" @bind-StillFetching="RenderContents"></RoomList>
 
 @code {
-    private ObservableCollection<RoomInfo> Rooms { get; } = new();
+    
+    private ObservableCollection<RoomInfo> _rooms = new();
+    private ObservableCollection<RoomInfo> Rooms {
+        get => _rooms;
+        set => _rooms = value;
+    }
+
     private UserProfileResponse GlobalProfile { get; set; }
 
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
@@ -97,25 +103,29 @@
         if (Homeserver is null) return;
         var rooms = await Homeserver.GetJoinedRooms();
         // SemaphoreSlim _semaphore = new(160, 160);
-
-        var roomTasks = rooms.Select(async room => {
-            RoomInfo ri;
-            // await _semaphore.WaitAsync();
-            ri = new() { Room = room };
-            await Task.WhenAll((filter.Room?.State?.Types ?? []).Select(x => ri.GetStateEvent(x)));
-            return ri;
-        }).ToAsyncEnumerable();
-
-        await foreach (var room in roomTasks) {
-            Rooms.Add(room);
-            StateHasChanged();
-            // await Task.Delay(50);
-            // _semaphore.Release();
-        }
-
-        if (rooms.Count >= 150) RenderContents = true;
-
         GlobalProfile = await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId);
+
+        Rooms = new ObservableCollection<RoomInfo>(rooms.Select(x => new RoomInfo() { Room = x }));
+        foreach (var stateType in filter.Room?.State?.Types ?? []) {
+            var tasks = Rooms.Select(async room => {
+                try {
+                    
+                    await room.GetStateEvent(stateType);
+                }
+                catch (Exception e) {
+                    Console.WriteLine($"Failed to get state event {stateType} for room {room.Room.RoomId}: {e}");
+                }
+            });
+            await Task.WhenAll(tasks);
+            Status = $"Fetched all {stateType} events...";
+            // StateHasChanged();
+        }
+        
+
+        RenderContents = true;
+        Status = "Initial fetch done! Starting initial sync...";
+        // StateHasChanged();
+        await Task.Delay(1000);
         syncHelper = new SyncHelper(Homeserver, logger) {
             Timeout = 30000,
             Filter = filter,
@@ -147,7 +157,7 @@
 
                 Console.WriteLine($"Queue no longer empty after {renderTimeSw.Elapsed}!");
 
-                int maxUpdates = 10;
+                int maxUpdates = 50;
                 isInitialSync = false;
                 while (maxUpdates-- > 0 && queue.TryDequeue(out var queueEntry)) {
                     var (roomId, roomData) = queueEntry;
@@ -176,6 +186,8 @@
                     else {
                         Console.WriteLine($"QueueWorker: could not merge state for {room.Room.RoomId} as new data contains no state events!");
                     }
+
+                    await Task.Delay(100);
                 }
                 Console.WriteLine($"QueueWorker: {queue.Count} entries left in queue, {maxUpdates} maxUpdates left, RenderContents: {RenderContents}");
                     Status = $"Got {Rooms.Count} rooms so far! {queue.Count} entries in processing queue...";
@@ -212,9 +224,10 @@
     }
 
     private Queue<KeyValuePair<string, SyncResponse.RoomsDataStructure.JoinedRoomDataStructure>> queue = new();
+    
 
     private async Task RunSyncLoop(SyncHelper syncHelper) {
-        Status = "Initial syncing...";
+        // Status = "Initial syncing...";
         Console.WriteLine("starting sync");
 
         var syncs = syncHelper.EnumerateSyncAsync();

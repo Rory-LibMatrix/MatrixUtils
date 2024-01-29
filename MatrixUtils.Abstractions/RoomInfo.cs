@@ -13,42 +13,55 @@ public class RoomInfo : NotifyPropertyChanged {
     public ObservableCollection<StateEventResponse?> StateEvents { get; } = new();
 
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
-        var @event = StateEvents.FirstOrDefault(x => x.Type == type && x.StateKey == stateKey);
+        var @event = StateEvents.FirstOrDefault(x => x?.Type == type && x.StateKey == stateKey);
         if (@event is not null) return @event;
-        @event = new StateEventResponse {
-            RoomId = Room.RoomId,
-            Type = type,
-            StateKey = stateKey,
-            Sender = null, //TODO implement
-            EventId = null
-        };
-        // if (Room is null) return null;
+        // @event = new StateEventResponse {
+        //     RoomId = Room.RoomId,
+        //     Type = type,
+        //     StateKey = stateKey,
+        //     Sender = null, //TODO implement
+        //     EventId = null
+        // };
+        // // if (Room is null) return null;
+        // try {
+        //     @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
+        // }
+        // catch (MatrixException e) {
+        //     if (e is { ErrorCode: "M_NOT_FOUND" }) {
+        //         if (type == "m.room.name")
+        //             @event = new() {
+        //                 Type = type,
+        //                 StateKey = stateKey,
+        //                 TypedContent = new RoomNameEventContent() {
+        //                     Name = await Room.GetNameOrFallbackAsync()
+        //                 },
+        //                 //TODO implement
+        //                 RoomId = null,
+        //                 Sender = null,
+        //                 EventId = null
+        //             };
+        //         else
+        //             @event.RawContent = default!;
+        //     }
+        //     else {
+        //         throw;
+        //     }
+        // }
+        // catch (Exception e) {
+        //     await Task.Delay(1000);
+        //     return await GetStateEvent(type, stateKey);
+        // }
+
         try {
-            @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
+            @event = await Room.GetStateEventOrNullAsync(type, stateKey);
+            StateEvents.Add(@event);
         }
-        catch (MatrixException e) {
-            if (e is { ErrorCode: "M_NOT_FOUND" }) {
-                if (type == "m.room.name")
-                    @event = new() {
-                        Type = type,
-                        StateKey = stateKey,
-                        TypedContent = new RoomNameEventContent() {
-                            Name = await Room.GetNameOrFallbackAsync()
-                        },
-                        //TODO implement
-                        RoomId = null,
-                        Sender = null,
-                        EventId = null
-                    };
-                else
-                    @event.RawContent = default!;
-            }
-            else {
-                throw;
-            }
+        catch (Exception e) {
+            Console.Error.WriteLine(e);
+            await Task.Delay(1000);
+            return await GetStateEvent(type, stateKey);
         }
 
-        StateEvents.Add(@event);
         return @event;
     }
 
@@ -81,11 +94,14 @@ public class RoomInfo : NotifyPropertyChanged {
     private string? _roomCreator;
 
     public string? DefaultRoomName { get; set; }
+    public string? OverrideRoomType { get; set; }
+    public string? RoomType => OverrideRoomType ?? CreationEventContent?.Type;
 
     public RoomInfo() {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
-                foreach (StateEventResponse newState in args.NewItems) { // TODO: switch statement benchmark?
+                foreach (StateEventResponse? newState in args.NewItems) { // TODO: switch statement benchmark?
+                    if(newState is null) continue;
                     if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
                         RoomName = roomNameContent.Name;
                     else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })

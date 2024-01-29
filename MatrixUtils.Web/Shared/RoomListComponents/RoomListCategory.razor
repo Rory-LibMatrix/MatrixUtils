@@ -16,6 +16,7 @@
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</LinkButton>
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</LinkButton>
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</LinkButton>
+            <LinkButton href="@($"/Tools/LeaveRoom?roomId={room.Room.RoomId}")" Color="#FF0000">Leave room</LinkButton>
 
             @if (room.CreationEventContent?.Type == "m.space") {
                 <RoomListSpace Space="@room"></RoomListSpace>
@@ -48,16 +49,6 @@
         return creationEvent.TypedContent is not RoomCreateEventContent roomVersionContent ? 0
             : RoomConstants.DangerousRoomVersions.Contains(roomVersionContent.RoomVersion) ? 2
                 : roomVersionContent.RoomVersion != RoomConstants.RecommendedRoomVersion ? 1 : 0;
-    }
-    
-    public static string GetRoomTypeName(string roomType) {
-        return roomType switch {
-            null => "Room",
-            "m.space" => "Space",
-            "org.matrix.mjolnir.policy" => "Policy room",
-            
-            _ => roomType
-        };
     }
 
 }

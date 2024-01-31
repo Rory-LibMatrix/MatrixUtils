@@ -1,6 +1,7 @@
 @page "/Tools/SpaceDebug"
 @using LibMatrix.Filters
 @using LibMatrix.Helpers
+@using LibMatrix.Utilities
 <h3>SpaceDebug</h3>
 <hr/>
 
@@ -49,16 +50,17 @@
         if (hs is null) return;
 
         var syncHelper = new SyncHelper(hs) {
-            Filter = new SyncFilter() {
-                Presence = new(0),
-                Room = new() {
-                    AccountData = new(limit: 0),
-                    Ephemeral = new(limit: 0),
-                    State = new(limit: 1000, types: new() { "m.space.child", "m.space.parent" }),
-                    Timeline = new(limit: 0)
-                },
-                AccountData = new(limit: 0)
-            }
+            // Filter = new SyncFilter() {
+                // Presence = new(0),
+                // Room = new() {
+                    // AccountData = new(limit: 0),
+                    // Ephemeral = new(limit: 0),
+                    // State = new(limit: 1000, types: new() { "m.space.child", "m.space.parent" }),
+                    // Timeline = new(limit: 0)
+                // },
+                // AccountData = new(limit: 0)
+            // }
+            NamedFilterName = CommonSyncFilters.GetSpaceRelations
         };
         
         Status = "Syncing...";

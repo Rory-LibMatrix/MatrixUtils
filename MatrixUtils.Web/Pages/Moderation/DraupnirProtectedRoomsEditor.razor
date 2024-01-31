@@ -1,0 +1,97 @@
+@page "/Moderation/DraupnirProtectedRoomsEditor"
+@using System.Text.Json.Serialization
+@using MatrixUtils.Abstractions
+@using System.Collections.Frozen
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.RoomTypes
+<h3>Edit Draupnir protected rooms</h3>
+<hr/>
+
+@if (data is not null) {
+    <div class="row">
+        <div class="col-12">
+            <h4>Current rooms</h4>
+            <ul>
+                @foreach (var room in data.Rooms) {
+                    <li>@room</li>
+                }
+            </ul>
+            <hr/>
+            <h4>Tickyboxes</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th> @* Checkbox column *@
+                        <th>Kick?</th> @* PL > kick *@
+                        <th>Ban?</th> @* PL > ban *@
+                        <th>ACL?</th> @* PL > m.room.server_acls event *@
+                        <th>Room ID</th>
+                        <th>Room name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var room in Rooms.OrderBy(x => x.RoomName)) {
+                        <tr>
+                            <td>
+                                <input type="checkbox" @bind="room.IsProtected"/>
+                            </td>
+                            <td>@(room.PowerLevels.Kick <= room.PowerLevels.GetUserPowerLevel(hs.UserId) ? "X" : "")</td>
+                            <td>@(room.PowerLevels.Ban <= room.PowerLevels.GetUserPowerLevel(hs.UserId) ? "X" : "")</td>
+                            <td>@(room.PowerLevels.UserHasStatePermission(hs.UserId, RoomServerACLEventContent.EventId) ? "X" : "")</td>
+                            <td>@room.Room.RoomId</td>
+                            <td>@room.RoomName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+<br/>
+<LinkButton OnClick="@Apply">Apply</LinkButton>
+
+
+@code {
+    private DraupnirProtectedRoomsData data { get; set; } = new();
+    private List<EditorRoomInfo> Rooms { get; set; } = new();
+    private AuthenticatedHomeserverGeneric hs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        data = await hs.GetAccountDataAsync<DraupnirProtectedRoomsData>("org.matrix.mjolnir.protected_rooms");
+        StateHasChanged();
+        foreach (var room in await hs.GetJoinedRooms()) {
+            var plTask = room.GetPowerLevelsAsync();
+            var roomNameTask = room.GetNameOrFallbackAsync();
+            var EditorRoomInfo = new EditorRoomInfo {
+                Room = room,
+                IsProtected = data.Rooms.Contains(room.RoomId),
+                RoomName = await roomNameTask,
+                PowerLevels = await plTask
+            };
+
+            Rooms.Add(EditorRoomInfo);
+            StateHasChanged();
+        }
+    }
+
+    private class DraupnirProtectedRoomsData {
+        [JsonPropertyName("rooms")]
+        public List<string> Rooms { get; set; } = new();
+    }
+
+    private class EditorRoomInfo {
+        public GenericRoom Room { get; set; }
+        public bool IsProtected { get; set; }
+        public string RoomName { get; set; }
+        public RoomPowerLevelEventContent PowerLevels { get; set; }
+    }
+
+    private async Task Apply() {
+        Console.WriteLine(string.Join('\n', Rooms.Where(x=>x.IsProtected).Select(x=>x.Room.RoomId)));
+        data.Rooms = Rooms.Where(x => x.IsProtected).Select(x => x.Room.RoomId).ToList();
+        await hs.SetAccountDataAsync("org.matrix.mjolnir.protected_rooms", data);
+    }
+
+}

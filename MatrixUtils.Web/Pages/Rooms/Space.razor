@@ -93,8 +93,11 @@
     }
 
     private async Task JoinAllRooms() {
-        List<Task<RoomIdResponse>> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
-        await Task.WhenAll(tasks);
+        // List<Task<RoomIdResponse>> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
+        // await Task.WhenAll(tasks);
+        foreach (var room in Rooms) {
+            await room.JoinAsync(ServersInSpace.ToArray());
+        }
     }
 
 }

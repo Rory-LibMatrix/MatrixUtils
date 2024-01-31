@@ -250,6 +250,7 @@ else {
 
     private async Task UpdatePolicyAsync(StateEventResponse policyEvent) {
         await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey, policyEvent.RawContent);
+        CurrentlyEditingEvent = null;
         await LoadStatesAsync();
     }
 

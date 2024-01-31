@@ -1,9 +1,11 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.Json.Nodes;
 using ArcaneLibs;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
+using LibMatrix.Homeservers;
 using LibMatrix.RoomTypes;
 
 namespace MatrixUtils.Abstractions;
@@ -12,52 +14,63 @@ public class RoomInfo : NotifyPropertyChanged {
     public required GenericRoom Room { get; set; }
     public ObservableCollection<StateEventResponse?> StateEvents { get; } = new();
 
+    private static ConcurrentBag<AuthenticatedHomeserverGeneric> homeserversWithoutEventFormatSupport = new();
+    
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
+        if (homeserversWithoutEventFormatSupport.Contains(Room.Homeserver)) return await GetStateEventForged(type, stateKey);
         var @event = StateEvents.FirstOrDefault(x => x?.Type == type && x.StateKey == stateKey);
         if (@event is not null) return @event;
-        // @event = new StateEventResponse {
-        //     RoomId = Room.RoomId,
-        //     Type = type,
-        //     StateKey = stateKey,
-        //     Sender = null, //TODO implement
-        //     EventId = null
-        // };
-        // // if (Room is null) return null;
-        // try {
-        //     @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
-        // }
-        // catch (MatrixException e) {
-        //     if (e is { ErrorCode: "M_NOT_FOUND" }) {
-        //         if (type == "m.room.name")
-        //             @event = new() {
-        //                 Type = type,
-        //                 StateKey = stateKey,
-        //                 TypedContent = new RoomNameEventContent() {
-        //                     Name = await Room.GetNameOrFallbackAsync()
-        //                 },
-        //                 //TODO implement
-        //                 RoomId = null,
-        //                 Sender = null,
-        //                 EventId = null
-        //             };
-        //         else
-        //             @event.RawContent = default!;
-        //     }
-        //     else {
-        //         throw;
-        //     }
-        // }
-        // catch (Exception e) {
-        //     await Task.Delay(1000);
-        //     return await GetStateEvent(type, stateKey);
-        // }
-
+        
         try {
             @event = await Room.GetStateEventOrNullAsync(type, stateKey);
             StateEvents.Add(@event);
         }
         catch (Exception e) {
+            if (e is InvalidDataException) {
+                homeserversWithoutEventFormatSupport.Add(Room.Homeserver);
+                return await GetStateEventForged(type, stateKey);
+            }
             Console.Error.WriteLine(e);
+            await Task.Delay(1000);
+            return await GetStateEvent(type, stateKey);
+        }
+
+        return @event;
+    }
+
+    private async Task<StateEventResponse?> GetStateEventForged(string type, string stateKey = "") {
+        var @event = new StateEventResponse {
+            RoomId = Room.RoomId,
+            Type = type,
+            StateKey = stateKey,
+            Sender = null, //TODO implement
+            EventId = null
+        };
+        try {
+            @event.RawContent = await Room.GetStateAsync<JsonObject>(type, stateKey);
+        }
+        catch (MatrixException e) {
+            if (e is { ErrorCode: "M_NOT_FOUND" }) {
+                if (type == "m.room.name")
+                    @event = new() {
+                        Type = type,
+                        StateKey = stateKey,
+                        TypedContent = new RoomNameEventContent() {
+                            Name = await Room.GetNameOrFallbackAsync()
+                        },
+                        //TODO implement
+                        RoomId = null,
+                        Sender = null,
+                        EventId = null
+                    };
+                else
+                    @event.RawContent = default!;
+            }
+            else {
+                throw;
+            }
+        }
+        catch (Exception e) {
             await Task.Delay(1000);
             return await GetStateEvent(type, stateKey);
         }
@@ -92,10 +105,30 @@ public class RoomInfo : NotifyPropertyChanged {
     private string? _roomName;
     private RoomCreateEventContent? _creationEventContent;
     private string? _roomCreator;
+    private string? _overrideRoomType;
+    private string? _defaultRoomName;
+    private RoomMemberEventContent? _ownMembership;
 
-    public string? DefaultRoomName { get; set; }
-    public string? OverrideRoomType { get; set; }
+    public string? DefaultRoomName {
+        get => _defaultRoomName;
+        set {
+            if (SetField(ref _defaultRoomName, value)) OnPropertyChanged(nameof(RoomName));
+        }
+    }
+
+    public string? OverrideRoomType {
+        get => _overrideRoomType;
+        set {
+            if (SetField(ref _overrideRoomType, value)) OnPropertyChanged(nameof(RoomType));
+        }
+    }
+
     public string? RoomType => OverrideRoomType ?? CreationEventContent?.Type;
+
+    public RoomMemberEventContent? OwnMembership {
+        get => _ownMembership;
+        set => SetField(ref _ownMembership, value);
+    }
 
     public RoomInfo() {
         StateEvents.CollectionChanged += (_, args) => {

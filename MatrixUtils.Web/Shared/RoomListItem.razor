@@ -10,14 +10,14 @@
 @if (RoomInfo is not null) {
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
         @if (OwnMemberState != null) {
-            <MxcImage Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))"
-                      MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
+            @* Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))" *@
+            <MxcImage Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
             <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
                 @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
             </span>
             <span class="centerVertical noLeftPadding">-></span>
         }
-        <MxcImage class="avatar32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/>
+        <MxcImage Circular="true" Height="32" Width="32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/>
         <div class="inlineBlock">
             <span class="centerVertical">@RoomInfo.RoomName</span>
             @if (ChildContent is not null) {
@@ -40,10 +40,13 @@ else {
     public RoomInfo? RoomInfo {
         get => _roomInfo;
         set {
+            if (RoomInfo != value)
+                RoomInfoChanged();
             _roomInfo = value;
-            OnParametersSetAsync();
         }
     }
+
+    
 
     [Parameter]
     public bool ShowOwnProfile { get; set; } = false;
@@ -72,72 +75,66 @@ else {
     private static AuthenticatedHomeserverGeneric? hs { get; set; }
 
     private bool _hooked;
-    protected override async Task OnParametersSetAsync() {
-        if (RoomInfo != null) {
-            if (!_hooked) {
-                _hooked = true;
-                RoomInfo.PropertyChanged += (_, a) => {
-                    Console.WriteLine(a.PropertyName);
-                    StateHasChanged();
-                };
+    
+    private async Task RoomInfoChanged() {
+        RoomInfo.PropertyChanged += async (_, a) => {
+            if (a.PropertyName == nameof(RoomInfo.CreationEventContent)) {
+                await CheckRoomVersion();
             }
-
-            if (LoadData) {
-                try {
-                    await RoomInfo.GetStateEvent("m.room.create");
-                    if (ShowOwnProfile)
-                        OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.WhoAmI.UserId)).TypedContent as RoomMemberEventContent;
-
-                    await RoomInfo.GetStateEvent("m.room.name");
-                    await RoomInfo.GetStateEvent("m.room.avatar");
-                }
-                catch (MatrixException e) {
-                    if (e.ErrorCode == "M_FORBIDDEN") {
-                        LoadData = false;
-                        RoomInfo.StateEvents.Add(new() {
-                            Type = "m.room.create",
-                            TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }, 
-                            RoomId = null, Sender = null, EventId = null //TODO: implement
-                        });
-                        RoomInfo.StateEvents.Add(new() {
-                            Type = "m.room.name",
-                            TypedContent = new RoomNameEventContent() {
-                                Name = "M_FORBIDDEN: Are you a member of this room? " + RoomInfo.Room.RoomId
-                            },
-                            RoomId = null, Sender = null, EventId = null //TODO: implement
-                        });
-                    }
-                }
-            }
-        }
-
-        await base.OnParametersSetAsync();
+            
+            StateHasChanged();
+        };
     }
+    
+    // protected override async Task OnParametersSetAsync() {
+    //     if (RoomInfo != null) {
+    //         if (!_hooked) {
+    //             _hooked = true;
+    //             RoomInfo.PropertyChanged += (_, a) => {
+    //                 Console.WriteLine(a.PropertyName);
+    //                 StateHasChanged();
+    //             };
+    //         }
+    //
+    //         if (LoadData) {
+    //             try {
+    //                 await RoomInfo.GetStateEvent("m.room.create");
+    //                 if (ShowOwnProfile)
+    //                     OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.WhoAmI.UserId)).TypedContent as RoomMemberEventContent;
+    //
+    //                 await RoomInfo.GetStateEvent("m.room.name");
+    //                 await RoomInfo.GetStateEvent("m.room.avatar");
+    //             }
+    //             catch (MatrixException e) {
+    //                 if (e.ErrorCode == "M_FORBIDDEN") {
+    //                     LoadData = false;
+    //                     RoomInfo.StateEvents.Add(new() {
+    //                         Type = "m.room.create",
+    //                         TypedContent = new RoomCreateEventContent() { RoomVersion = "0" }, 
+    //                         RoomId = null, Sender = null, EventId = null //TODO: implement
+    //                     });
+    //                     RoomInfo.StateEvents.Add(new() {
+    //                         Type = "m.room.name",
+    //                         TypedContent = new RoomNameEventContent() {
+    //                             Name = "M_FORBIDDEN: Are you a member of this room? " + RoomInfo.Room.RoomId
+    //                         },
+    //                         RoomId = null, Sender = null, EventId = null //TODO: implement
+    //                     });
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     await base.OnParametersSetAsync();
+    // }
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
 
-        await _semaphoreSlim.WaitAsync();
-
         hs ??= await RMUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
-        try {
-            await CheckRoomVersion();
-    // await GetRoomInfo();
-    // await LoadOwnProfile();
-        }
-        catch (MatrixException e) {
-            if (e is not { ErrorCode: "M_FORBIDDEN" }) {
-                throw;
-            }
-    // RoomName = "Error: " + e.Message;
-    // RoomIcon = "/blobfox_outage.gif";
-        }
-        catch (Exception e) {
-            Console.WriteLine($"Failed to load room info for {RoomInfo.Room.RoomId}: {e.Message}");
-        }
-        _semaphoreSlim.Release();
+        await CheckRoomVersion();
     }
 
     private async Task LoadOwnProfile() {
@@ -158,10 +155,8 @@ else {
     }
 
     private async Task CheckRoomVersion() {
-        while (RoomInfo?.CreationEventContent is null) {
-            Console.WriteLine($"Room creation event content for {RoomInfo.Room.RoomId} is null...");
-            await Task.Delay(Random.Shared.Next(1000, 2500));
-        }
+        if (RoomInfo?.CreationEventContent is null) return; 
+        
         var ce = RoomInfo.CreationEventContent;
         if (int.TryParse(ce.RoomVersion, out var rv)) {
             if (rv < 10)

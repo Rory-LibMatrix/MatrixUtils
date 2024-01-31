@@ -1,0 +1,199 @@
+@page "/Tools/RoomIntersections"
+@using ArcaneLibs.Extensions
+@using LibMatrix.RoomTypes
+@using System.Collections.ObjectModel
+@using LibMatrix
+@using System.Collections.Frozen
+@using LibMatrix.EventTypes.Spec.State
+<h3>Room intersections</h3>
+<hr/>
+
+<p>Set A: </p>
+<InputText @bind-Value="@ImportSetASpaceId"></InputText>
+<LinkButton OnClick="@(() => AppendSet(ImportSetASpaceId, RoomsA))">Append Set A</LinkButton>
+
+<p>Set B: </p>
+<InputText @bind-Value="@ImportSetBSpaceId"></InputText>
+<LinkButton OnClick="@(() => AppendSet(ImportSetBSpaceId, RoomsB))">Append Set B</LinkButton>
+<br/>
+<LinkButton OnClick="@Execute">Execute</LinkButton>
+<br/>
+
+<details>
+    <summary>Results</summary>
+    <pre>
+        @{
+            var userColWidth = matches.Count == 0 ? 0 : matches.Keys.Max(x => x.Length);
+        }
+        <table border="1">
+            @foreach (var (userId, sets) in matches) {
+                <tr>
+                    <td>@userId.PadRight(userColWidth + 5)</td>
+                    <td>@sets.Item1[0].Room.RoomId</td>
+                    <td>@((sets.Item1[0].Member.TypedContent as RoomMemberEventContent).Membership)</td>
+                    <td>@(roomNames.ContainsKey(sets.Item1[0].Room) ? roomNames[sets.Item1[0].Room] : "")</td>
+                    <td>@(roomAliasses.ContainsKey(sets.Item1[0].Room) ? roomAliasses[sets.Item1[0].Room] : "")</td>
+                    <td>@sets.Item2[0].Room.RoomId</td>
+                    <td>@((sets.Item2[0].Member.TypedContent as RoomMemberEventContent).Membership)</td>
+                    <td>@(roomNames.ContainsKey(sets.Item2[0].Room) ? roomNames[sets.Item2[0].Room] : "")</td>
+                    <td>@(roomAliasses.ContainsKey(sets.Item2[0].Room) ? roomAliasses[sets.Item2[0].Room] : "")</td>
+                </tr>
+                @for (int i = 1; i < Math.Max(sets.Item1.Count, sets.Item2.Count); i++) {
+                    <tr>
+                        <td/>
+                        @if (sets.Item1.Count > i) {
+                            <td>@sets.Item1[i].Room.RoomId</td>
+                            <td>@((sets.Item1[i].Member.TypedContent as RoomMemberEventContent).Membership)</td>
+                            <td>@(roomNames.ContainsKey(sets.Item1[i].Room) ? roomNames[sets.Item1[i].Room] : "")</td>
+                            <td>@(roomAliasses.ContainsKey(sets.Item1[i].Room) ? roomAliasses[sets.Item1[i].Room] : "")</td>
+                        }
+                        else {
+                            <td/>
+                            <td/>
+                            <td/>
+                            <td/>
+                        }
+                        @if (sets.Item2.Count > i) {
+                            <td>@sets.Item2[0].Room.RoomId</td>
+                            <td>@((sets.Item2[i].Member.TypedContent as RoomMemberEventContent).Membership)</td>
+                            <td>@(roomNames.ContainsKey(sets.Item2[i].Room) ? roomNames[sets.Item2[i].Room] : "")</td>
+                            <td>@(roomAliasses.ContainsKey(sets.Item2[i].Room) ? roomAliasses[sets.Item2[i].Room] : "")</td> 
+                        }
+                        else {
+                            <td/>
+                            <td/>
+                            <td/>
+                            <td/>
+                        }
+                    </tr>
+                }
+            }
+            
+        </table>
+        <br/>
+    </pre>
+</details>
+
+<br/>
+@foreach (var line in Log.Reverse()) {
+    <pre>@line</pre>
+}
+
+@code {
+    private ObservableCollection<string> Log { get; set; } = new();
+    List<GenericRoom> RoomsA { get; set; } = new();
+    List<GenericRoom> RoomsB { get; set; } = new();
+
+    [Parameter, SupplyParameterFromQuery(Name = "a")]
+    public string ImportSetASpaceId { get; set; } = "";
+
+    [Parameter, SupplyParameterFromQuery(Name = "b")]
+    public string ImportSetBSpaceId { get; set; } = "";
+
+    Dictionary<string, Dictionary<GenericRoom, StateEventResponse>> roomMembers { get; set; } = new();
+
+    Dictionary<string, (List<Match>, List<Match>)> matches { get; set; } = new();
+
+    AuthenticatedHomeserverGeneric hs { get; set; }
+
+    // private string RoomListAString {
+    //     get => string.Join("\n", RoomIdsA);
+    //     set => RoomIdsA = value.Split("\n").Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+    // }
+    //
+    // private string RoomListBString {
+    //     get => string.Join("\n", RoomIdsB);
+    //     set => RoomIdsB = value.Split("\n").Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+    // }
+
+    // private List<string> RoomIdsA { get; set; } = new();
+    // private List<string> RoomIdsB { get; set; } = new();
+
+    // room info
+    Dictionary<GenericRoom, string> roomNames { get; set; } = new();
+    Dictionary<GenericRoom, string?> roomAliasses { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        Log.CollectionChanged += (sender, args) => StateHasChanged();
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Execute() {
+        // get all users which are in any room of both sets of rooms, and which rooms
+        var setAusers = new Dictionary<string, List<Match>>();
+        var setBusers = new Dictionary<string, List<Match>>();
+
+        await Task.WhenAll(GetMembers(RoomsA, setAusers), GetMembers(RoomsB, setBusers));
+        
+        Log.Add($"Got {setAusers.Count} users in set A");
+        Log.Add($"Got {setBusers.Count} users in set B");
+        Log.Add("Calculating intersections...");
+
+        // get all users which are in both sets of rooms
+        // var users = setAusers.Keys.Intersect(setBusers.Keys).ToList();
+        // var groups = setAusers.IntersectBy(setBusers, (x,y) => x.Key).ToList();
+        matches = setAusers.Keys.Intersect(setBusers.Keys).Select(x => (x, setAusers[x], setBusers[x])).ToDictionary(x => x.x, x => (x.Item2, x.Item3));
+
+        Log.Add($"Found {matches.Count} users in both sets of rooms");
+        StateHasChanged();
+    }
+
+    public async Task GetMembers(List<GenericRoom> rooms, Dictionary<string, List<Match>> users) {
+        foreach (var room in rooms) {
+            Log.Add($"Getting members for {room.RoomId}");
+            var members = await room.GetMembersListAsync(false);
+            foreach (var member in members) {
+                if (member.RawContent?["membership"]?.ToString() == "ban") continue;
+                if (member.RawContent?["membership"]?.ToString() == "invite") continue;
+                if (!users.ContainsKey(member.StateKey)) users[member.StateKey] = new();
+                users[member.StateKey].Add(new() {
+                    Room = room,
+                    Member = member
+                });
+            }
+        }
+    }
+
+    public async Task AppendSet(string spaceId, List<GenericRoom> rooms) {
+        var space = hs.GetRoom(spaceId).AsSpace;
+        Log.Add($"Found space {spaceId}");
+        var roomIdsEnum = space.GetChildrenAsync(true);
+        List<Task> tasks = new();
+        await foreach (var room in roomIdsEnum) {
+            tasks.Add(loadRoomData(room, rooms));
+        }
+
+        await Task.WhenAll(tasks);
+
+        async Task loadRoomData(GenericRoom room, List<GenericRoom> rooms) {
+            Log.Add($"Found room {room.RoomId}");
+            try {
+                await room.GetPowerLevelsAsync();
+                rooms.Add(room);
+                try {
+                    roomAliasses[room] = (await room.GetCanonicalAliasAsync()).Alias;
+                }
+                catch { }
+
+                try {
+                    roomNames[room] = await room.GetNameOrFallbackAsync();
+                }
+                catch { }
+            }
+            catch (MatrixException e) {
+                Log.Add($"Failed to get power levels for {room.RoomId}: {e.Message}");
+            }
+        }
+    }
+
+    public class Match {
+        public GenericRoom Room { get; set; }
+        public StateEventResponse Member { get; set; }
+    }
+
+}

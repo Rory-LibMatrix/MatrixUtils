@@ -1,0 +1,30 @@
+@page "/Tools/ViewAccountData"
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.Filters
+@using LibMatrix.Helpers
+@using LibMatrix.Utilities
+<h3>View account data</h3>
+<hr/>
+<pre>@globalAccountData?.Events.ToJson(ignoreNull: true)</pre>
+<br/>
+
+@foreach (var (key, value) in perRoomAccountData) {
+    <u>@key</u><br/><hr/>
+    <pre>@value?.Events.ToJson(ignoreNull: true)</pre>
+}
+
+@code {
+    EventList? globalAccountData;
+    Dictionary<string, EventList?> perRoomAccountData = new();
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+        perRoomAccountData = await hs.EnumerateAccountDataPerRoom();
+        globalAccountData = await hs.EnumerateAccountData();
+
+        StateHasChanged();
+    }
+
+}

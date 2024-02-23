@@ -1,9 +1,6 @@
 @page "/Tools/ViewAccountData"
 @using ArcaneLibs.Extensions
 @using LibMatrix
-@using LibMatrix.Filters
-@using LibMatrix.Helpers
-@using LibMatrix.Utilities
 <h3>View account data</h3>
 <hr/>
 <pre>@globalAccountData?.Events.ToJson(ignoreNull: true)</pre>

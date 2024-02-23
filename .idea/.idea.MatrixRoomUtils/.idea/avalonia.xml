@@ -12,6 +12,7 @@
         <entry key="MatrixRoomUtils.Desktop/MainWindow.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
         <entry key="MatrixRoomUtils.Desktop/NavigationStack.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
         <entry key="MatrixRoomUtils.Desktop/RoomListEntry.axaml" value="MatrixRoomUtils.Desktop/MatrixRoomUtils.Desktop.csproj" />
+        <entry key="MatrixUtils.Desktop/Components/RoomListEntry.axaml" value="MatrixUtils.Desktop/MatrixUtils.Desktop.csproj" />
       </map>
     </option>
   </component>

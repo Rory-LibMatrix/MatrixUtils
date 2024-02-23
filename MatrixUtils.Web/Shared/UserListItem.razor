@@ -2,8 +2,9 @@
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Homeservers
 @using LibMatrix.Responses
+@using ArcaneLibs
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
-    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@(string.IsNullOrWhiteSpace(User?.AvatarUrl) ? "https://api.dicebear.com/6.x/identicon/svg?seed=" + UserId : User.AvatarUrl)"/>
+    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@(string.IsNullOrWhiteSpace(User?.AvatarUrl) ? _identiconGenerator.GenerateAsDataUri(UserId) : User.AvatarUrl)"/>
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@User?.DisplayName</span>
 
     <div style="display: inline-block;">
@@ -27,6 +28,8 @@
 
     private AuthenticatedHomeserverGeneric _homeserver = null!;
 
+    private SvgIdenticonGenerator _identiconGenerator = new();
+
     protected override async Task OnInitializedAsync() {
         _homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
         if (_homeserver is null) return;
@@ -35,6 +38,7 @@
             if (UserId == null) {
                 throw new ArgumentNullException(nameof(UserId));
             }
+
             User = await _homeserver.GetProfileAsync(UserId);
         }
 

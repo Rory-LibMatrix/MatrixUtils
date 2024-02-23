@@ -1,0 +1,198 @@
+@using MatrixUtils.Abstractions
+@using System.Security.Cryptography
+@using ArcaneLibs.Extensions
+@using System.ComponentModel
+@using System.Diagnostics
+@using LibMatrix.EventTypes.Spec.State
+@using MatrixUtils.Web.Pages.Rooms.Index2Components.MainTabComponents
+@using Microsoft.AspNetCore.Components.Rendering
+<h3>RoomsIndex2MainTab</h3>
+
+@* <div> *@
+@*     <div class="row"> *@
+@*         <div class="col-3" style="background-color: #ffffff66;"> *@
+@*             <LinkButton>Uncategorised rooms</LinkButton> *@
+@*             @foreach (var space in GetTopLevelSpaces()) { *@
+@*                 <a style="@("display:block; width: 100%; height: 50px; background-color: #" + RandomNumberGenerator.GetBytes(3).Append((byte)0x11).ToArray().AsHexString().Replace(" ", ""))"> *@
+@*                     <div style="vertical-align: middle;"> *@
+@*                         <div style="overflow:hidden; text-overflow: ellipsis; white-space: nowrap; ">@space.RoomName</div> *@
+@*                     </div> *@
+@*                 </a> *@
+@*             } *@
+@*         </div> *@
+@*         <div class="col-9" style="background-color: #ff00ff66;"> *@
+@*             <p>Placeholder for rooms list...</p> *@
+@*         </div> *@
+@*     </div> *@
+@* </div> *@
+
+<div>
+    <div class="row">
+        <div class="col-3" style="background-color: #ffffff22;">
+            <LinkButton>Uncategorised rooms</LinkButton>
+            @foreach (var space in GetTopLevelSpaces()) {
+                @RecursingSpaceChildren(space)
+            }
+        </div>
+        <div class="col-9" style="background-color: #ff00ff66;">
+            <p>Placeholder for rooms list...</p>
+        </div>
+    </div>
+</div>
+
+
+@code {
+
+    [CascadingParameter]
+    public Index2.RoomListViewData Data { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync() {
+        Data.Rooms.CollectionChanged += (sender, args) => {
+            DebouncedStateHasChanged();
+            if (args.NewItems is { Count: > 0 })
+                foreach (var newItem in args.NewItems) {
+                    (newItem as RoomInfo).PropertyChanged += OnRoomListChanged;
+                    (newItem as RoomInfo).StateEvents.CollectionChanged += (sender, args) => { DebouncedStateHasChanged(); };
+                }
+        };
+        foreach (var newItem in Data.Rooms) {
+            newItem.PropertyChanged += OnRoomListChanged;
+            newItem.StateEvents.CollectionChanged += (sender, args) => { DebouncedStateHasChanged(); };
+        }
+
+        await base.OnInitializedAsync();
+        StateHasChanged();
+    }
+
+    private void OnRoomListChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == "RoomName" || e.PropertyName == "RoomType")
+            DebouncedStateHasChanged();
+    }
+
+    private CancellationTokenSource _debounceCts = new CancellationTokenSource();
+
+    private async Task DebouncedStateHasChanged() {
+        _debounceCts.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        try {
+            Console.WriteLine("DebouncedStateHasChanged - Waiting 50ms...");
+            await Task.Delay(50, _debounceCts.Token);
+            Console.WriteLine("DebouncedStateHasChanged - Calling StateHasChanged!");
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private List<RoomInfo> GetTopLevelSpaces() {
+        var spaces = Data.Rooms.Where(x => x.RoomType == "m.space").OrderBy(x => x.RoomName).ToList();
+        var allSpaceChildEvents = spaces.SelectMany(x => x.StateEvents.Where(y =>
+            y.Type == SpaceChildEventContent.EventId &&
+            y.RawContent!.Count > 0
+        )).ToList();
+
+        Console.WriteLine($"Child count: {allSpaceChildEvents.Count}");
+
+        spaces.RemoveAll(x => allSpaceChildEvents.Any(y => y.StateKey == x.Room.RoomId));
+
+        if (allSpaceChildEvents.Count == 0) {
+            Console.WriteLine("No space children found, returning nothing...");
+            return [];
+        }
+
+        return spaces.ToList();
+    }
+
+    private List<RoomInfo> GetSpaceChildren(RoomInfo space) {
+        var childEvents = space.StateEvents.Where(x =>
+            x.Type == SpaceChildEventContent.EventId &&
+            x.RawContent!.Count > 0
+        ).ToList();
+        var children = childEvents.Select(x => Data.Rooms.FirstOrDefault(y => y.Room.RoomId == x.StateKey)).Where(x => x is not null).ToList();
+        return children;
+    }
+
+    private List<RoomInfo> GetSpaceChildSpaces(RoomInfo space) {
+        var children = GetSpaceChildren(space);
+        var childSpaces = children.Where(x => x.RoomType == "m.space").ToList();
+        return childSpaces;
+    }
+
+    private RoomInfo? SelectedSpace { get; set; }
+    private List<RoomInfo> OpenedSpaces { get; set; } = new List<RoomInfo>();
+
+    private RenderFragment RecursingSpaceChildren(RoomInfo space, List<RoomInfo>? parents = null, int depth = 0) {
+        parents ??= [];
+        var totalSw = Stopwatch.StartNew();
+        var children = GetSpaceChildSpaces(space);
+
+        var randomColor = RandomNumberGenerator.GetBytes(3).Append((byte)0x33).ToArray().AsHexString().Replace(" ", "");
+        var isExpanded = OpenedSpaces.Contains(space);
+
+        // Console.WriteLine($"RecursingSpaceChildren::FetchData - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+
+        // var renderSw = Stopwatch.StartNew();
+        var rf = new RenderFragment(builder => {
+            builder.OpenElement(0, "div");
+            //space list entry render fragment
+            // builder.AddContent(1, SpaceListEntry(space));
+            builder.OpenComponent<MainTabSpaceItem>(1);
+            builder.AddAttribute(2, "Space", space);
+            builder.AddAttribute(2, "OpenedSpaces", OpenedSpaces);
+            builder.CloseComponent();
+            builder.CloseElement();
+            //space children render fragment
+            if (isExpanded) {
+                builder.OpenElement(2, "div");
+                builder.AddAttribute(3, "style", "padding-left: 10px;");
+                foreach (var child in children) {
+                    builder.AddContent(4, RecursingSpaceChildren(child, parents.Append(space).ToList(), depth + 1));
+                }
+
+                builder.CloseElement();
+            }
+        });
+
+        // Console.WriteLine($"RecursingSpaceChildren::Render - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {renderSw.Elapsed}");
+        if (totalSw.ElapsedMilliseconds > 20)
+            Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+        // Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+        return rf;
+    }
+
+    // private RenderFragment SpaceListEntry(RoomInfo space) {
+    //     return builder => {
+    //         {
+    //             builder.OpenElement(0, "div");
+    //             builder.AddAttribute(1, "style", "display: block; width: 100%; height: 50px;");
+    //             builder.AddAttribute(2, "onclick", EventCallback.Factory.Create(this, () => {
+    //                 if (OpenedSpaces.Contains(space)) {
+    //                     OpenedSpaces.Remove(space);
+    //                 }
+    //                 else {
+    //                     OpenedSpaces.Add(space);
+    //                 }
+    //
+    //                 StateHasChanged();
+    //             }));
+    //             {
+    //                 builder.OpenComponent<MxcImage>(5);
+    //                 builder.AddAttribute(6, "Homeserver", Data.Homeserver);
+    //                 builder.AddAttribute(7, "MxcUri", space.RoomIcon);
+    //                 builder.AddAttribute(8, "Circular", true);
+    //                 builder.AddAttribute(9, "Width", 32);
+    //                 builder.AddAttribute(10, "Height", 32);
+    //                 builder.CloseComponent();
+    //             }
+    //             {
+    //                 // room name, ellipsized
+    //                 builder.OpenElement(11, "span");
+    //                 builder.AddAttribute(12, "class", "spaceNameEllipsis");
+    //                 builder.AddContent(13, space.RoomName);
+    //                 builder.CloseElement();
+    //             }
+    //             builder.CloseElement();
+    //         }
+    //     };
+    // }
+
+}

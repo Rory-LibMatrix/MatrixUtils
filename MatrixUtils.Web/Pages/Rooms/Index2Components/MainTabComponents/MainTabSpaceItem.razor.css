@@ -1,0 +1,15 @@
+.spaceNameEllipsis {
+    padding-left: 8px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    width: calc(100% - 38px);
+}
+
+.spaceListItem {
+    display: block;
+    width: 100%;
+    height: 50px;
+}

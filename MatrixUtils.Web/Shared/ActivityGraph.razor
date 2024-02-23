@@ -1,0 +1,148 @@
+@using System.Drawing
+@using System.Runtime.InteropServices
+@using System.Diagnostics
+
+@if (Data is { Count: > 0 })
+{
+    @*                                                      12*5=60 *@
+    <div style="display: grid; grid-template-columns: 35px repeat(60, 1.5em); grid-template-rows: 1.5em repeat(7, 1.5em); gap: 0;">
+        @* row 0: month labels with colspan *@
+        @* @foreach (var month in Enumerable.Range(1, 12)) *@
+        @* { *@
+        @*     <div style="grid-row: 1; grid-column: @((int)(month * 4.3) + 1);"> *@
+        @*         <span aria-hidden="true">@(new DateTime(2021, month, 1).ToString("MMM")[..3])</span> *@
+        @*     </div> *@
+        @* } *@
+
+        @* column 0: day labels *@
+        @* @for (var i = 0; i < 7; i++) *@
+        @* { *@
+        @*     <div style="text-align: left; grid-column: 1; grid-row: @(i + 2)"> *@
+        @*         @(((DayOfWeek)i).ToString()[..3]) *@
+        @*     </div> *@
+        @* } *@
+
+
+        <div style="grid-row: 1; grid-column: 5;">Jan</div>
+        <div style="grid-row: 1; grid-column: 9;">Feb</div>
+        <div style="grid-row: 1; grid-column: 13;">Mar</div>
+        <div style="grid-row: 1; grid-column: 18;">Apr</div>
+        <div style="grid-row: 1; grid-column: 22;">May</div>
+        <div style="grid-row: 1; grid-column: 26;">Jun</div>
+        <div style="grid-row: 1; grid-column: 31;">Jul</div>
+        <div style="grid-row: 1; grid-column: 35;">Aug</div>
+        <div style="grid-row: 1; grid-column: 39;">Sep</div>
+        <div style="grid-row: 1; grid-column: 44;">Oct</div>
+        <div style="grid-row: 1; grid-column: 48;">Nov</div>
+        <div style="grid-row: 1; grid-column: 52;">Dec</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 2">Sun</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 3">Mon</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 4">Tue</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 5">Wed</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 6">Thu</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 7">Fri</div>
+        <div style="text-align: left; grid-column: 1; grid-row: 8">Sat</div>
+
+
+        @* pad activity cell dates... *@
+        <div style="grid-column: 2; grid-row: 2 / span @((int)(new DateOnly(Data.Keys.First().Year, 1, 1).DayOfWeek));"></div>
+
+        @* the actual activity cells *@
+
+        @code{
+            bool needsBorder = false;
+        }
+
+        @for (DateOnly date = new DateOnly(Data.Keys.First().Year, 1, 1); date <= new DateOnly(Data.Keys.First().Year, 1, 1).AddYears(1).AddDays(-1); date = date.AddDays(1))
+        {
+            var hasData = Data.TryGetValue(date, out var color);
+            var needsTopBorder = date.Day == 1 && date.Month != 1 && date.DayOfWeek != DayOfWeek.Sunday;
+            if (date.DayOfWeek == DayOfWeek.Sunday)
+                needsBorder = date.AddDays(7).Day <= 7 && date.Month != 12;
+            var needsLeftBorder = date.Day <= 7;
+
+            <div class="activity-cell-container"
+                 style="grid-row: @((int)date.DayOfWeek + 2); border-@(needsLeftBorder ? "left" : "right"): @(needsBorder ? "2px solid white" : "none"); border-top: @(needsTopBorder ? "2px solid white" : "none");">
+                @if (hasData)
+                {
+                    <div class="activity-cell"
+                         style="background-color: rgb(@(color.R / GlobalMax.R * 255), @(color.G / GlobalMax.G * 255), @(color.B / GlobalMax.B * 255));"
+                         title="@($"{color.R} {RLabel}, {color.G} {GLabel}, and {color.B} {BLabel} on {date.ToString("D")}")">
+                    </div>
+                }
+                else
+                {
+                    <div class="activity-cell"
+                         title="@($"No data on {date.ToString("D")}")">
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    private Dictionary<DateOnly, RGB> _data = new();
+    private RGB? _globalMax = null;
+
+    [Parameter]
+    public Dictionary<DateOnly, RGB> Data
+    {
+        get => _data;
+        set
+        {
+            // var sw = Stopwatch.StartNew();
+            if (value is not { Count: > 0 }) return;
+            // Console.WriteLine($"Recalculating activity graph ({value.Count} datapoints)...");
+
+
+            // var year = (int)value.Keys.Average(x => x.Year);
+            // value = value
+            // .Where(x => x.Key.Year == year)
+            // .OrderBy(x => x.Key)
+            // .ToDictionary(x => x.Key, x => x.Value);
+
+            _data = value;
+            // Console.WriteLine($"Recalculated activity graph in {sw.Elapsed}");
+            // StateHasChanged();
+        }
+    }
+
+    [Parameter]
+    public RGB GlobalMax
+    {
+        get
+        {
+            if (_globalMax is not null) return _globalMax.Value;
+            if (Data is not { Count: > 0 }) return new RGB() { R = 255, G = 255, B = 255 };
+            return new RGB()
+            {
+                R = Data.Values.Max(x => x.R),
+                G = Data.Values.Max(x => x.G),
+                B = Data.Values.Max(x => x.B)
+            };
+        }
+        set => _globalMax = value;
+    }
+
+    [Parameter] public string RLabel { get; set; } = "R";
+    [Parameter] public string GLabel { get; set; } = "G";
+    [Parameter] public string BLabel { get; set; } = "B";
+
+    [StructLayout(LayoutKind.Sequential, Size = sizeof(float) * 3, Pack = 1)]
+    public struct RGB()
+    {
+        public float R = 0;
+        public float G = 0;
+        public float B = 0;
+
+        public RGB(float r, float g, float b) : this()
+        {
+            R = r;
+            G = g;
+            B = b;
+        }
+    }
+
+}

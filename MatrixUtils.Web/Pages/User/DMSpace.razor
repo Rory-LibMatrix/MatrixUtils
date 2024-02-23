@@ -1,11 +1,14 @@
 @page "/User/DMSpace/Setup"
 @using LibMatrix
+@using LibMatrix.Responses
+@using MatrixUtils.Abstractions
 @using MatrixUtils.LibDMSpace
 @using MatrixUtils.LibDMSpace.StateEvents
 @using MatrixUtils.Web.Pages.User.DMSpaceStages
+@using System.Text.Json.Serialization
 <h3>DM Space Management</h3>
 <hr/>
-<CascadingValue Value="@DmSpace">
+<CascadingValue Value="@SetupData">
     @switch (Stage) {
         case -1:
             <p>Initialising...</p>
@@ -41,35 +44,28 @@
         }
     }
 
-    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
-    public DMSpaceConfiguration? DmSpaceConfiguration { get; set; }
-
-    [Parameter]
-    public DMSpace? DmSpace { get; set; }
+    public DMSpace? DMSpaceRootPage { get; set; }
 
     protected override async Task OnInitializedAsync() {
         if (NavigationManager.Uri.Contains("?stage=")) {
-            NavigationManager.NavigateTo("/User/DMSpace", true);
+            NavigationManager.NavigateTo("/User/DMSpace/Setup", true);
         }
-        DmSpace = this;
-        Homeserver ??= await RMUStorage.GetCurrentSessionOrNavigate();
-        if (Homeserver is null) return;
+        DMSpaceRootPage = this;
+        SetupData.Homeserver ??= await RMUStorage.GetCurrentSessionOrNavigate();
+        if (SetupData.Homeserver is null) return;
         try {
-            DmSpaceConfiguration = await Homeserver.GetAccountDataAsync<DMSpaceConfiguration>("gay.rory.dm_space");
-            var room = Homeserver.GetRoom(DmSpaceConfiguration.DMSpaceId);
-            await room.GetStateAsync<object>(DMSpaceInfo.EventId);
+            SetupData.DmSpaceConfiguration = await SetupData.Homeserver.GetAccountDataAsync<DMSpaceConfiguration>("gay.rory.dm_space");
+            var room = SetupData.Homeserver.GetRoom(SetupData.DmSpaceConfiguration.DMSpaceId);
+            await room.GetStateAsync<DMSpaceInfo>(DMSpaceInfo.EventId);
             Stage = 1;
         }
         catch (MatrixException e) {
-            if (e.ErrorCode == "M_NOT_FOUND") {
+            if (e.ErrorCode is "M_NOT_FOUND" or "M_FORBIDDEN") {
                 Stage = 0;
-                DmSpaceConfiguration = new();
+                SetupData.DmSpaceConfiguration = new();
             }
             else throw;
-        }
-        catch (Exception e) {
-            throw;
         }
         finally {
             StateHasChanged();
@@ -80,6 +76,29 @@
     protected override async Task OnParametersSetAsync() {
         StateHasChanged();
         await base.OnParametersSetAsync();
+    }
+
+    public DMSpaceSetupData SetupData { get; set; } = new();
+
+    public class DMSpaceSetupData {
+        
+        public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+        public DMSpaceConfiguration? DmSpaceConfiguration { get; set; }
+        
+        public DMSpaceInfo? DmSpaceInfo { get; set; } = new();
+        
+        public Dictionary<string, RoomInfo>? Spaces;
+        
+        public Dictionary<UserProfileWithId, List<RoomInfo>>? DMRooms;
+        
+        public RoomInfo? DMSpaceRoomInfo { get; set; }
+
+        
+        public class UserProfileWithId : UserProfileResponse {
+            [JsonIgnore]
+            public string Id { get; set; }
+        }
     }
 
 }

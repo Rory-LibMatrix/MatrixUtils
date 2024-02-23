@@ -1,0 +1,16 @@
+.activity-cell-container {
+    width: 100%;
+    height: 100%;
+    align-content: center;
+    justify-content: center;
+}
+
+.activity-cell {
+    width: 85%;
+    height: 85%;
+    border-radius: 5px;
+}
+
+.day-label {
+    grid-column: 1;
+}

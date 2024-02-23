@@ -1,0 +1,158 @@
+@page "/Tools/PolicyListActivity"
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using System.Diagnostics
+@using LibMatrix.RoomTypes
+@using LibMatrix.EventTypes.Common
+
+
+@if (RoomData.Count == 0)
+{
+    <p>Loading...</p>
+}
+else
+    foreach (var room in RoomData)
+    {
+        <h3>@room.Key</h3>
+        @foreach (var year in room.Value.OrderBy(x => x.Key))
+        {
+            <h5>@year.Key</h5>
+            <ActivityGraph Data="@year.Value" GlobalMax="MaxValue"
+                           RLabel="removed" GLabel="new" BLabel="updated policies">
+            </ActivityGraph>
+        }
+    }
+
+
+@code {
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    public List<GenericRoom> FilteredRooms = new();
+
+    public Dictionary<DateOnly, ActivityGraph.RGB> TestData { get; set; } = new();
+
+    public ActivityGraph.RGB MaxValue { get; set; } = new()
+    {
+        R = 255, G = 255, B = 255
+    };
+
+    public Dictionary<string, Dictionary<int, Dictionary<DateOnly, ActivityGraph.RGB>>> RoomData { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sw = Stopwatch.StartNew();
+        await base.OnInitializedAsync();
+        Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
+        if (Homeserver is null) return;
+
+        //random test data
+        for (DateOnly i = new DateOnly(2020, 1, 1); i < new DateOnly(2020, 12, 30); i = i.AddDays(Random.Shared.Next(5)))
+        {
+            TestData[i] = new()
+            {
+                R = (int)(Random.Shared.NextSingle() * 255),
+                G = (int)(Random.Shared.NextSingle() * 255),
+                B = (int)(Random.Shared.NextSingle() * 255)
+            };
+        }
+
+        StateHasChanged();
+        // return;
+
+        var rooms = await Homeserver.GetJoinedRooms();
+        // foreach (var room in rooms)
+        // {
+        //     var type = await room.GetRoomType();
+        //     if (type == "support.feline.policy.lists.msc.v1")
+        //     {
+        //         Console.WriteLine($"{room.RoomId} is policy list by type");
+        //         FilteredRooms.Add(room);
+        //     }
+        //     else if(await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId) is not null)
+        //     {
+        //         Console.WriteLine($"{room.RoomId} is policy list by shortcode");
+        //         FilteredRooms.Add(room);
+        //     }
+        // }
+        var roomFilterTasks = rooms.Select(async room =>
+        {
+            var type = await room.GetRoomType();
+            if (type == "support.feline.policy.lists.msc.v1")
+            {
+                Console.WriteLine($"{room.RoomId} is policy list by type");
+                return room;
+            }
+            else if (await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId) is not null)
+            {
+                Console.WriteLine($"{room.RoomId} is policy list by shortcode");
+                return room;
+            }
+
+            return null;
+        }).ToList();
+        var filteredRooms = await Task.WhenAll(roomFilterTasks);
+        FilteredRooms.AddRange(filteredRooms.Where(x => x is not null).Cast<GenericRoom>());
+        Console.WriteLine($"Filtered {FilteredRooms.Count} rooms in {sw.ElapsedMilliseconds}ms");
+
+        var roomTasks = FilteredRooms.Select(FetchRoomHistory).ToList();
+        await Task.WhenAll(roomTasks);
+
+        Console.WriteLine($"Max value is {MaxValue.R} {MaxValue.G} {MaxValue.B}");
+        Console.WriteLine($"Filtered {FilteredRooms.Count} rooms in {sw.ElapsedMilliseconds}ms");
+    }
+
+    public async Task FetchRoomHistory(GenericRoom room)
+    {
+        var roomName = await room.GetNameOrFallbackAsync();
+            if (string.IsNullOrWhiteSpace(roomName)) roomName = room.RoomId;
+            if (!RoomData.ContainsKey(roomName))
+            {
+                RoomData[roomName] = new();
+            }
+
+            //use timeline
+            var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 5000);
+            await foreach (var response in timeline)
+            {
+                Console.WriteLine($"Got {response.State.Count} state, {response.Chunk.Count} timeline");
+                if (response.State.Count != 0) throw new Exception("Why the hell did we receive state events?");
+                foreach (var message in response.Chunk)
+                {
+                    if (!message.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
+                    //OriginServerTs to datetime
+                    var dt = DateTimeOffset.FromUnixTimeMilliseconds((long)message.OriginServerTs!.Value).DateTime;
+                    var date = new DateOnly(dt.Year, dt.Month, dt.Day);
+                    if (!RoomData[roomName].ContainsKey(date.Year))
+                    {
+                        RoomData[roomName][date.Year] = new();
+                    }
+
+                    if (!RoomData[roomName][date.Year].ContainsKey(date))
+                    {
+                        // Console.WriteLine($"Adding {date} to {roomName}");
+                        RoomData[roomName][date.Year][date] = new();
+                    }
+
+                    var rgb = RoomData[roomName][date.Year][date];
+                    if (message.RawContent?.Count == 0) rgb.R++;
+                    else if (string.IsNullOrWhiteSpace(message.Unsigned?.ReplacesState)) rgb.G++;
+                    else rgb.B++;
+                    RoomData[roomName][date.Year][date] = rgb;
+                }
+
+                var max = RoomData.SelectMany(x => x.Value.Values).Aggregate(new ActivityGraph.RGB(), (current, next) => new()
+                {
+                    R = Math.Max(current.R, next.Average(x => x.Value.R)),
+                    G = Math.Max(current.G, next.Average(x => x.Value.G)),
+                    B = Math.Max(current.B, next.Average(x => x.Value.B))
+                });
+                MaxValue = new ActivityGraph.RGB(
+                    r: Math.Max(max.R, Math.Max(max.G, max.B)),
+                    g: Math.Max(max.R, Math.Max(max.G, max.B)),
+                    b: Math.Max(max.R, Math.Max(max.G, max.B)));
+                Console.WriteLine($"Max value is {MaxValue.R} {MaxValue.G} {MaxValue.B}");
+                StateHasChanged();
+                await Task.Delay(100);
+            }
+    }
+
+
+}

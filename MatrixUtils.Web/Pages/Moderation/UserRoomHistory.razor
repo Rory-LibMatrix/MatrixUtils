@@ -82,9 +82,7 @@ else {
                 if (state is null) continue;
                 if (!matchingStates.ContainsKey(state.Membership))
                     matchingStates.Add(state.Membership, new());
-                var roomInfo = new RoomInfo() {
-                    Room = room
-                };
+                var roomInfo = new RoomInfo(room);
                 matchingStates[state.Membership].Add(roomInfo);
                 roomInfo.StateEvents.Add(new() {
                     Type = RoomNameEventContent.EventId,

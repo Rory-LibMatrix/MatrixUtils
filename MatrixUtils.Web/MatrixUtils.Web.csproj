@@ -11,6 +11,7 @@
         <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
         <BlazorEnableCompression>false</BlazorEnableCompression>
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+        <BlazorCacheBootResources>false</BlazorCacheBootResources>
 <!--        <RunAOTCompilation>true</RunAOTCompilation>-->
     </PropertyGroup>
 

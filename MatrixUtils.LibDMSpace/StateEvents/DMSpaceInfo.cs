@@ -5,7 +5,7 @@ using LibMatrix.Interfaces;
 namespace MatrixUtils.LibDMSpace.StateEvents;
 
 [MatrixEvent(EventName = EventId)]
-public class DMSpaceInfo : TimelineEventContent {
+public class DMSpaceInfo : EventContent {
     public const string EventId = "gay.rory.dm_space_info";
 
     [JsonPropertyName("is_layered")]

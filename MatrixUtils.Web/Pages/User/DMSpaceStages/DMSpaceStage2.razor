@@ -17,18 +17,23 @@
     <p>@Status</p>
 }
 
-@if (DmSpace is not null) {
-    @foreach (var (userId, room) in dmRooms.OrderBy(x => x.Key.Id)) {
-        <InlineUserItem User="@userId"></InlineUserItem>
-        @foreach (var roomInfo in room) {
-            <RoomListItem RoomInfo="@roomInfo">
-                <LinkButton Round="true" OnClick="@(async () => DmToReassign = roomInfo)">Reassign</LinkButton>
-            </RoomListItem>
+@if (SetupData is not null) {
+    if (SetupData.DMRooms is { Count: > 0 }) {
+        @foreach (var (userId, room) in SetupData.DMRooms.OrderBy(x => x.Key.Id)) {
+            <InlineUserItem User="@userId"></InlineUserItem>
+            @foreach (var roomInfo in room) {
+                <RoomListItem RoomInfo="@roomInfo">
+                    <LinkButton Round="true" OnClick="@(async () => DmToReassign = roomInfo)">Reassign</LinkButton>
+                </RoomListItem>
+            }
         }
+    }
+    else {
+        <p>DM room list is loading, please wait...</p>
     }
 }
 else {
-    <b>Error: DmSpaceConfiguration is null!</b>
+    <b>Error: DMSpaceRootPage is null!</b>
 }
 
 <br/>
@@ -88,26 +93,21 @@ else {
     private RoomInfo? _dmToReassign;
 
     [CascadingParameter]
-    public DMSpace? DmSpace { get; set; }
+    public DMSpace.DMSpaceSetupData SetupData { get; set; }
 
-    private Dictionary<UserProfileWithId, List<RoomInfo>> dmRooms { get; set; } = new();
-    private Dictionary<RoomInfo, List<UserProfileWithId>> duplicateDmRooms { get; set; } = new();
-    private Dictionary<RoomInfo, List<UserProfileWithId>> roomMembers { get; set; } = new();
-
-    protected override async Task OnInitializedAsync() {
-        await base.OnInitializedAsync();
-    }
+    private Dictionary<RoomInfo, List<DMSpace.DMSpaceSetupData.UserProfileWithId>> duplicateDmRooms { get; set; } = new();
+    private Dictionary<RoomInfo, List<DMSpace.DMSpaceSetupData.UserProfileWithId>> roomMembers { get; set; } = new();
 
     SemaphoreSlim _semaphore = new(1, 1);
 
-    protected override async Task OnParametersSetAsync() {
-        if (DmSpace is null)
+    protected override async Task OnInitializedAsync() {
+        if (SetupData is null)
             return;
         await _semaphore.WaitAsync();
         DmToReassign = null;
-        var hs = DmSpace.Homeserver;
+        var hs = SetupData.Homeserver;
         Status = "Loading DM list from account data...";
-        var dms = await DmSpace.Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        var dms = await SetupData.Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
         Status = "Optimising DM list from account data...";
         var joinedRooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
         foreach (var (user, rooms) in dms) {
@@ -116,18 +116,22 @@ else {
                 if (!joinedRooms.Contains(roomId))
                     rooms.RemoveAt(i);
             }
+
             dms[user] = rooms.Distinct().ToList();
         }
-        dms.RemoveAll((x, y) => y is {Count: 0});
-        await DmSpace.Homeserver.SetAccountDataAsync("m.direct", dms);
-        dmRooms.Clear();
+
+        dms.RemoveAll((x, y) => y is { Count: 0 });
+        await SetupData.Homeserver.SetAccountDataAsync("m.direct", dms);
 
         Status = "DM list optimised, fetching info...";
+
+        SetupData.DMRooms = new Dictionary<DMSpace.DMSpaceSetupData.UserProfileWithId, List<RoomInfo>>();
+
         var results = dms.Select(async x => {
             var (userId, rooms) = x;
-            UserProfileWithId userProfile;
+            DMSpace.DMSpaceSetupData.UserProfileWithId userProfile;
             try {
-                var profile = await DmSpace.Homeserver.GetProfileAsync(userId);
+                var profile = await SetupData.Homeserver.GetProfileAsync(userId);
                 userProfile = new() {
                     AvatarUrl = profile.AvatarUrl,
                     Id = userId,
@@ -141,32 +145,35 @@ else {
                     Id = userId
                 };
             }
+
             var roomList = new List<RoomInfo>();
             var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncEnumerable();
             await foreach (var result in tasks)
                 roomList.Add(result);
             return (userProfile, roomList);
-    // StateHasChanged();
+            // StateHasChanged();
         }).ToAsyncEnumerable();
         await foreach (var res in results) {
-            dmRooms.Add(res.userProfile, res.roomList);
-    // Status = $"Listed {dmRooms.Count} users";
+            SetupData.DMRooms.Add(res.userProfile, res.roomList);
+            // Status = $"Listed {dmRooms.Count} users";
         }
+
         _semaphore.Release();
-        var duplicateDmRoomIds = new Dictionary<string, List<UserProfileWithId>>();
-        foreach (var (user, rooms) in dmRooms) {
+        var duplicateDmRoomIds = new Dictionary<string, List<DMSpace.DMSpaceSetupData.UserProfileWithId>>();
+        foreach (var (user, rooms) in SetupData.DMRooms) {
             foreach (var roomInfo in rooms) {
                 if (!duplicateDmRoomIds.ContainsKey(roomInfo.Room.RoomId))
                     duplicateDmRoomIds.Add(roomInfo.Room.RoomId, new());
                 duplicateDmRoomIds[roomInfo.Room.RoomId].Add(user);
             }
         }
+
         duplicateDmRoomIds.RemoveAll((x, y) => y.Count == 1);
         foreach (var (roomId, users) in duplicateDmRoomIds) {
-            duplicateDmRooms.Add(dmRooms.First(x => x.Value.Any(x => x.Room.RoomId == roomId)).Value.First(x => x.Room.RoomId == roomId), users);
+            duplicateDmRooms.Add(SetupData.DMRooms.First(x => x.Value.Any(x => x.Room.RoomId == roomId)).Value.First(x => x.Room.RoomId == roomId), users);
         }
 
-    // StateHasChanged();
+        // StateHasChanged();
         Status = null;
         await base.OnParametersSetAsync();
     }
@@ -176,34 +183,29 @@ else {
     }
 
     private async Task<RoomInfo> GetRoomInfo(GenericRoom room) {
-        var roomInfo = new RoomInfo() {
-            Room = room
-        };
+        var roomInfo = new RoomInfo(room);
+        await roomInfo.FetchAllStateAsync();
         roomMembers[roomInfo] = new();
-        roomInfo.CreationEventContent = await room.GetCreateEventAsync();
-        try {
-            roomInfo.RoomName = await room.GetNameAsync();
-        }
-        catch { }
+        // roomInfo.CreationEventContent = await room.GetCreateEventAsync();
+        
+        if(roomInfo.RoomName == room.RoomId)
+            try {
+                roomInfo.RoomName = await room.GetNameOrFallbackAsync();
+            }
+            catch { }
 
         var membersEnum = room.GetMembersEnumerableAsync(true);
         await foreach (var member in membersEnum)
             if (member.TypedContent is RoomMemberEventContent memberEvent)
                 roomMembers[roomInfo].Add(new() { DisplayName = memberEvent.DisplayName, AvatarUrl = memberEvent.AvatarUrl, Id = member.StateKey });
-
-        if (string.IsNullOrWhiteSpace(roomInfo.RoomName) || roomInfo.RoomName == room.RoomId) {
-            List<string> displayNames = new List<string>();
-            foreach (var member in roomMembers[roomInfo])
-                if (!string.IsNullOrWhiteSpace(member.DisplayName))
-                    displayNames.Add(member.DisplayName);
-            roomInfo.RoomName = string.Join(", ", displayNames);
-        }
+        
         try {
             string? roomIcon = (await room.GetAvatarUrlAsync())?.Url;
             if (room is not null)
                 roomInfo.RoomIcon = roomIcon;
         }
         catch { }
+
         return roomInfo;
     }
 
@@ -214,29 +216,25 @@ else {
     }
 
     private async Task SetRoomAssignment(string roomId, string userId) {
-        var hs = DmSpace.Homeserver;
+        var hs = SetupData.Homeserver;
         Status = "Loading DM list from account data...";
-        var dms = await DmSpace.Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
+        var dms = await SetupData.Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
         Status = "Updating DM list from account data...";
 
         foreach (var (user, rooms) in dms) {
             rooms.RemoveAll(x => x == roomId);
             dms[user] = rooms.Distinct().ToList();
         }
-        if(!dms.ContainsKey(userId))
+
+        if (!dms.ContainsKey(userId))
             dms.Add(userId, new());
         dms[userId].Add(roomId);
-        dms.RemoveAll((x, y) => y is {Count: 0});
-        await DmSpace.Homeserver.SetAccountDataAsync("m.direct", dms);
+        dms.RemoveAll((x, y) => y is { Count: 0 });
+        await SetupData.Homeserver.SetAccountDataAsync("m.direct", dms);
 
         duplicateDmRooms.RemoveAll((x, y) => x.Room.RoomId == roomId);
         StateHasChanged();
         if (duplicateDmRooms.Count == 0) await OnParametersSetAsync();
-    }
-
-    private class UserProfileWithId : UserProfileResponse {
-        [JsonIgnore]
-        public string Id { get; set; }
     }
 
 }

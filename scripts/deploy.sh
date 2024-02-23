@@ -11,4 +11,4 @@ BASE_DIR=`pwd`
 rm -rf **/bin/Release
 cd MatrixUtils.Web
 dotnet publish -c Release
-rsync -raP bin/Release/net8.0/publish/wwwroot/ rory.gay:/data/nginx/html_mru/
+rsync --delete -raP bin/Release/net8.0/publish/wwwroot/ rory.gay:/data/nginx/html_mru/

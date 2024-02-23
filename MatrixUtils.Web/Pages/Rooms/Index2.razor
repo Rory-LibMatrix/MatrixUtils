@@ -1,0 +1,85 @@
+@page "/Rooms2"
+@using LibMatrix.Responses
+@using System.Collections.ObjectModel
+@using System.ComponentModel
+@using MatrixUtils.Abstractions
+@using MatrixUtils.Web.Pages.Rooms.Index2Components
+@inject ILogger<Index> logger
+<h3>Room list</h3>
+
+<RoomsIndex2SyncContainer Data="@Data"></RoomsIndex2SyncContainer>
+@if (Data.Homeserver is null || Data.GlobalProfile is null) {
+    <p>Creating homeserver instance and fetching global profile...</p>
+    return;
+}
+
+<div>
+    <LinkButton Color="@(SelectedTab == Tab.Main ? null : "#0b0e62")" OnClick="() => Task.FromResult(SelectedTab = Tab.Main)">Main</LinkButton>
+    <LinkButton Color="@(SelectedTab == Tab.DMs ? null : "#0b0e62")" OnClick="() => Task.FromResult(SelectedTab = Tab.DMs)">DMs</LinkButton>
+    <LinkButton Color="@(SelectedTab == Tab.ByRoomType ? null : "#0b0e62")" OnClick="() => Task.FromResult(SelectedTab = Tab.ByRoomType)">By room type</LinkButton>
+</div>
+<br/>
+<CascadingValue Value="@Data">
+    @switch (SelectedTab) {
+        case Tab.Main:
+            <h3>Main tab</h3>
+            <RoomsIndex2MainTab></RoomsIndex2MainTab>
+            break;
+        case Tab.DMs:
+            <h3>DMs tab</h3>
+            break;
+        case Tab.ByRoomType:
+            <h3>By room type tab</h3>
+            break;
+        default:
+            throw new InvalidEnumArgumentException();
+    }
+</CascadingValue>
+<br/>
+
+@* <LinkButton href="/Rooms/Create">Create new room</LinkButton> *@
+
+
+@code {
+
+    private Tab SelectedTab {
+        get => _selectedTab;
+        set {
+            _selectedTab = value;
+            StateHasChanged();
+        }
+    }
+
+    public RoomListViewData Data { get; set; } = new RoomListViewData();
+
+    protected override async Task OnInitializedAsync() {
+        Data.Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (Data.Homeserver is null) return;
+        var rooms = await Data.Homeserver.GetJoinedRooms();
+        Data.GlobalProfile = await Data.Homeserver.GetProfileAsync(Data.Homeserver.WhoAmI.UserId);
+        
+        foreach (var room in rooms) {
+            Data.Rooms.Add(new RoomInfo(room));
+        }
+        StateHasChanged();
+        
+        await base.OnInitializedAsync();
+    }
+
+    private Tab _selectedTab = Tab.Main;
+
+    private enum Tab {
+        Main,
+        DMs,
+        ByRoomType
+    }
+
+    public class RoomListViewData {
+        public ObservableCollection<RoomInfo> Rooms { get; } = [];
+
+        public UserProfileResponse? GlobalProfile { get; set; }
+
+        public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    }
+
+}

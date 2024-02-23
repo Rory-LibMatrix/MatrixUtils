@@ -59,7 +59,7 @@
         if (hs is null) return;
         data = await hs.GetAccountDataAsync<DraupnirProtectedRoomsData>("org.matrix.mjolnir.protected_rooms");
         StateHasChanged();
-        foreach (var room in await hs.GetJoinedRooms()) {
+        var tasks = (await hs.GetJoinedRooms()).Select(async room => {
             var plTask = room.GetPowerLevelsAsync();
             var roomNameTask = room.GetNameOrFallbackAsync();
             var EditorRoomInfo = new EditorRoomInfo {
@@ -71,7 +71,11 @@
 
             Rooms.Add(EditorRoomInfo);
             StateHasChanged();
-        }
+            return Task.CompletedTask;
+        }).ToList();
+        await Task.WhenAll(tasks);
+        await Task.Delay(500);
+        StateHasChanged();
     }
 
     private class DraupnirProtectedRoomsData {
@@ -87,7 +91,7 @@
     }
 
     private async Task Apply() {
-        Console.WriteLine(string.Join('\n', Rooms.Where(x=>x.IsProtected).Select(x=>x.Room.RoomId)));
+        Console.WriteLine(string.Join('\n', Rooms.Where(x => x.IsProtected).Select(x => x.Room.RoomId)));
         data.Rooms = Rooms.Where(x => x.IsProtected).Select(x => x.Room.RoomId).ToList();
         await hs.SetAccountDataAsync("org.matrix.mjolnir.protected_rooms", data);
     }

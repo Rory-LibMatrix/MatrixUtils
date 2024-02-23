@@ -69,14 +69,14 @@
     protected override async Task OnInitializedAsync() {
         Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
-        var rooms = await Homeserver.GetJoinedRooms();
+        // var rooms = await Homeserver.GetJoinedRooms();
         // SemaphoreSlim _semaphore = new(160, 160);
         GlobalProfile = await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId);
 
         var filter = await Homeserver.GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetBasicRoomInfo);
         var filterData = await Homeserver.GetFilterAsync(filter);
         
-        Rooms = new ObservableCollection<RoomInfo>(rooms.Select(x => new RoomInfo() { Room = x }));
+        // Rooms = new ObservableCollection<RoomInfo>(rooms.Select(room => new RoomInfo(room)));
         // foreach (var stateType in filterData.Room?.State?.Types ?? []) {
         //     var tasks = Rooms.Select(async room => {
         //         try {
@@ -126,7 +126,7 @@
 
                 Console.WriteLine($"Queue no longer empty after {renderTimeSw.Elapsed}!");
 
-                int maxUpdates = 50;
+                int maxUpdates = 50000;
                 isInitialSync = false;
                 while (maxUpdates-- > 0 && queue.TryDequeue(out var queueEntry)) {
                     var (roomId, roomData) = queueEntry;
@@ -139,9 +139,7 @@
                     }
                     else {
                         Console.WriteLine($"QueueWorker: encountered new room {roomId}!");
-                        room = new RoomInfo() {
-                            Room = Homeserver.GetRoom(roomId)
-                        };
+                        room = new RoomInfo(Homeserver.GetRoom(roomId), roomData.State?.Events);
                         Rooms.Add(room);
                     }
 
@@ -156,14 +154,14 @@
                         Console.WriteLine($"QueueWorker: could not merge state for {room.Room.RoomId} as new data contains no state events!");
                     }
 
-                    await Task.Delay(100);
+                    // await Task.Delay(100);
                 }
 
                 Console.WriteLine($"QueueWorker: {queue.Count} entries left in queue, {maxUpdates} maxUpdates left, RenderContents: {RenderContents}");
                 Status = $"Got {Rooms.Count} rooms so far! {queue.Count} entries in processing queue...";
 
-                RenderContents |= queue.Count == 0;
-                await Task.Delay(Rooms.Count);
+                // RenderContents |= queue.Count == 0;
+                // await Task.Delay(Rooms.Count);
             }
             catch (Exception e) {
                 Console.WriteLine("QueueWorker exception: " + e);

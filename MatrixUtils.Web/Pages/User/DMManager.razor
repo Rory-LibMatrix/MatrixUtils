@@ -2,6 +2,7 @@
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
+@using LibMatrix
 <h3>Direct Messages</h3>
 <hr/>
 
@@ -36,11 +37,19 @@
         Status = "Loading DM list from account data...";
         var dms = await Homeserver.GetAccountDataAsync<Dictionary<string, List<string>>>("m.direct");
         DMRooms.Clear();
-        foreach (var (userId, rooms) in dms) {
+        var userTasks = dms.Select(async kv => {
+            var (userId, rooms) = kv;
             var roomList = new List<RoomInfo>();
-            DMRooms.Add(await Homeserver.GetProfileAsync(userId), roomList);
+            UserProfileResponse? profile = null;
+            try {
+                profile = await Homeserver.GetProfileAsync(userId);
+            }
+            catch (MatrixException e) {
+                if (e is { ErrorCode: "M_UNKNOWN" }) profile = new UserProfileResponse() { DisplayName = $"{userId}: {e.Error}" };
+            }
+
             foreach (var room in rooms) {
-                var roomInfo = new RoomInfo() { Room = Homeserver.GetRoom(room) };
+                var roomInfo = new RoomInfo(Homeserver.GetRoom(room));
                 roomList.Add(roomInfo);
                 roomInfo.StateEvents.Add(new() {
                     Type = RoomNameEventContent.EventId,
@@ -50,8 +59,13 @@
                     RoomId = room, Sender = null, EventId = null
                 });
             }
+
+            DMRooms.Add(profile ?? new() { DisplayName = userId }, roomList);
             StateHasChanged();
-        }
+        }).ToList();
+        
+        await Task.WhenAll(userTasks);
+        await Task.Delay(500);
 
         StateHasChanged();
         Status = null;

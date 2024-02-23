@@ -110,8 +110,7 @@
             var room = Homeserver.GetRoom(roomId);
             var roomNameTask = room.GetNameOrFallbackAsync();
             var roomIconTask = room.GetAvatarUrlAsync();
-            var roomInfo = new RoomInfo() {
-                Room = room,
+            var roomInfo = new RoomInfo(room) {
                 OwnMembership = roomProfile
             };
             try {

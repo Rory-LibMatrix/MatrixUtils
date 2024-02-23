@@ -48,9 +48,7 @@
             if (Breadcrumbs.Contains(room.RoomId)) continue;
             var roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
             if (roomInfo is null) {
-                roomInfo = new RoomInfo() {
-                    Room = room
-                };
+                roomInfo = new RoomInfo(room);
                 KnownRooms.Add(roomInfo);
             }
             if(joinedRooms.Any(x=>x.RoomId == room.RoomId))

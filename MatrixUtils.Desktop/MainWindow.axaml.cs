@@ -42,9 +42,7 @@ public partial class MainWindow : Window {
             // roomList.Children.Add(new RoomListEntry(_scopeFactory, new RoomInfo(room)));
 
             windowContent.Push("home", new RoomListEntry() {
-                Room = new RoomInfo() {
-                    Room = room
-                }
+                Room = new RoomInfo(room)
             });
             base.OnLoaded(e);
         }

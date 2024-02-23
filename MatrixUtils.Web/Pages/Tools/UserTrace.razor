@@ -80,18 +80,33 @@
         Random.Shared.Shuffle(distinctRooms);
         rooms = new ObservableCollection<GenericRoom>(distinctRooms);
         rooms.CollectionChanged += (sender, args) => StateHasChanged();
+        try {
+            var stateTasks = rooms.Select(async x => {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        return (x, await x.GetMembersListAsync(false));
+                    }
+                    catch {
+                        //
+                    }
+                }
 
-        var stateTasks = rooms.Select(async x => (x, await x.GetMembersListAsync(false))).ToAsyncEnumerable();
+                return (x, new List<StateEventResponse>().ToFrozenSet());
+            }).ToAsyncEnumerable();
 
-        await foreach (var (room, state) in stateTasks) {
-            roomMembers.Add(room, state);
-            log.Add($"Got {state.Count} members for {room.RoomId}...");
+            await foreach (var (room, state) in stateTasks) {
+                roomMembers.Add(room, state);
+                log.Add($"Got {state.Count} members for {room.RoomId}...");
+            }
+        }
+        catch {
+            //
         }
 
         log.Add($"Done fetching members!");
 
-        UserIDs.RemoveAll(x=>sessions.Any(y=>y.UserId == x));
-        
+        UserIDs.RemoveAll(x => sessions.Any(y => y.UserId == x));
+
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
@@ -105,7 +120,6 @@
                     matches[userId].Add(new() {
                         Event = events.First(x => x.StateKey == userId && x.Type == RoomMemberEventContent.EventId),
                         Room = room,
-                        
                     });
                 }
             }
@@ -132,6 +146,7 @@
 
     private class Matches {
         public GenericRoom Room;
+
         public StateEventResponse Event;
         // public 
     }

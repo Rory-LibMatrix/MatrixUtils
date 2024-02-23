@@ -30,6 +30,7 @@
             StateHasChanged();
         }
     }
+    
     [Parameter]
     public RemoteHomeserver? Homeserver { get; set; }
 
@@ -41,7 +42,7 @@
         }
     }
 
-    private string StyleString => $"{Style} {(Circular ? "border-radius: 50%;" : "")} {(Width.HasValue ? $"width: {Width}px;" : "")} {(Height.HasValue ? $"height: {Height}px;" : "")}";
+    private string StyleString => $"{Style} {(Circular ? "border-radius: 50%;" : "")} {(Width.HasValue ? $"width: {Width}px;" : "")} {(Height.HasValue ? $"height: {Height}px;" : "")} object-fit: cover;";
     
     private static readonly string Prefix = "mxc://";
     private static readonly int PrefixLength = Prefix.Length;

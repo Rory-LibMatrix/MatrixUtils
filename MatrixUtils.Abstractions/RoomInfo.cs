@@ -11,16 +11,17 @@ using LibMatrix.RoomTypes;
 namespace MatrixUtils.Abstractions;
 
 public class RoomInfo : NotifyPropertyChanged {
-    public required GenericRoom Room { get; set; }
-    public ObservableCollection<StateEventResponse?> StateEvents { get; } = new();
+    public readonly GenericRoom Room;
+    public ObservableCollection<StateEventResponse?> StateEvents { get; private set; } = new();
 
     private static ConcurrentBag<AuthenticatedHomeserverGeneric> homeserversWithoutEventFormatSupport = new();
-    
+    private static SvgIdenticonGenerator identiconGenerator = new();
+
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
         if (homeserversWithoutEventFormatSupport.Contains(Room.Homeserver)) return await GetStateEventForged(type, stateKey);
         var @event = StateEvents.FirstOrDefault(x => x?.Type == type && x.StateKey == stateKey);
         if (@event is not null) return @event;
-        
+
         try {
             @event = await Room.GetStateEventOrNullAsync(type, stateKey);
             StateEvents.Add(@event);
@@ -30,6 +31,7 @@ public class RoomInfo : NotifyPropertyChanged {
                 homeserversWithoutEventFormatSupport.Add(Room.Homeserver);
                 return await GetStateEventForged(type, stateKey);
             }
+
             Console.Error.WriteLine(e);
             await Task.Delay(1000);
             return await GetStateEvent(type, stateKey);
@@ -79,7 +81,7 @@ public class RoomInfo : NotifyPropertyChanged {
     }
 
     public string? RoomIcon {
-        get => _roomIcon ?? "https://api.dicebear.com/6.x/identicon/svg?seed=" + Room.RoomId;
+        get => _roomIcon ?? _fallbackIcon;
         set => SetField(ref _roomIcon, value);
     }
 
@@ -93,18 +95,17 @@ public class RoomInfo : NotifyPropertyChanged {
         set => SetField(ref _creationEventContent, value);
     }
 
+    private string? _roomCreator;
+
     public string? RoomCreator {
         get => _roomCreator;
         set => SetField(ref _roomCreator, value);
     }
 
-    // public string? GetRoomIcon() => (StateEvents.FirstOrDefault(x => x?.Type == RoomAvatarEventContent.EventId)?.TypedContent as RoomAvatarEventContent)?.Url ??
-    // "mxc://rory.gay/dgP0YPjJEWaBwzhnbyLLwGGv";
-
     private string? _roomIcon;
+    private readonly string _fallbackIcon;
     private string? _roomName;
     private RoomCreateEventContent? _creationEventContent;
-    private string? _roomCreator;
     private string? _overrideRoomType;
     private string? _defaultRoomName;
     private RoomMemberEventContent? _ownMembership;
@@ -130,11 +131,25 @@ public class RoomInfo : NotifyPropertyChanged {
         set => SetField(ref _ownMembership, value);
     }
 
-    public RoomInfo() {
+    public RoomInfo(GenericRoom room) {
+        Room = room;
+        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        registerEventListener();
+    }
+
+    public RoomInfo(GenericRoom room, List<StateEventResponse>? stateEvents) {
+        Room = room;
+        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        if (stateEvents is { Count: > 0 }) StateEvents = new(stateEvents!);
+        registerEventListener();
+    }
+
+    private void registerEventListener() {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
-                foreach (StateEventResponse? newState in args.NewItems) { // TODO: switch statement benchmark?
-                    if(newState is null) continue;
+                foreach (StateEventResponse? newState in args.NewItems) {
+                    // TODO: switch statement benchmark?
+                    if (newState is null) continue;
                     if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
                         RoomName = roomNameContent.Name;
                     else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })
@@ -145,5 +160,12 @@ public class RoomInfo : NotifyPropertyChanged {
                     }
                 }
         };
+    }
+
+    public async Task FetchAllStateAsync() {
+        var stateEvents = Room.GetFullStateAsync();
+        await foreach (var stateEvent in stateEvents) {
+            StateEvents.Add(stateEvent);
+        }
     }
 }

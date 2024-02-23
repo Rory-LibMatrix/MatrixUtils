@@ -12,9 +12,9 @@
 else {
     <details>
         <summary>Room List</summary>
-        @foreach (var room in Rooms) {
-            <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@room.Replace('.', '~')">
-                <RoomListItem RoomInfo="@(new RoomInfo() { Room = hs.GetRoom(room) })" LoadData="true"></RoomListItem>
+        @foreach (var roomId in Rooms) {
+            <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@roomId.Replace('.', '~')">
+                <RoomListItem RoomInfo="@(new RoomInfo(hs.GetRoom(roomId)))" LoadData="true"></RoomListItem>
             </a>
         }
     </details>

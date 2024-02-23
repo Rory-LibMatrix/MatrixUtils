@@ -6,7 +6,7 @@
 @code {
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var tasks = Enumerable.Range(0, 5000).Select(i => Login()).ToList();
+        var tasks = Enumerable.Range(0, 50).Select(i => Login()).ToList();
         await Task.WhenAll(tasks);
         Console.WriteLine("All logins complete!");
         var userAuths = tasks.Select(t => t.Result).Where(t => t != null).ToList();

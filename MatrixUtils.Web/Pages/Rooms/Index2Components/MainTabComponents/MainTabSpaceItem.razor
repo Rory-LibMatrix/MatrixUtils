@@ -1,0 +1,27 @@
+@using MatrixUtils.Abstractions
+<div class="spaceListItem" onclick="@ToggleSpace">
+    <MxcImage Circular="true" Height="32" Width="32" Homeserver="Space.Room.Homeserver" MxcUri="@Space.RoomIcon"></MxcImage>
+    <span class="spaceNameEllipsis">@Space.RoomName</span>
+</div>
+
+@code {
+
+    [Parameter]
+    public RoomInfo Space { get; set; }
+
+    [Parameter]
+    public List<RoomInfo> OpenedSpaces { get; set; }
+    
+    protected override Task OnInitializedAsync() {
+        Space.PropertyChanged += (sender, args) => { StateHasChanged(); };
+        return base.OnInitializedAsync();
+    }
+
+    public void ToggleSpace() {
+        if (OpenedSpaces.Contains(Space)) {
+            OpenedSpaces.Remove(Space);
+        } else {
+            OpenedSpaces.Add(Space);
+        }
+    }
+}

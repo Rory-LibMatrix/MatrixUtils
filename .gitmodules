@@ -3,4 +3,4 @@
 	url = https://git.rory.gay/matrix/LibMatrix.git
 [submodule "MxApiExtensions"]
 	path = MxApiExtensions
-	url = https://git.rory.gay/matrix/MxApiExtensions.git
+	url = https://cgit.rory.gay/matrix/tools/MxApiExtensions.git

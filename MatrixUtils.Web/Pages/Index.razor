@@ -133,10 +133,10 @@ Small collection of tools to do not-so-everyday things.
         var updateSw = Stopwatch.StartNew();
         var tasks = tokens.Select(async token => {
             await sema.WaitAsync();
-            scannedSessions++;
             if ((!string.IsNullOrWhiteSpace(token.Proxy) && offlineServers.Contains(token.Proxy)) || offlineServers.Contains(token.Homeserver)) {
                 _offlineSessions.Add(token);
                 sema.Release();
+            scannedSessions++;
                 return;
             }
 
@@ -176,9 +176,11 @@ Small collection of tools to do not-so-everyday things.
                 offlineServers.Add(token.Homeserver);
             }
 
+            scannedSessions++;
             sema.Release();
         }).ToList();
         await Task.WhenAll(tasks);
+        scannedSessions = totalSessions;
         
         await base.OnInitializedAsync();
     }

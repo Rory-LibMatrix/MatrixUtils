@@ -1,6 +1,15 @@
-# Project Name
+# Rory&::MatrixUtils
+
+Power tools for Matrix.
 
 # Installation
+
+```sh
+git clone --recursive $REPO
+cd MatrixUtils/MatrixUtils.Web
+dotnet publish
+cp -rv bin/Release/net8.0/publish/wwwroot /var/www/html_rmu
+```
 
 # Contributing
 

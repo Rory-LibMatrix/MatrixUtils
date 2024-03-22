@@ -49,7 +49,8 @@
         var syncHelpers = new Dictionary<string, SyncHelper>() {
             ["Main"] = new SyncHelper(Data.Homeserver, logger) {
                 Timeout = 30000,
-                FilterId = await Data.Homeserver.GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetBasicRoomInfo),
+                FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo),
+                // FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo),
                 // MinimumDelay = TimeSpan.FromMilliseconds(5000)
             }
         };
@@ -59,13 +60,13 @@
             status.Status = "Initial sync indicates that server supports filters, starting helpers!";
             syncHelpers.Add("SpaceRelations", new SyncHelper(Data.Homeserver, logger) {
                 Timeout = 30000,
-                FilterId = await Data.Homeserver.GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetSpaceRelations),
+                FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetSpaceRelations),
                 // MinimumDelay = TimeSpan.FromMilliseconds(5000)
             });
 
             syncHelpers.Add("Profile", new SyncHelper(Data.Homeserver, logger) {
                 Timeout = 30000,
-                FilterId = await Data.Homeserver.GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetOwnMemberEvents),
+                FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetOwnMemberEvents),
                 // MinimumDelay = TimeSpan.FromMilliseconds(5000)
             });
         }

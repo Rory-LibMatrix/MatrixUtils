@@ -73,7 +73,8 @@
         // SemaphoreSlim _semaphore = new(160, 160);
         GlobalProfile = await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId);
 
-        var filter = await Homeserver.GetOrUploadNamedFilterIdAsync(CommonSyncFilters.GetBasicRoomInfo);
+        // var filter = await Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo);
+        var filter = await Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo);
         var filterData = await Homeserver.GetFilterAsync(filter);
         
         // Rooms = new ObservableCollection<RoomInfo>(rooms.Select(room => new RoomInfo(room)));

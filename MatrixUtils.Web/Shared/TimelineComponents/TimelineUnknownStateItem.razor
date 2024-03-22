@@ -1,0 +1,16 @@
+@using ArcaneLibs.Extensions
+@inherits BaseTimelineItem
+
+<div>
+    <details style="display: inline;">
+        <summary>
+            <i style="color: red;">Unknown event type: <pre style="display: inline;">@Event.Type</pre></i>
+        </summary>
+        <pre>@Event.ToJson(ignoreNull: true)</pre>
+    </details>
+</div>
+
+@code {
+
+
+}

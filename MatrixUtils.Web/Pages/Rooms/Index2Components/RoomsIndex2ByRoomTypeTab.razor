@@ -1,0 +1,53 @@
+@using MatrixUtils.Abstractions
+@using System.Security.Cryptography
+@using ArcaneLibs.Extensions
+<h3>RoomsIndex2MainTab</h3>
+
+<div>
+    <div class="row">
+        <div class="col-3" style="background-color: #ffffff66;">
+            <LinkButton>Uncategorised rooms</LinkButton>
+            @foreach (var space in Data.Rooms.Where(x => x.RoomType == "m.space")) {
+                <div style="@("width: 100%; height: 50px; background-color: #" + RandomNumberGenerator.GetBytes(3).Append((byte)0x11).ToArray().AsHexString().Replace(" ",""))">
+                    <p>@space.RoomName</p>
+                </div>
+            }
+        </div>
+        <div class="col-9" style="background-color: #ff00ff66;">
+            <p>omae wa mou shindeiru</p>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [CascadingParameter]
+    public Index2.RoomListViewData Data { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync() {
+        Data.Rooms.CollectionChanged += (sender, args) => {
+            DebouncedStateHasChanged();
+            if (args.NewItems is { Count: > 0 })
+                foreach (var newItem in args.NewItems) {
+                    (newItem as RoomInfo).PropertyChanged += (sender, args) => { DebouncedStateHasChanged(); };
+                }
+        };
+        await base.OnInitializedAsync();
+    }
+
+    //debounce StateHasChanged, we dont want to reredner on every key stroke
+
+    private CancellationTokenSource _debounceCts = new CancellationTokenSource();
+
+    private async Task DebouncedStateHasChanged() {
+        _debounceCts.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        try {
+            await Task.Delay(100, _debounceCts.Token);
+            Console.WriteLine("DebouncedStateHasChanged - Calling StateHasChanged!");
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+}

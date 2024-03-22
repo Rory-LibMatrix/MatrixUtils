@@ -88,6 +88,35 @@ Small collection of tools to do not-so-everyday things.
     </form>
 }
 
+@if (_invalidSessions.Count > 0) {
+    <br/>
+    <br/>
+    <h5>Invalid sessions</h5>
+    <hr/>
+    <form>
+        <table>
+            @foreach (var session in _invalidSessions) {
+                <tr class="user-entry">
+                    <td>
+                        <p>
+                            @{
+                                string[] parts = session.UserId.Split(':');
+                            }
+                            <span>@parts[0][1..]</span> on <span>@parts[1]</span>
+                            @if (!string.IsNullOrWhiteSpace(session.Proxy)) {
+                                <span class="badge badge-info"> (proxied via @session.Proxy)</span>
+                            }
+                        </p>
+                    </td>
+                    <td>
+                        <LinkButton OnClick="@(() => RemoveUser(session))">Remove</LinkButton>
+                    </td>
+                </tr>
+            }
+        </table>
+    </form>
+}
+
 @code
 {
 #if DEBUG
@@ -106,6 +135,7 @@ Small collection of tools to do not-so-everyday things.
     // private Dictionary<UserAuth, UserInfo> _users = new();
     private readonly List<AuthInfo> _sessions = [];
     private readonly List<UserAuth> _offlineSessions = [];
+    private readonly List<UserAuth> _invalidSessions = [];
     private LoginResponse? _currentSession;
     int scannedSessions = 0, totalSessions = 1;
     private SvgIdenticonGenerator _identiconGenerator = new();
@@ -162,7 +192,7 @@ Small collection of tools to do not-so-everyday things.
                 }
             }
             catch (MatrixException e) {
-                if (e is { ErrorCode: "M_UNKNOWN_TOKEN" }) _offlineSessions.Add(token);
+                if (e is { ErrorCode: "M_UNKNOWN_TOKEN" }) _invalidSessions.Add(token);
                 else throw;
             }
             catch {

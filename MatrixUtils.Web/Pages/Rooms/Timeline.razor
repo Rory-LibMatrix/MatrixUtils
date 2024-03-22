@@ -8,9 +8,9 @@
 <p>Loaded @Events.Count events...</p>
 
 @foreach (var evt in Events) {
-    <div type="@evt.Type" key="@evt.StateKey" itemid="@evt.EventId">
-        <DynamicComponent Type="@ComponentType(evt)"
-                          Parameters="@(new Dictionary<string, object> { { "Event", evt }, { "Events", Events }, { "Homeserver", Homeserver!} })">
+    <div type="@evt.Event.Type" key="@evt.Event.StateKey" itemid="@evt.Event.EventId">
+        <DynamicComponent Type="@evt.Type"
+                          Parameters="@(new Dictionary<string, object> { { "Event", evt.Event }, { "Events", RawEvents }, { "Homeserver", Homeserver! } })">
         </DynamicComponent>
     </div>
 }
@@ -20,8 +20,8 @@
     [Parameter]
     public string RoomId { get; set; }
 
-    private List<MessagesResponse> Messages { get; } = new();
-    private List<StateEventResponse> Events { get; } = new();
+    private List<TimelineEventItem> Events { get; } = new();
+    private List<StateEventResponse> RawEvents { get; } = new();
 
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
@@ -32,28 +32,34 @@
         var room = Homeserver.GetRoom(RoomId);
         MessagesResponse? msgs = null;
         do {
-            msgs = await room.GetMessagesAsync(limit: 1000, from: msgs?.End, dir: "b");
-            Messages.Add(msgs);
+            msgs = await room.GetMessagesAsync(limit: 10000, from: msgs?.End, dir: "b");
             Console.WriteLine($"Got {msgs.Chunk.Count} messages");
+            StateHasChanged();
             msgs.Chunk.Reverse();
-            Events.InsertRange(0, msgs.Chunk);
+            Events.InsertRange(0, msgs.Chunk.Select(x => new TimelineEventItem { Event = x, Type = ComponentType(x) }));
+            RawEvents.InsertRange(0, msgs.Chunk);
         } while (msgs.End is not null);
-
 
         await base.OnInitializedAsync();
     }
 
-    private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == "m.room.member" && e.StateKey == Event.Sender);
+    // private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == RoomMemberEventContent.EventId && e.StateKey == Event.Sender);
 
-    private Type ComponentType(StateEvent Event) => Event.TypedContent switch {
-        RoomCanonicalAliasEventContent => typeof(TimelineCanonicalAliasItem),
-        RoomHistoryVisibilityEventContent => typeof(TimelineHistoryVisibilityItem),
-        RoomTopicEventContent => typeof(TimelineRoomTopicItem),
-        RoomMemberEventContent => typeof(TimelineMemberItem),
-        RoomMessageEventContent => typeof(TimelineMessageItem),
-        RoomCreateEventContent => typeof(TimelineRoomCreateItem),
-        RoomNameEventContent => typeof(TimelineRoomNameItem),
+    private Type ComponentType(StateEvent Event) => Event.Type switch {
+        RoomCanonicalAliasEventContent.EventId => typeof(TimelineCanonicalAliasItem),
+        RoomHistoryVisibilityEventContent.EventId => typeof(TimelineHistoryVisibilityItem),
+        RoomTopicEventContent.EventId => typeof(TimelineRoomTopicItem),
+        RoomMemberEventContent.EventId => typeof(TimelineMemberItem),
+        RoomMessageEventContent.EventId => typeof(TimelineMessageItem),
+        RoomCreateEventContent.EventId => typeof(TimelineRoomCreateItem),
+        RoomNameEventContent.EventId => typeof(TimelineRoomNameItem),
+        // RoomMessageReactionEventContent.EventId => typeof(ComponentBase),
         _ => typeof(TimelineUnknownItem)
     };
+    
+    private class TimelineEventItem : ComponentBase {
+        public StateEventResponse Event { get; set; }
+        public Type Type { get; set; }
+    }
 
 }

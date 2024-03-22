@@ -14,9 +14,9 @@
     [Parameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
-    public List<StateEventResponse> EventsBefore => Events.TakeWhile(e => e.EventId != Event.EventId).ToList();
+    public IEnumerable<StateEventResponse> EventsBefore => Events.TakeWhile(e => e.EventId != Event.EventId);
 
-    public List<StateEventResponse> MatchingEventsBefore => EventsBefore.Where(x => x.Type == Event.Type && x.StateKey == Event.StateKey).ToList();
+    public IEnumerable<StateEventResponse> MatchingEventsBefore => EventsBefore.Where(x => x.Type == Event.Type && x.StateKey == Event.StateKey);
 
     public StateEventResponse? PreviousState => MatchingEventsBefore.LastOrDefault();
 

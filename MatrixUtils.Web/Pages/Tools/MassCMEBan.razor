@@ -1,0 +1,75 @@
+@page "/Tools/MassCMEBan"
+@using ArcaneLibs.Extensions
+@using LibMatrix.RoomTypes
+@using System.Collections.ObjectModel
+@using LibMatrix
+@using System.Collections.Frozen
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using MatrixUtils.Abstractions
+<h3>User Trace</h3>
+<hr/>
+
+<br/>
+<span>Users:</span>
+<InputTextArea @bind-Value="@roomId"></InputTextArea>
+<LinkButton OnClick="@Execute">Execute</LinkButton>
+
+<br/>
+
+<br/>
+@foreach (var line in log.Reverse()) {
+    <pre>@line</pre>
+}
+
+@code {
+    // TODO: Properly implement page to be more useful
+    private ObservableCollection<string> log { get; set; } = new();
+    private AuthenticatedHomeserverGeneric hs { get; set; }
+    
+    [Parameter, SupplyParameterFromQuery(Name = "room")]
+    public string roomId { get; set; }
+    
+
+    protected override async Task OnInitializedAsync() {
+        log.CollectionChanged += (sender, args) => StateHasChanged();
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+       
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task<string> Execute() {
+        var room = hs.GetRoom("!fTjMjIzNKEsFlUIiru:neko.dev");
+        // var room = hs.GetRoom("!yf7OpOiRDXx6zUGpT6:conduit.rory.gay");
+        var users = roomId.Split("\n").Select(x => x.Trim()).Where(x=>x.StartsWith('@')).ToList();
+        foreach (var user in users) {
+            var exists = false;
+            try {
+                exists = !string.IsNullOrWhiteSpace((await room.GetStateAsync<UserPolicyRuleEventContent>(UserPolicyRuleEventContent.EventId, user.Replace('@', '_'))).Entity);
+            } catch (Exception e) {
+                log.Add($"Failed to get {user}");
+            }
+
+            if (!exists) {
+                var evt = await room.SendStateEventAsync(UserPolicyRuleEventContent.EventId, user.Replace('@', '_'), new UserPolicyRuleEventContent() {
+                    Entity = user,
+                    Reason = "spam (invite)",
+                    Recommendation = "m.ban"
+                });
+                log.Add($"Sent {evt.EventId} to ban {user}");
+            }
+            else {
+                log.Add($"User {user} already exists");
+            }
+        }
+        
+        
+        StateHasChanged();
+
+        return "";
+    }
+
+}

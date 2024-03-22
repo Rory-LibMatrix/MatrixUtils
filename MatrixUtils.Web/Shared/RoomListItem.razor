@@ -11,7 +11,7 @@
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
         @if (OwnMemberState != null) {
             @* Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))" *@
-            <MxcImage Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
+            <MxcImage Homeserver="hs" Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
             <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
                 @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
             </span>

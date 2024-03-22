@@ -1,0 +1,64 @@
+@using ArcaneLibs
+@using System.Diagnostics
+<h3>ResourceUsage</h3>
+<ModalWindow Title="Resource usage">
+    <div style="background-color: white; color: black;">
+        <span>Memory usage: @lastMemoryUsage</span>
+        <br/>
+        <TimelineGraph Data="MemoryUsage" ValueFormatter="@((double val) => Util.BytesToString((long)val))" Width="400"></TimelineGraph>
+    </div>
+    
+    <div style="background-color: white; color: black;">
+        <span>Time jitter: @lastCpuJitter</span>
+        <br/>
+        <TimelineGraph Data="CpuUsage" ValueFormatter="@(val => TimeSpan.FromTicks((long)val).ToString())" Width="400"></TimelineGraph>
+    </div>
+</ModalWindow>
+
+@code {
+    private Dictionary<DateTime, double> MemoryUsage = new();
+    private Dictionary<DateTime, double> CpuUsage = new();
+    private string lastMemoryUsage = "";
+    private string lastCpuJitter = "";
+
+    protected override async Task OnInitializedAsync() {
+        Task.Run(async () => {
+            try {
+                while (true) {
+                    lastMemoryUsage = Util.BytesToString((long)(MemoryUsage[DateTime.Now] = GC.GetTotalMemory(false)));
+                    if (MemoryUsage.Count > 60)
+                        MemoryUsage.Remove(MemoryUsage.Keys.First());
+                    await Task.Delay(1000);
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        });
+        
+        // calculate cpu usage estimate without Process or PerformanceCounter
+        Task.Run(async () => {
+            try {
+                var sw = new Stopwatch();
+                while (true) {
+                    sw.Restart();
+                    await Task.Delay(1000);
+                    sw.Stop();
+                    // CpuUsage[DateTime.Now] = sw.ElapsedTicks - TimeSpan.TicksPerSecond;
+                    var usage = sw.Elapsed - TimeSpan.FromSeconds(1);
+                    CpuUsage[DateTime.Now] = usage.Ticks - TimeSpan.TicksPerSecond;
+                    lastCpuJitter = usage.ToString();
+                    if (CpuUsage.Count > 60)
+                        CpuUsage.Remove(MemoryUsage.Keys.First());
+                    StateHasChanged();
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        });
+
+        await base.OnInitializedAsync();
+    }
+
+}

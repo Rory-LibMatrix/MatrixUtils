@@ -50,7 +50,6 @@
             ["Main"] = new SyncHelper(Data.Homeserver, logger) {
                 Timeout = 30000,
                 FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo),
-                // FilterId = await Data.Homeserver.NamedCaches.FilterCache.GetOrSetValueAsync(CommonSyncFilters.GetBasicRoomInfo),
                 // MinimumDelay = TimeSpan.FromMilliseconds(5000)
             }
         };

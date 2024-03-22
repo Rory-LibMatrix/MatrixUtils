@@ -11,6 +11,20 @@ using LibMatrix.RoomTypes;
 namespace MatrixUtils.Abstractions;
 
 public class RoomInfo : NotifyPropertyChanged {
+    public RoomInfo(GenericRoom room) {
+        Room = room;
+        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        RegisterEventListener();
+    }
+
+    public RoomInfo(GenericRoom room, List<StateEventResponse>? stateEvents) {
+        Room = room;
+        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        if (stateEvents is { Count: > 0 }) StateEvents = new(stateEvents!);
+        RegisterEventListener();
+        ProcessNewItems(stateEvents!);
+    }
+    
     public readonly GenericRoom Room;
     public ObservableCollection<StateEventResponse?> StateEvents { get; private set; } = new();
 
@@ -131,35 +145,28 @@ public class RoomInfo : NotifyPropertyChanged {
         set => SetField(ref _ownMembership, value);
     }
 
-    public RoomInfo(GenericRoom room) {
-        Room = room;
-        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
-        registerEventListener();
-    }
-
-    public RoomInfo(GenericRoom room, List<StateEventResponse>? stateEvents) {
-        Room = room;
-        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
-        if (stateEvents is { Count: > 0 }) StateEvents = new(stateEvents!);
-        registerEventListener();
-    }
-
-    private void registerEventListener() {
+    private void RegisterEventListener() {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
-                foreach (StateEventResponse? newState in args.NewItems) {
-                    // TODO: switch statement benchmark?
-                    if (newState is null) continue;
-                    if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
-                        RoomName = roomNameContent.Name;
-                    else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })
-                        RoomIcon = roomAvatarContent.Url;
-                    else if (newState is { Type: RoomCreateEventContent.EventId, TypedContent: RoomCreateEventContent roomCreateContent }) {
-                        CreationEventContent = roomCreateContent;
-                        RoomCreator = newState.Sender;
-                    }
-                }
+                ProcessNewItems(args.NewItems.OfType<StateEventResponse>());
         };
+    }
+
+    private void ProcessNewItems(IEnumerable<StateEventResponse?> newItems) {
+        foreach (StateEventResponse? newState in newItems) {
+            if (newState is null) continue;
+            // TODO: Benchmark switch statement
+            
+            if(newState.StateKey != "") continue;
+            if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
+                RoomName = roomNameContent.Name;
+            else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })
+                RoomIcon = roomAvatarContent.Url;
+            else if (newState is { Type: RoomCreateEventContent.EventId, TypedContent: RoomCreateEventContent roomCreateContent }) {
+                CreationEventContent = roomCreateContent;
+                RoomCreator = newState.Sender;
+            }
+        }
     }
 
     public async Task FetchAllStateAsync() {

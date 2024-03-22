@@ -5,6 +5,7 @@
 @using LibMatrix
 @using System.Collections.Frozen
 @using LibMatrix.EventTypes.Spec.State
+@using MatrixUtils.Abstractions
 <h3>User Trace</h3>
 <hr/>
 
@@ -16,7 +17,7 @@
 <details>
     <summary>Rooms to be searched (@rooms.Count)</summary>
     @foreach (var room in rooms) {
-        <span>@room.RoomId</span>
+        <span>@room.Room.RoomId</span>
         <br/>
     }
 </details>
@@ -29,8 +30,13 @@
     @foreach (var (userId, events) in matches) {
         <h4>@userId</h4>
         <ul>
-            @foreach (var eventResponse in events) {
-                <li>@eventResponse.Room.RoomId</li>
+            @foreach (var match in events) {
+                <li>
+                    <ul>
+                        <li>@match.RoomName (<span>@match.Room.RoomId</span>)</li>
+                        <li>Membership: @(match.Event.RawContent.ToJson(indent: false))</li>
+                    </ul>
+                </li>
             }
         </ul>
     }
@@ -43,10 +49,8 @@
 
 @code {
     private ObservableCollection<string> log { get; set; } = new();
-    List<AuthenticatedHomeserverGeneric> hss { get; set; } = new();
-    ObservableCollection<GenericRoom> rooms { get; set; } = new();
-    Dictionary<GenericRoom, FrozenSet<StateEventResponse>> roomMembers { get; set; } = new();
-    Dictionary<string, List<Matches>> matches = new();
+    List<RoomInfo> rooms { get; set; } = new();
+    Dictionary<string, List<Match>> matches = new();
 
     private string UserIdString {
         get => string.Join("\n", UserIDs);
@@ -59,16 +63,13 @@
         log.CollectionChanged += (sender, args) => StateHasChanged();
         var hs = await RMUStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        rooms.CollectionChanged += (sender, args) => StateHasChanged();
         var sessions = await RMUStorage.GetAllTokens();
+        var baseRooms = new List<GenericRoom>();
         foreach (var userAuth in sessions) {
             var session = await RMUStorage.GetSession(userAuth);
             if (session is not null) {
-                var sessionRooms = await session.GetJoinedRooms();
-                foreach (var room in sessionRooms) {
-                    rooms.Add(room);
-                }
-
+                baseRooms.AddRange(await session.GetJoinedRooms());
+                var sessionRooms = (await session.GetJoinedRooms()).Where(x => !rooms.Any(y => y.Room.RoomId == x.RoomId)).ToList();
                 StateHasChanged();
                 log.Add($"Got {sessionRooms.Count} rooms for {userAuth.UserId}");
             }
@@ -76,32 +77,28 @@
 
         log.Add("Done fetching rooms!");
 
-        var distinctRooms = rooms.DistinctBy(x => x.RoomId).ToArray();
-        Random.Shared.Shuffle(distinctRooms);
-        rooms = new ObservableCollection<GenericRoom>(distinctRooms);
-        rooms.CollectionChanged += (sender, args) => StateHasChanged();
-        try {
-            var stateTasks = rooms.Select(async x => {
-                for (int i = 0; i < 10; i++) {
-                    try {
-                        return (x, await x.GetMembersListAsync(false));
-                    }
-                    catch {
-                        //
-                    }
+        baseRooms = baseRooms.DistinctBy(x => x.RoomId).ToList();
+
+        // rooms.CollectionChanged += (sender, args) => StateHasChanged();
+        var tasks = baseRooms.Select(async newRoom => {
+            bool success = false;
+            while (!success)
+                try {
+                    var state = await newRoom.GetFullStateAsListAsync();
+                    var newRoomInfo = new RoomInfo(newRoom, state);
+                    rooms.Add(newRoomInfo);
+                    log.Add($"Got {newRoomInfo.StateEvents.Count} events for {newRoomInfo.RoomName}");
+                    success = true;
                 }
-
-                return (x, new List<StateEventResponse>().ToFrozenSet());
-            }).ToAsyncEnumerable();
-
-            await foreach (var (room, state) in stateTasks) {
-                roomMembers.Add(room, state);
-                log.Add($"Got {state.Count} members for {room.RoomId}...");
-            }
-        }
-        catch {
-            //
-        }
+                catch (MatrixException e) {
+                    log.Add($"Failed to fetch room {newRoom.RoomId}! {e}");
+                    throw;
+                }
+                catch (HttpRequestException e) {
+                    log.Add($"Failed to fetch room {newRoom.RoomId}! {e}");
+                }
+        });
+        await Task.WhenAll(tasks);
 
         log.Add($"Done fetching members!");
 
@@ -114,16 +111,21 @@
 
     private async Task<string> Execute() {
         foreach (var userId in UserIDs) {
-            matches.Add(userId, new List<Matches>());
-            foreach (var (room, events) in roomMembers) {
-                if (events.Any(x => x.Type == RoomMemberEventContent.EventId && x.StateKey == userId)) {
+            matches.Add(userId, new List<Match>());
+
+            foreach (var room in rooms) {
+                var state = room.StateEvents.Where(x => x!.Type == RoomMemberEventContent.EventId).ToList();
+                if (state!.Any(x => x.StateKey == userId)) {
                     matches[userId].Add(new() {
-                        Event = events.First(x => x.StateKey == userId && x.Type == RoomMemberEventContent.EventId),
-                        Room = room,
+                        Event = state.First(x => x.StateKey == userId),
+                        Room = room.Room,
+                        RoomName = room.RoomName ?? "No name"
                     });
                 }
             }
         }
+
+        StateHasChanged();
 
         return "";
     }
@@ -133,8 +135,8 @@
     private async Task DoImportFromRoomId() {
         try {
             if (ImportFromRoomId is null) return;
-            var room = rooms.FirstOrDefault(x => x.RoomId == ImportFromRoomId);
-            UserIdString = string.Join("\n", (await room.GetMembersListAsync()).Select(x => x.StateKey));
+            var room = rooms.FirstOrDefault(x => x.Room.RoomId == ImportFromRoomId);
+            UserIdString = string.Join("\n", (await room.Room.GetMembersListAsync()).Select(x => x.StateKey));
         }
         catch (Exception e) {
             Console.WriteLine(e);
@@ -144,11 +146,10 @@
         StateHasChanged();
     }
 
-    private class Matches {
+    private class Match {
         public GenericRoom Room;
-
         public StateEventResponse Event;
-        // public 
+        public string RoomName { get; set; }
     }
 
 }

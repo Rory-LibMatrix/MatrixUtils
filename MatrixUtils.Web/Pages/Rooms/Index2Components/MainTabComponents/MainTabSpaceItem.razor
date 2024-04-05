@@ -1,17 +1,34 @@
 @using MatrixUtils.Abstractions
-<div class="spaceListItem" onclick="@ToggleSpace">
+<div class="spaceListItem" style="@(SelectedSpace == Space ? "background-color: #FFFFFF33;" : "")" onclick="@SelectSpace">
+    @if (IsSpaceOpened()) {
+        <span onclick="@ToggleSpace">▼ </span>
+    }
+    else {
+        <span onclick="@ToggleSpace">▶ </span>
+    }
+
     <MxcImage Circular="true" Height="32" Width="32" Homeserver="Space.Room.Homeserver" MxcUri="@Space.RoomIcon"></MxcImage>
     <span class="spaceNameEllipsis">@Space.RoomName</span>
+
+    @if (IsSpaceOpened()) {
+        <span>meow</span>
+    }
 </div>
 
 @code {
 
     [Parameter]
     public RoomInfo Space { get; set; }
+    
+    [Parameter]
+    public RoomInfo SelectedSpace { get; set; }
+    
+    [Parameter]
+    public EventCallback<RoomInfo> SelectedSpaceChanged { get; set; }
 
     [Parameter]
     public List<RoomInfo> OpenedSpaces { get; set; }
-    
+
     protected override Task OnInitializedAsync() {
         Space.PropertyChanged += (sender, args) => { StateHasChanged(); };
         return base.OnInitializedAsync();
@@ -20,8 +37,20 @@
     public void ToggleSpace() {
         if (OpenedSpaces.Contains(Space)) {
             OpenedSpaces.Remove(Space);
-        } else {
+        }
+        else {
             OpenedSpaces.Add(Space);
         }
     }
+
+    public void SelectSpace() {
+        SelectedSpace = Space;
+        SelectedSpaceChanged.InvokeAsync(Space);
+    }
+
+    public bool IsSpaceOpened() {
+        return OpenedSpaces.Contains(Space);
+    }
+
 }
+

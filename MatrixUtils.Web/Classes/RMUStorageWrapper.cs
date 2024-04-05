@@ -5,13 +5,15 @@ using Microsoft.AspNetCore.Components;
 
 namespace MatrixUtils.Web.Classes;
 
-public class RMUStorageWrapper(TieredStorageService storageService, HomeserverProviderService homeserverProviderService, NavigationManager navigationManager) {
+public class RMUStorageWrapper(ILogger<RMUStorageWrapper> logger, TieredStorageService storageService, HomeserverProviderService homeserverProviderService, NavigationManager navigationManager) {
     public async Task<List<UserAuth>?> GetAllTokens() {
+        logger.LogTrace("Getting all tokens.");
         return await storageService.DataStorageProvider.LoadObjectAsync<List<UserAuth>>("rmu.tokens") ??
                new List<UserAuth>();
     }
 
     public async Task<UserAuth?> GetCurrentToken() {
+        logger.LogTrace("Getting current token.");
         var currentToken = await storageService.DataStorageProvider.LoadObjectAsync<UserAuth>("rmu.token");
         var allTokens = await GetAllTokens();
         if (allTokens is null or { Count: 0 }) {
@@ -31,6 +33,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     public async Task AddToken(UserAuth UserAuth) {
+        logger.LogTrace("Adding token.");
         var tokens = await GetAllTokens() ?? new List<UserAuth>();
 
         tokens.Add(UserAuth);
@@ -38,6 +41,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     private async Task<AuthenticatedHomeserverGeneric?> GetCurrentSession() {
+        logger.LogTrace("Getting current session.");
         var token = await GetCurrentToken();
         if (token == null) {
             return null;
@@ -47,10 +51,12 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetSession(UserAuth userAuth) {
+        logger.LogTrace("Getting session.");
         return await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken, userAuth.Proxy);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {
+        logger.LogTrace("Getting current session or navigating.");
         AuthenticatedHomeserverGeneric? session = null;
 
         try {
@@ -60,6 +66,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
         catch (MatrixException e) {
             if (e.ErrorCode == "M_UNKNOWN_TOKEN") {
                 var token = await GetCurrentToken();
+                logger.LogWarning("Encountered invalid token for {user} on {homeserver}", token.UserId, token.Homeserver);
                 navigationManager.NavigateTo("/InvalidSession?ctx=" + token.AccessToken);
                 return null;
             }
@@ -68,6 +75,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
         }
 
         if (session is null) {
+            logger.LogInformation("No session found. Navigating to login.");
             navigationManager.NavigateTo("/Login");
         }
 
@@ -85,6 +93,7 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
     }
 
     public async Task RemoveToken(UserAuth auth) {
+        logger.LogTrace("Removing token.");
         var tokens = await GetAllTokens();
         if (tokens == null) {
             return;
@@ -94,9 +103,13 @@ public class RMUStorageWrapper(TieredStorageService storageService, HomeserverPr
         await storageService.DataStorageProvider.SaveObjectAsync("rmu.tokens", tokens);
     }
 
-    public async Task SetCurrentToken(UserAuth? auth) => await storageService.DataStorageProvider.SaveObjectAsync("rmu.token", auth);
+    public async Task SetCurrentToken(UserAuth? auth) {
+        logger.LogTrace("Setting current token.");
+        await storageService.DataStorageProvider.SaveObjectAsync("rmu.token", auth);
+    }
 
     public async Task MigrateFromMRU() {
+        logger.LogInformation("Migrating from MRU token namespace!");
         var dsp = storageService.DataStorageProvider!;
         if(await dsp.ObjectExistsAsync("token")) {
             var oldToken = await dsp.LoadObjectAsync<UserAuth>("token");

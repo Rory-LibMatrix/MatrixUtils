@@ -31,11 +31,17 @@
         <div class="col-3" style="background-color: #ffffff22;">
             <LinkButton>Uncategorised rooms</LinkButton>
             @foreach (var space in GetTopLevelSpaces()) {
-                @RecursingSpaceChildren(space)
+                @* @RecursingSpaceChildren(space) *@
+                <MainTabSpaceItem Space="space" OpenedSpaces="OpenedSpaces" @bind-SelectedSpace="SelectedSpace" />
             }
         </div>
         <div class="col-9" style="background-color: #ff00ff66;">
             <p>Placeholder for rooms list...</p>
+            @if (SelectedSpace != null) {
+                foreach (var room in GetSpaceChildRooms(SelectedSpace)) {
+                    <p>@room.RoomName</p>
+                }
+            }
         </div>
     </div>
 </div>
@@ -116,48 +122,54 @@
         var childSpaces = children.Where(x => x.RoomType == "m.space").ToList();
         return childSpaces;
     }
+    
+    private List<RoomInfo> GetSpaceChildRooms(RoomInfo space) {
+        var children = GetSpaceChildren(space);
+        var childRooms = children.Where(x => x.RoomType != "m.space").ToList();
+        return childRooms;
+    }
 
     private RoomInfo? SelectedSpace { get; set; }
     private List<RoomInfo> OpenedSpaces { get; set; } = new List<RoomInfo>();
 
-    private RenderFragment RecursingSpaceChildren(RoomInfo space, List<RoomInfo>? parents = null, int depth = 0) {
-        parents ??= [];
-        var totalSw = Stopwatch.StartNew();
-        var children = GetSpaceChildSpaces(space);
-
-        var randomColor = RandomNumberGenerator.GetBytes(3).Append((byte)0x33).ToArray().AsHexString().Replace(" ", "");
-        var isExpanded = OpenedSpaces.Contains(space);
-
-        // Console.WriteLine($"RecursingSpaceChildren::FetchData - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
-
-        // var renderSw = Stopwatch.StartNew();
-        var rf = new RenderFragment(builder => {
-            builder.OpenElement(0, "div");
-            //space list entry render fragment
-            // builder.AddContent(1, SpaceListEntry(space));
-            builder.OpenComponent<MainTabSpaceItem>(1);
-            builder.AddAttribute(2, "Space", space);
-            builder.AddAttribute(2, "OpenedSpaces", OpenedSpaces);
-            builder.CloseComponent();
-            builder.CloseElement();
-            //space children render fragment
-            if (isExpanded) {
-                builder.OpenElement(2, "div");
-                builder.AddAttribute(3, "style", "padding-left: 10px;");
-                foreach (var child in children) {
-                    builder.AddContent(4, RecursingSpaceChildren(child, parents.Append(space).ToList(), depth + 1));
-                }
-
-                builder.CloseElement();
-            }
-        });
-
-        // Console.WriteLine($"RecursingSpaceChildren::Render - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {renderSw.Elapsed}");
-        if (totalSw.ElapsedMilliseconds > 20)
-            Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
-        // Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
-        return rf;
-    }
+    // private RenderFragment RecursingSpaceChildren(RoomInfo space, List<RoomInfo>? parents = null, int depth = 0) {
+    //     parents ??= [];
+    //     var totalSw = Stopwatch.StartNew();
+    //     var children = GetSpaceChildSpaces(space);
+    //
+    //     var randomColor = RandomNumberGenerator.GetBytes(3).Append((byte)0x33).ToArray().AsHexString().Replace(" ", "");
+    //     var isExpanded = OpenedSpaces.Contains(space);
+    //
+    //     // Console.WriteLine($"RecursingSpaceChildren::FetchData - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+    //
+    //     // var renderSw = Stopwatch.StartNew();
+    //     var rf = new RenderFragment(builder => {
+    //         builder.OpenElement(0, "div");
+    //         //space list entry render fragment
+    //         // builder.AddContent(1, SpaceListEntry(space));
+    //         builder.OpenComponent<MainTabSpaceItem>(1);
+    //         builder.AddAttribute(2, "Space", space);
+    //         builder.AddAttribute(2, "OpenedSpaces", OpenedSpaces);
+    //         builder.CloseComponent();
+    //         builder.CloseElement();
+    //         //space children render fragment
+    //         if (isExpanded) {
+    //             builder.OpenElement(2, "div");
+    //             builder.AddAttribute(3, "style", "padding-left: 10px;");
+    //             foreach (var child in children) {
+    //                 builder.AddContent(4, RecursingSpaceChildren(child, parents.Append(space).ToList(), depth + 1));
+    //             }
+    //
+    //             builder.CloseElement();
+    //         }
+    //     });
+    //
+    //     // Console.WriteLine($"RecursingSpaceChildren::Render - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {renderSw.Elapsed}");
+    //     if (totalSw.ElapsedMilliseconds > 20)
+    //         Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+    //     // Console.WriteLine($"RecursingSpaceChildren::Total - Depth: {depth}, Space: {space.RoomName}, Children: {children.Count} - {totalSw.Elapsed}");
+    //     return rf;
+    // }
 
     // private RenderFragment SpaceListEntry(RoomInfo space) {
     //     return builder => {

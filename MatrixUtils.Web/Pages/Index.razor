@@ -2,7 +2,6 @@
 @inject ILogger<Index> logger
 @using LibMatrix.Responses
 @using LibMatrix
-@using ArcaneLibs.Extensions
 @using ArcaneLibs
 @using System.Diagnostics
 
@@ -34,7 +33,7 @@ Small collection of tools to do not-so-everyday things.
                         <b>@session.UserInfo.DisplayName</b> on <b>@_auth.Homeserver</b><br/>
                     </p>
                     <span style="display: inline-block; width: 128px;">@session.UserInfo.RoomCount rooms</span>
-                    <a style="color: #888888" href="@("/ServerInfo/" + session.Homeserver.ServerName + "/")">@session.ServerVersion.Server.Name @session.ServerVersion.Server.Version</a>
+                    <a style="color: #888888" href="@("/ServerInfo/" + session.Homeserver?.ServerName + "/")">@session.ServerVersion?.Server.Name @session.ServerVersion?.Server.Version</a>
                     @if (_auth.Proxy != null) {
                         <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
                     }
@@ -132,7 +131,6 @@ Small collection of tools to do not-so-everyday things.
         public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
     }
 
-    // private Dictionary<UserAuth, UserInfo> _users = new();
     private readonly List<AuthInfo> _sessions = [];
     private readonly List<UserAuth> _offlineSessions = [];
     private readonly List<UserAuth> _invalidSessions = [];
@@ -142,12 +140,14 @@ Small collection of tools to do not-so-everyday things.
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("Index.OnInitializedAsync");
+        logger.LogDebug("Initialising index page");
         _currentSession = await RMUStorage.GetCurrentToken();
         _sessions.Clear();
         _offlineSessions.Clear();
         var tokens = await RMUStorage.GetAllTokens();
         scannedSessions = 0;
         totalSessions = tokens.Count;
+        logger.LogDebug("Found {0} tokens", totalSessions);
         if (tokens is not { Count: > 0 }) {
             Console.WriteLine("No tokens found, trying migration from MRU...");
             await RMUStorage.MigrateFromMRU();
@@ -166,7 +166,7 @@ Small collection of tools to do not-so-everyday things.
             if ((!string.IsNullOrWhiteSpace(token.Proxy) && offlineServers.Contains(token.Proxy)) || offlineServers.Contains(token.Homeserver)) {
                 _offlineSessions.Add(token);
                 sema.Release();
-            scannedSessions++;
+                scannedSessions++;
                 return;
             }
 
@@ -192,10 +192,17 @@ Small collection of tools to do not-so-everyday things.
                 }
             }
             catch (MatrixException e) {
-                if (e is { ErrorCode: "M_UNKNOWN_TOKEN" }) _invalidSessions.Add(token);
-                else throw;
+                if (e is { ErrorCode: "M_UNKNOWN_TOKEN" }) {
+                    logger.LogWarning("Got unknown token error for {0} via {1}", token.UserId, token.Homeserver);
+                    _invalidSessions.Add(token);
+                }
+                else {
+                    logger.LogError("Failed to get info for {0} via {1}: {2}", token.UserId, token.Homeserver, e);
+                    throw;
+                }
             }
-            catch {
+            catch (Exception e) {
+                logger.LogError("Failed to get info for {0} via {1}: {2}", token.UserId, token.Homeserver, e);
                 if (!string.IsNullOrWhiteSpace(token.Proxy)) {
                     offlineServers.Add(token.Proxy);
 
@@ -211,7 +218,7 @@ Small collection of tools to do not-so-everyday things.
         }).ToList();
         await Task.WhenAll(tasks);
         scannedSessions = totalSessions;
-        
+
         await base.OnInitializedAsync();
     }
 
@@ -239,7 +246,6 @@ Small collection of tools to do not-so-everyday things.
         await RMUStorage.RemoveToken(auth);
         if ((await RMUStorage.GetCurrentToken())?.AccessToken == auth.AccessToken)
             await RMUStorage.SetCurrentToken((await RMUStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
-        // await OnInitializedAsync();
         StateHasChanged();
     }
 
@@ -247,7 +253,6 @@ Small collection of tools to do not-so-everyday things.
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");
         await RMUStorage.SetCurrentToken(auth);
         _currentSession = auth;
-        // await OnInitializedAsync();
         StateHasChanged();
     }
 

@@ -3,7 +3,9 @@
 @inject IJSRuntime JsRuntime
 <h3>HSE Initialising...</h3>
 <hr/>
+
 @code {
+
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
         var tasks = Enumerable.Range(0, 50).Select(i => Login()).ToList();
@@ -16,7 +18,7 @@
 
     async Task<UserAuth?> Login() {
         try {
-            var result = new UserAuth(await hsProvider.Login("http://localhost:5298", "", ""));
+            var result = new UserAuth(await hsProvider.Login("http://localhost:5298", $"{Guid.NewGuid().ToString()}", ""));
             if (result == null) {
                 Console.WriteLine($"Failed to login!");
                 return null;
@@ -34,4 +36,5 @@
 
         return null;
     }
+
 }

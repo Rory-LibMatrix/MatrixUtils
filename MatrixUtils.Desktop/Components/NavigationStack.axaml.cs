@@ -10,23 +10,24 @@ public partial class NavigationStack : UserControl {
     }
 
     // private void InitializeComponent() {
-        // AvaloniaXamlLoader.Load(this);
-        // buildView();
+    // AvaloniaXamlLoader.Load(this);
+    // buildView();
     // }
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         buildView();
     }
-    
+
     private void buildView() {
         if (navPanel is null) {
             Console.WriteLine("NavigationStack buildView called while navpanel is null!");
             // await Task.Delay(100);
             // if (navPanel is null)
-                // await buildView();
+            // await buildView();
             // else Console.WriteLine("navpanel is not null!");
         }
+
         navPanel.Children.Clear();
         foreach (var item in _stack) {
             Button btn = new() {
@@ -38,9 +39,9 @@ public partial class NavigationStack : UserControl {
             };
             navPanel.Children.Add(btn);
         }
+
         content.Content = Current?.View ?? new UserControl();
     }
-
 
     public class NavigationStackItem {
         public string Name { get; set; }

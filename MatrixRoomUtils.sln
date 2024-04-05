@@ -55,9 +55,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.DevTestBot", "LibMatrix\Utilities\LibMatrix.DevTestBot\LibMatrix.DevTestBot.csproj", "{5CE239F8-C124-4A96-A0F8-B56B9AE27434}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibMatrix.HomeserverEmulator", "LibMatrix\Tests\LibMatrix.HomeserverEmulator\LibMatrix.HomeserverEmulator.csproj", "{6D93DA72-69D8-43BD-BC19-7FFF8A313971}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArcaneLibs.UsageTest", "LibMatrix\ArcaneLibs\ArcaneLibs.UsageTest\ArcaneLibs.UsageTest.csproj", "{EDFC9BA8-CAA9-4B51-AFAF-834C1D74DCF0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.DmSpaced", "MatrixUtils.DmSpaced\MatrixUtils.DmSpaced.csproj", "{B3FEA1EF-6CFE-49C5-A0B2-11DB58D4CD1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorApp1", "tmp\BlazorApp1\BlazorApp1.csproj", "{2057E543-84D9-483A-9A14-6399E7062419}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -161,6 +164,10 @@ Global
 		{B3FEA1EF-6CFE-49C5-A0B2-11DB58D4CD1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3FEA1EF-6CFE-49C5-A0B2-11DB58D4CD1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3FEA1EF-6CFE-49C5-A0B2-11DB58D4CD1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2057E543-84D9-483A-9A14-6399E7062419}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2057E543-84D9-483A-9A14-6399E7062419}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2057E543-84D9-483A-9A14-6399E7062419}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2057E543-84D9-483A-9A14-6399E7062419}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F4E241C3-0300-4B87-8707-BCBDEF1F0185} = {8F4F6BEC-0C66-486B-A21A-1C35B2EDAD33}

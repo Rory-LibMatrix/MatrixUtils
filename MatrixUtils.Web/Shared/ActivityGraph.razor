@@ -5,7 +5,7 @@
 @if (Data is { Count: > 0 })
 {
     @*                                                      12*5=60 *@
-    <div style="display: grid; grid-template-columns: 35px repeat(60, 1.5em); grid-template-rows: 1.5em repeat(7, 1.5em); gap: 0;">
+    <div class="activity-graph" style="display: grid; grid-template-columns: 35px repeat(55, 1.5em); grid-template-rows: 1.5em repeat(7, 1.5em); gap: 0;">
         @* row 0: month labels with colspan *@
         @* @foreach (var month in Enumerable.Range(1, 12)) *@
         @* { *@
@@ -62,7 +62,7 @@
             var needsLeftBorder = date.Day <= 7;
 
             <div class="activity-cell-container"
-                 style="grid-row: @((int)date.DayOfWeek + 2); border-@(needsLeftBorder ? "left" : "right"): @(needsBorder ? "2px solid white" : "none"); border-top: @(needsTopBorder ? "2px solid white" : "none");">
+                style="grid-row: @((int)date.DayOfWeek + 2); border-@(needsLeftBorder ? "left" : "right"): @(needsBorder ? "2px solid #aaa" : "none"); border-top: @(needsTopBorder ? "2px solid #aaa" : "none");">
                 @if (hasData)
                 {
                     <div class="activity-cell"
@@ -72,8 +72,7 @@
                 }
                 else
                 {
-                    <div class="activity-cell"
-                         title="@($"No data on {date.ToString("D")}")">
+                    <div class="activity-cell" style="background-color: #1c1c1c;" title="@($"No data on {date.ToString("D")}")">
                     </div>
                 }
             </div>

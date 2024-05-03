@@ -1,0 +1,15 @@
+@using ClientContext = MatrixUtils.Web.Pages.Client.Index.ClientContext
+@* user header and room list *@
+@foreach (var room in Data.SyncWrapper.Rooms) {
+    <LinkButton OnClick="@(async () => Data.SelectedRoom = room)" Color="@(Data.SelectedRoom == room ? "#FF00FF" : "")">
+        @room.RoomName
+    </LinkButton>
+    <br/>
+}
+
+@code {
+
+    [Parameter]
+    public ClientContext Data { get; set; } = null!;
+
+}

@@ -1,0 +1,35 @@
+@using ClientContext = MatrixUtils.Web.Pages.Client.Index.ClientContext;
+@using System.Collections.ObjectModel
+
+@foreach (var ctx in Data) {
+    <pre>
+        @ctx.Homeserver.UserId - @ctx.SyncWrapper.Status
+    </pre>
+}
+
+@code {
+
+    [Parameter]
+    public ObservableCollection<ClientContext> Data { get; set; } = null!;
+
+    protected override void OnInitialized() {
+        Data.CollectionChanged += (_, e) => {
+            foreach (var item in e.NewItems?.Cast<ClientContext>() ?? []) {
+                item.SyncWrapper.PropertyChanged += (_, pe) => {
+                    if (pe.PropertyName == nameof(item.SyncWrapper.Status))
+                        StateHasChanged();
+                };
+            }
+
+            StateHasChanged();
+        };
+
+        Data.ToList().ForEach(ctx => {
+            ctx.SyncWrapper.PropertyChanged += (_, pe) => {
+                if (pe.PropertyName == nameof(ctx.SyncWrapper.Status))
+                    StateHasChanged();
+            };
+        });
+    }
+
+}

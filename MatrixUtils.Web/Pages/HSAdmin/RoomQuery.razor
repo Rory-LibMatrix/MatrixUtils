@@ -82,18 +82,19 @@
 
 @foreach (var res in Results) {
     <div style="background-color: #ffffff11; border-radius: 0.5em; display: block; margin-top: 4px; padding: 4px;">
-        <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem>
+        @* <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem> *@
         <p>
             @if (!string.IsNullOrWhiteSpace(res.CanonicalAlias)) {
-                <span>@res.CanonicalAlias (@res.RoomId)</span>
+                <span>@res.CanonicalAlias - @res.RoomId (@res.Name)</span>
                 <br/>
             }
             else {
-                <span>@res.RoomId</span>
+                <span>@res.RoomId (@res.Name)</span>
                 <br/>
             }
             @if (!string.IsNullOrWhiteSpace(res.Creator)) {
-                <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span>
+                @* <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span> *@
+                <span>Created by @res.Creator</span>
                 <br/>
             }
         </p>
@@ -178,6 +179,7 @@
             }
         }
 
+        StateHasChanged();
     }
 
     private readonly Dictionary<string, string> validOrderBy = new() {

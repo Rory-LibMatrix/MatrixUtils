@@ -1,15 +1,16 @@
 @using MatrixUtils.Abstractions
 <div class="spaceListItem" style="@(SelectedSpace == Space ? "background-color: #FFFFFF33;" : "")" onclick="@SelectSpace">
-    @if (IsSpaceOpened()) {
-        <span onclick="@ToggleSpace">▼ </span>
-    }
-    else {
-        <span onclick="@ToggleSpace">▶ </span>
-    }
+    <div class="spaceListItemContainer">
+        @if (IsSpaceOpened()) {
+            <span onclick="@ToggleSpace">▼ </span>
+        }
+        else {
+            <span onclick="@ToggleSpace">▶ </span>
+        }
 
-    <MxcImage Circular="true" Height="32" Width="32" Homeserver="Space.Room.Homeserver" MxcUri="@Space.RoomIcon"></MxcImage>
-    <span class="spaceNameEllipsis">@Space.RoomName</span>
-
+        <MxcImage Circular="true" Height="32" Width="32" Homeserver="Space.Room.Homeserver" MxcUri="@Space.RoomIcon"></MxcImage>
+        <span class="spaceNameEllipsis">@Space.RoomName</span>
+    </div>
     @if (IsSpaceOpened()) {
         <span>meow</span>
     }
@@ -19,10 +20,10 @@
 
     [Parameter]
     public RoomInfo Space { get; set; }
-    
+
     [Parameter]
     public RoomInfo SelectedSpace { get; set; }
-    
+
     [Parameter]
     public EventCallback<RoomInfo> SelectedSpaceChanged { get; set; }
 
@@ -53,4 +54,3 @@
     }
 
 }
-

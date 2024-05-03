@@ -1,0 +1,31 @@
+@using Index = MatrixUtils.Web.Pages.Client.Index
+@using MatrixUtils.Web.Pages.Client.ClientComponents
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-3">
+            <ClientRoomList Data="@Data"/>
+        </div>
+        <div class="col-6">
+            @if (Data.SelectedRoom != null) {
+                <Index.RoomHeader Data="@Data"/>
+                <Index.RoomTimeline Data="@Data"/>
+            }
+            else {
+                <p>No room selected</p>
+            }
+        </div>
+        @if (Data.SelectedRoom != null) {
+            <div class="col-3">
+                <Index.UserList Data="@Data"/>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public Index.ClientContext Data { get; set; } = null!;
+
+}

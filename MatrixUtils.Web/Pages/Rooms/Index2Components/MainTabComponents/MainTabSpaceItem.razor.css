@@ -11,7 +11,17 @@
 .spaceListItem {
     display: block;
     width: 100%;
-    height: 50px;
+    height: 3em;
+}
+
+.spaceListItemContainer {
+    display: flex;
+    align-items: center;
+    vertical-align: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    width: 100%;
+    height: 100%;
 }
 
 .spaceListItem > img {

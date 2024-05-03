@@ -27,6 +27,7 @@ public class RoomInfo : NotifyPropertyChanged {
     
     public readonly GenericRoom Room;
     public ObservableCollection<StateEventResponse?> StateEvents { get; private set; } = new();
+    public ObservableCollection<StateEventResponse?> Timeline { get; private set; } = new();
 
     private static ConcurrentBag<AuthenticatedHomeserverGeneric> homeserversWithoutEventFormatSupport = new();
     private static SvgIdenticonGenerator identiconGenerator = new();

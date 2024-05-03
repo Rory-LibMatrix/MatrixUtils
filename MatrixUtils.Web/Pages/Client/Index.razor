@@ -1,0 +1,72 @@
+@page "/Client"
+@using LibMatrix
+@using MatrixUtils.Abstractions
+@using MatrixUtils.Web.Pages.Client.ClientComponents
+@using System.Collections.ObjectModel
+
+<h3>Client</h3>
+
+
+@foreach (var client in Clients) {
+    <LinkButton Color="@(SelectedClient == client ? "#ff00ff" : "")" OnClick="@(async () => SelectedClient = client)">
+        @client.Homeserver.WhoAmI.UserId
+    </LinkButton>
+}
+<ClientStatusList Data="@Clients"></ClientStatusList>
+
+
+@* @foreach (var client in Clients) { *@
+@*     <div class="card"> *@
+@*         <span>@client.Homeserver.UserId - @client.SyncWrapper.Status</span> *@
+@*     </div> *@
+@* } *@
+
+@if (SelectedClient != null) {
+    <div class="card">
+        <MatrixClient Data="@SelectedClient"/>
+    </div>
+}
+
+@code {
+
+    private static readonly ObservableCollection<ClientContext> Clients = [];
+    private static ClientContext _selectedClient;
+
+    private ClientContext SelectedClient {
+        get => _selectedClient;
+        set {
+            _selectedClient = value;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync() {
+        var tokens = await RMUStorage.GetAllTokens();
+        var tasks = tokens.Select(async token => {
+            try {
+                var cc = new ClientContext() {
+                    Homeserver = await RMUStorage.GetSession(token)
+                };
+                cc.SyncWrapper = new ClientSyncWrapper(cc.Homeserver);
+
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                cc.SyncWrapper.Start();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+
+                Clients.Add(cc);
+                StateHasChanged();
+            }
+            catch { }
+        }).ToList();
+        await Task.WhenAll(tasks);
+    }
+
+    public class ClientContext {
+        public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+        public ClientSyncWrapper SyncWrapper { get; set; }
+
+        public RoomInfo? SelectedRoom { get; set; }
+    }
+
+}
+

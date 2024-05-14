@@ -1,10 +1,10 @@
-@page "/User/DMSpace/Setup"
+@page "/Labs/DMSpace/Setup"
 @using LibMatrix
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
 @using MatrixUtils.LibDMSpace
 @using MatrixUtils.LibDMSpace.StateEvents
-@using MatrixUtils.Web.Pages.User.DMSpaceStages
+@using MatrixUtils.Web.Pages.Labs.DMSpace.DMSpaceStages
 @using System.Text.Json.Serialization
 <h3>DM Space Management</h3>
 <hr/>
@@ -49,7 +49,7 @@
 
     protected override async Task OnInitializedAsync() {
         if (NavigationManager.Uri.Contains("?stage=")) {
-            NavigationManager.NavigateTo("/User/DMSpace/Setup", true);
+            NavigationManager.NavigateTo(NavigationManager.Uri.Replace("stage=", ""), true); //"/User/DMSpace/Setup"
         }
         DMSpaceRootPage = this;
         SetupData.Homeserver ??= await RMUStorage.GetCurrentSessionOrNavigate();

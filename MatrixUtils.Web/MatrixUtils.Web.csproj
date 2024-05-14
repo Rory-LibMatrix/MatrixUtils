@@ -48,7 +48,26 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Pages\Tools\Moderation\Draupnir\" />
+      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\ClientRoomList.razor" />
+      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\ClientStatusList.razor" />
+      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\MatrixClient.razor" />
+      <_ContentIncludedByDefault Remove="Pages\Client\Index.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\ClientRoomList.razor" />
+      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\ClientStatusList.razor" />
+      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\MatrixClient.razor" />
+      <AdditionalFiles Include="Pages\Labs\Client\Index.razor" />
+      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage0.razor" />
+      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage1.razor" />
+      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage2.razor" />
+      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage3.razor" />
+      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\MainTabComponents\MainTabSpaceItem.razor" />
+      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2ByRoomTypeTab.razor" />
+      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2DMsTab.razor" />
+      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2MainTab.razor" />
+      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2SyncContainer.razor" />
     </ItemGroup>
     
 </Project>

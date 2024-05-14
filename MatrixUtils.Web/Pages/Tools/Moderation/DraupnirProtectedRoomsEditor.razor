@@ -1,9 +1,12 @@
 @page "/Moderation/DraupnirProtectedRoomsEditor"
+@page "/Tools/Moderation/DraupnirProtectedRoomsEditor"
 @using System.Text.Json.Serialization
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.RoomTypes
 <h3>Edit Draupnir protected rooms</h3>
 <hr/>
+<p><b>Note:</b> You will need to restart Draupnir after applying changes!</p>
+<p>Minor note: This <i>should</i> also work with Mjolnir, but this hasn't been tested, and as such functionality cannot be guaranteed.</p>
 
 @if (data is not null) {
     <div class="row">

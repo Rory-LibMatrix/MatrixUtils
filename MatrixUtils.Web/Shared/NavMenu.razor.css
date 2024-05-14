@@ -66,3 +66,8 @@
         overflow-y: auto;
     }
 }
+
+
+hr {
+    margin: 0;
+}

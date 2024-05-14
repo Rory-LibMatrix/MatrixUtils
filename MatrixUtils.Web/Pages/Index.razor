@@ -186,7 +186,7 @@ Small collection of tools to do not-so-everyday things.
                     ServerVersion = await (serverVersionTask ?? Task.FromResult<ServerVersionResponse?>(null)!),
                     Homeserver = hs
                 });
-                if (updateSw.ElapsedMilliseconds > 250) {
+                if (updateSw.ElapsedMilliseconds > 25) {
                     updateSw.Restart();
                     StateHasChanged();
                 }

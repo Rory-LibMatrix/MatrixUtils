@@ -108,6 +108,9 @@ Small collection of tools to do not-so-everyday things.
                         </p>
                     </td>
                     <td>
+                        <LinkButton OnClick="@(() => Task.Run(()=>NavigationManager.NavigateTo($"/InvalidSession?ctx={session.AccessToken}")))">Re-login</LinkButton>
+                    </td>
+                    <td>
                         <LinkButton OnClick="@(() => RemoveUser(session))">Remove</LinkButton>
                     </td>
                 </tr>

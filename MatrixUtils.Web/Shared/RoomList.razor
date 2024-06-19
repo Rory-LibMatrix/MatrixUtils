@@ -1,12 +1,7 @@
 @using MatrixUtils.Web.Shared.RoomListComponents;
-@using LibMatrix
-@using LibMatrix.Extensions
-@using ArcaneLibs.Extensions
-@using LibMatrix.EventTypes.Spec.State
 @using System.Collections.ObjectModel
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
-@using _Imports = MatrixUtils.Web._Imports
 @if (!StillFetching) {
     <p>Fetching room details... @RoomsWithTypes.Sum(x => x.Value.Count) out of @Rooms.Count done!</p>
     @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {

@@ -2,8 +2,10 @@
 @using ArcaneLibs.Extensions
 @using System.Text
 @using System.Text.Json
+@using Microsoft.JSInterop
 @inject NavigationManager NavigationManager
-@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JSRuntime
+@inject TieredStorageService TieredStorage
 
 <PageTitle>Developer options</PageTitle>
 

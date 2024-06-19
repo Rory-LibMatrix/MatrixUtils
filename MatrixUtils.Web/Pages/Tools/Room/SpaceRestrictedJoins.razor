@@ -1,0 +1,75 @@
+@page "/Tools/Room/SpaceRestrictedJoins"
+@using System.Collections.ObjectModel
+@using LibMatrix.EventTypes.Spec.State
+<h3>Allow space to restricted join children</h3>
+<hr/>
+
+<p>Room ID: </p>
+<InputText @bind-Value="@RoomId"></InputText>
+<p><InputCheckbox @bind-Value="@ChangeGuestAccess"/> Change guest access: <InputCheckbox @bind-Value="@GuestAccess"/></p>
+<p><InputCheckbox @bind-Value="@ChangeKnocking"/> Change knock access: <InputCheckbox @bind-Value="@Knocking"/></p>
+
+<br/>
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+
+<br/>
+@foreach (var line in log.Reverse()) {
+    <pre>@line</pre>
+}
+
+@code {
+    private ObservableCollection<string> log { get; set; } = new();
+
+    private string RoomId { get; set; }
+    private AuthenticatedHomeserverGeneric hs { get; set; }
+
+    private bool ChangeGuestAccess { get; set; }
+    private bool GuestAccess { get; set; }
+    private bool ChangeKnocking { get; set; }
+    private bool Knocking { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        log.CollectionChanged += (sender, args) => StateHasChanged();
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Execute() {
+        var space = hs.GetRoom(RoomId).AsSpace;
+        await foreach (var room in space.GetChildrenAsync()) {
+            log.Add($"Got room {room.RoomId}");
+            if (ChangeGuestAccess) {
+                var targetGuestAccess = GuestAccess ? "can_join" : "forbidden";
+                var currentGuestAccess = (await room.GetStateAsync<RoomGuestAccessEventContent>(RoomGuestAccessEventContent.EventId))?.GuestAccess;
+                if (currentGuestAccess != targetGuestAccess) {
+                    log.Add($"Changing guest access from {currentGuestAccess} to {targetGuestAccess}");
+                    await room.SendStateEventAsync(RoomGuestAccessEventContent.EventId, new RoomGuestAccessEventContent { GuestAccess = targetGuestAccess });
+                }
+            }
+
+            var currentJoinRules = (await room.GetStateOrNullAsync<RoomJoinRulesEventContent>(RoomJoinRulesEventContent.EventId)) ?? new();
+            if (ChangeKnocking) {
+                var targetJoinRule = Knocking ? "knock_restricted" : "restricted";
+                if (currentJoinRules.JoinRuleValue != targetJoinRule) {
+                    log.Add($"Changing knocking from {currentJoinRules.JoinRuleValue} to {targetJoinRule}");
+                    currentJoinRules.JoinRuleValue = targetJoinRule;
+                    await room.SendStateEventAsync(RoomJoinRulesEventContent.EventId, currentJoinRules);
+                }
+            }
+
+            if (currentJoinRules.Allow == null || !currentJoinRules.Allow.Any(x => x.Type == "m.room_membership" && x.RoomId == RoomId)) {
+                log.Add($"Adding {RoomId} to allowed rooms");
+                currentJoinRules.Allow ??= new();
+                currentJoinRules.Allow.Add(new RoomJoinRulesEventContent.AllowEntry() { Type = "m.room_membership", RoomId = RoomId });
+                await room.SendStateEventAsync(RoomJoinRulesEventContent.EventId, currentJoinRules);
+            }
+        }
+        log.Add("Done!");
+    }
+
+}

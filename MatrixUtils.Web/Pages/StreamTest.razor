@@ -1,0 +1,105 @@
+﻿@page "/StreamTest"
+@inject ILogger<Index> logger
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State
+
+<PageTitle>StreamText</PageTitle>
+@if (Homeserver is not null) {
+    <p>Got homeserver @Homeserver.BaseUrl</p>
+
+    @* <img src="@ResolvedUri" @ref="imgElement"/> *@
+    @* <StreamedImage Stream="@Stream"/> *@
+
+    <br/>
+    @foreach (var stream in Streams.OrderBy(x=>x.GetHashCode())) {
+        <StreamedImage Stream="@stream" style="width: 12em; height: 12em;"/>
+    }
+}
+
+@code
+{
+    private string? _resolvedUri;
+
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+    private string? ResolvedUri {
+        get => _resolvedUri;
+        set {
+            _resolvedUri = value;
+            StateHasChanged();
+        }
+    }
+
+    ElementReference imgElement { get; set; }
+    public Stream? Stream { get; set; }
+    public List<Stream> Streams { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+
+        //await InitOld();
+        await Init2();
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Init2() {
+        var roomState = await Homeserver.GetRoom("!dSMpkVKGgQHlgBDSpo:matrix.org").GetFullStateAsListAsync();
+        var members = roomState.Where(x => x.Type == RoomMemberEventContent.EventId).ToList();
+        Console.WriteLine($"Got {members.Count()} members");
+        foreach (var stateEventResponse in members) {
+            // Console.WriteLine(stateEventResponse.ToJson());
+            var mc = stateEventResponse.TypedContent as RoomMemberEventContent;
+            if (!string.IsNullOrWhiteSpace(mc?.AvatarUrl)) {
+                var uri = mc.AvatarUrl[6..].Split('/');
+                var url = $"/_matrix/media/v3/download/{uri[0]}/{uri[1]}";
+                try {
+                    Homeserver.ClientHttpClient.GetStreamAsync(url).ContinueWith(async x => {
+                        var stream = x.Result;
+                        Streams.Add(stream);
+                        StateHasChanged();
+                    });
+                }
+                catch { }
+            }
+        }
+    }
+
+    private async Task InitOld() {
+        // var value = "mxc://rory.gay/AcFYcSpVXhEwbejrPVQrRUqt";
+        // var value = "mxc://rory.gay/oqfCjIUVTAObSQbnMFekQvYR";
+        var value = "mxc://feline.support/LUslNRVIYfeyCdRElqkkumKP";
+        var uri = value[6..].Split('/');
+        var url = $"/_matrix/media/v3/download/{uri[0]}/{uri[1]}";
+        // var res = Homeserver.ClientHttpClient.GetAsync(url);
+        // var res2 = Homeserver.ClientHttpClient.GetAsync(url);
+        // var tasks = Enumerable.Range(1, 128)
+        // .Select(x => Homeserver.ClientHttpClient.GetStreamAsync(url+$"?width={x*128}&height={x*128}"))
+        // .ToAsyncEnumerable();
+        await foreach (var result in GetStreamsDelayed(url)) {
+            Streams.Add(result);
+            // await Task.Delay(100);
+            StateHasChanged();
+        }
+
+        // var stream = await (await res).Content.ReadAsStreamAsync();
+        // Stream = await (await res2).Content.ReadAsStreamAsync();
+        StateHasChanged();
+
+        // await JSRuntime.streamImage(stream, imgElement);
+    }
+
+    private async IAsyncEnumerable<Stream> GetStreamsDelayed(string url) {
+        for (int i = 0; i < 32; i++) {
+            var tasks = Enumerable.Range(1, 4)
+                .Select(x => Homeserver.ClientHttpClient.GetStreamAsync(url + $"?width={x * 128}&height={x * 128}&r={Random.Shared.Next(100000)}"))
+                .ToAsyncEnumerable();
+            await foreach (var result in tasks) {
+                yield return result;
+            }
+            // var resp = await Homeserver.ClientHttpClient.GetAsync(url + $"?width={i * 128}&height={i * 128}");
+            // yield return await resp.Content.ReadAsStreamAsync();
+            // await Task.Delay(250);
+        }
+    }
+}

@@ -31,7 +31,7 @@
         }
     }
     
-    [Parameter]
+    [CascadingParameter, Parameter]
     public RemoteHomeserver? Homeserver { get; set; }
 
     private string ResolvedUri {
@@ -48,19 +48,19 @@
     private static readonly int PrefixLength = Prefix.Length;
 
     private async Task UriHasChanged(string value) {
-        if (!value.StartsWith(Prefix)) {
-            Console.WriteLine($"UriHasChanged: {value} does not start with {Prefix}, passing as resolved URI!!!");
-            ResolvedUri = value;
-            return;
-        }
-        var uri = value[PrefixLength..].Split('/');
-        Console.WriteLine($"UriHasChanged: {value} {uri[0]}");
-        if (Homeserver is null) {
-            Console.WriteLine($"Homeserver is null, creating new remotehomeserver for {uri[0]}");
-            Homeserver = await hsProvider.GetRemoteHomeserver(uri[0]);
-        }
-        ResolvedUri = Homeserver.ResolveMediaUri(value);
-        Console.WriteLine($"ResolvedUri: {ResolvedUri}");
+        // if (!value.StartsWith(Prefix)) {
+        //     Console.WriteLine($"UriHasChanged: {value} does not start with {Prefix}, passing as resolved URI!!!");
+        //     ResolvedUri = value;
+        //     return;
+        // }
+        // var uri = value[PrefixLength..].Split('/');
+        // Console.WriteLine($"UriHasChanged: {value} {uri[0]}");
+        // if (Homeserver is null) {
+        //     Console.WriteLine($"Homeserver is null, creating new remotehomeserver for {uri[0]}");
+        //     Homeserver = await hsProvider.GetRemoteHomeserver(uri[0]);
+        // }
+        // ResolvedUri = Homeserver.ResolveMediaUri(value);
+        // Console.WriteLine($"ResolvedUri: {ResolvedUri}");
     }
 
     // [Parameter]

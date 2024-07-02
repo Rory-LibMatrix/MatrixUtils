@@ -57,6 +57,22 @@
                     height: window.innerHeight
                 };
             }
+
+            setImageStream = async (element, imageStream) => {
+                if(!(element instanceof HTMLElement)) {
+                    console.error("Element is not an HTMLElement", element);
+                    return;
+                }
+                
+                const arrayBuffer = await imageStream.arrayBuffer();
+                const blob = new Blob([arrayBuffer]);
+                const url = URL.createObjectURL(blob);
+                const image = document.getElementById(imageElementId);
+                image.onload = () => {
+                    URL.revokeObjectURL(url);
+                }
+                image.src = url;
+            }
         </script>
         <script src="_framework/blazor.webassembly.js"></script>
 <!--        <script>navigator.serviceWorker.register('service-worker.js');</script>-->

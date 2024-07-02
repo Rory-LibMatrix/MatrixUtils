@@ -15,7 +15,7 @@
         }
         case "m.image": {
             <i>@currentEventContent.Body</i><br/>
-            <img src="@Homeserver.ResolveMediaUri(currentEventContent.Url)">
+            @* <img src="@Homeserver.ResolveMediaUri(currentEventContent.Url)"> *@
             break;
         }
         default: {

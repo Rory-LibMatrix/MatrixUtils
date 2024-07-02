@@ -89,7 +89,7 @@
         <tr>
             <td>Room icon:</td>
             <td>
-                <img src="@Homeserver.ResolveMediaUri(roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/>
+                @* <img src="@Homeserver.ResolveMediaUri(roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/> *@
                 <div style="display: inline-block; vertical-align: middle;">
                     <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
                     <InputFile OnChange="RoomIconFilePicked"></InputFile>

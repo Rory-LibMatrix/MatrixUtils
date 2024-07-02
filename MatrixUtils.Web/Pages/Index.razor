@@ -22,20 +22,26 @@ Small collection of tools to do not-so-everyday things.
 <form>
     <table>
         @foreach (var session in _sessions.OrderByDescending(x => x.UserInfo.RoomCount)) {
-            var _auth = session.UserAuth;
+            var auth = session.UserAuth;
             <tr class="user-entry">
                 <td>
-                    <img class="avatar" src="@session.UserInfo.AvatarUrl" crossorigin="anonymous"/>
+                    @if (!string.IsNullOrWhiteSpace(@session.UserInfo.AvatarUrl)) {
+                        <MxcAvatar Homeserver="session.Homeserver" MxcUri="@session.UserInfo.AvatarUrl" Circular="true" Size="4" SizeUnit="em"/>
+                    }
+                    else {
+                        <img class="avatar" src="@_identiconGenerator.GenerateAsDataUri(session.Homeserver.WhoAmI.UserId)"/>
+                    }
+                    @* <img class="avatar" src="@session.UserInfo.AvatarUrl" crossorigin="anonymous"/> *@
                 </td>
                 <td class="user-info">
                     <p>
-                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == _auth.AccessToken)" @onclick="@(() => SwitchSession(_auth))" style="text-decoration-line: unset;"/>
-                        <b>@session.UserInfo.DisplayName</b> on <b>@_auth.Homeserver</b><br/>
+                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == auth.AccessToken)" @onclick="@(() => SwitchSession(auth))" style="text-decoration-line: unset;"/>
+                        <b>@session.UserInfo.DisplayName</b> on <b>@auth.Homeserver</b><br/>
                     </p>
                     <span style="display: inline-block; width: 128px;">@session.UserInfo.RoomCount rooms</span>
                     <a style="color: #888888" href="@("/ServerInfo/" + session.Homeserver?.ServerName + "/")">@session.ServerVersion?.Server.Name @session.ServerVersion?.Server.Version</a>
-                    @if (_auth.Proxy != null) {
-                        <span class="badge badge-info"> (proxied via @_auth.Proxy)</span>
+                    @if (auth.Proxy != null) {
+                        <span class="badge badge-info"> (proxied via @auth.Proxy)</span>
                     }
                     else {
                         <p>Not proxied</p>
@@ -48,9 +54,9 @@ Small collection of tools to do not-so-everyday things.
                 </td>
                 <td>
                     <p>
-                        <LinkButton OnClick="@(() => ManageUser(_auth))">Manage</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(_auth))">Remove</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(_auth, true))">Log out</LinkButton>
+                        <LinkButton OnClick="@(() => ManageUser(auth))">Manage</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(auth))">Remove</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(auth, true))">Log out</LinkButton>
                     </p>
                 </td>
             </tr>
@@ -181,7 +187,7 @@ Small collection of tools to do not-so-everyday things.
                 var serverVersionTask = hs.FederationClient?.GetServerVersionAsync();
                 _sessions.Add(new() {
                     UserInfo = new() {
-                        AvatarUrl = string.IsNullOrWhiteSpace((await profileTask).AvatarUrl) ? _identiconGenerator.GenerateAsDataUri(hs.WhoAmI.UserId) : hs.ResolveMediaUri((await profileTask).AvatarUrl),
+                        AvatarUrl = (await profileTask).AvatarUrl ?? "meow",
                         RoomCount = (await joinedRoomsTask).Count,
                         DisplayName = (await profileTask).DisplayName ?? hs.WhoAmI.UserId
                     },
@@ -226,7 +232,7 @@ Small collection of tools to do not-so-everyday things.
     }
 
     private class UserInfo {
-        internal string AvatarUrl { get; set; }
+        internal string? AvatarUrl { get; set; }
         internal string DisplayName { get; set; }
         internal int RoomCount { get; set; }
     }

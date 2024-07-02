@@ -44,7 +44,7 @@ public partial class RoomListEntry : UserControl {
             var avatarEvent = await Room.GetStateEvent("m.room.avatar");
             if (avatarEvent?.TypedContent is RoomAvatarEventContent avatarData) {
                 var mxcUrl = avatarData.Url;
-                var resolvedUrl = await Room.Room.GetResolvedRoomAvatarUrlAsync();
+                var resolvedUrl = await Room.Room.GetAvatarUrlAsync();
                 
                 // await using var svc = _serviceScopeFactory.CreateAsyncScope();
                 // var hs = await svc.ServiceProvider.GetService<RMUStorageWrapper>()?.GetCurrentSessionOrPrompt()!;
@@ -54,10 +54,10 @@ public partial class RoomListEntry : UserControl {
                 var storage = new FileStorageProvider("cache");
                 var storageKey = $"media/{mxcUrl.Replace("mxc://", "").Replace("/", ".")}";
                 try {
-                    if (!await storage.ObjectExistsAsync(storageKey))
-                        await storage.SaveStreamAsync(storageKey, await hc.GetStreamAsync(resolvedUrl));
+                    // if (!await storage.ObjectExistsAsync(storageKey))
+                        // await storage.SaveStreamAsync(storageKey, await hc.GetStreamAsync(resolvedUrl));
 
-                    RoomIcon.Source = new Bitmap(await storage.LoadStreamAsync(storageKey) ?? throw new NullReferenceException());
+                    // RoomIcon.Source = new Bitmap(await storage.LoadStreamAsync(storageKey) ?? throw new NullReferenceException());
                 }
                 catch (IOException) { }
                 catch (MatrixException e) {

@@ -12,7 +12,7 @@
     <h4>Profile</h4>
     <hr/>
     <div>
-        <img src="@Homeserver.ResolveMediaUri(NewProfile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
+        <MxcAvatar MxcUri="@NewProfile.AvatarUrl" Circular="true" Size="96"/>
         <div style="display: inline-block; vertical-align: middle;">
             <span>Display name: </span><FancyTextBox @bind-Value="@NewProfile.DisplayName"></FancyTextBox><br/>
             <span>Avatar URL: </span><FancyTextBox @bind-Value="@NewProfile.AvatarUrl"></FancyTextBox>
@@ -35,12 +35,13 @@
             <summary style="@(room.OwnMembership?.DisplayName == OldProfile.DisplayName && room.OwnMembership?.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")">
                 <div style="display: inline-block; width: calc(100% - 50px); vertical-align: middle; margin-top: -8px; margin-bottom: -8px;">
                     <CascadingValue Value="OldProfile">
-                        <RoomListItem ShowOwnProfile="true" RoomInfo="@room" OwnMemberState="@room.OwnMembership"></RoomListItem>
+                        <RoomListItem Homeserver="Homeserver" ShowOwnProfile="true" RoomInfo="@room" OwnMemberState="@room.OwnMembership"></RoomListItem>
                     </CascadingValue>
                 </div>
             </summary>
             @if (room.OwnMembership is not null) {
-                <img src="@Homeserver.ResolveMediaUri(room.OwnMembership.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
+                @* <img src="@Homeserver.ResolveMediaUri(room.OwnMembership.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/> *@
+                <MxcAvatar MxcUri="@room.OwnMembership.AvatarUrl" Circular="true" Size="96"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <span>Display name: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.DisplayName"></FancyTextBox><br/>
                     <span>Avatar URL: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.AvatarUrl"></FancyTextBox>
@@ -54,24 +55,6 @@
             }
             else {
                 <p>Something went wrong, own membership is missing...</p>
-            }
-        </details>
-        <br/>
-    }
-
-    @foreach (var (roomId, roomProfile) in RoomProfiles.OrderBy(x => RoomNames.TryGetValue(x.Key, out var _name) ? _name : x.Key)) {
-        <details class="details-compact">
-            <summary style="@(roomProfile.DisplayName == OldProfile.DisplayName && roomProfile.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")">@(RoomNames.TryGetValue(roomId, out var name) ? name : roomId)</summary>
-            <img src="@Homeserver.ResolveMediaUri(roomProfile.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/>
-            <div style="display: inline-block; vertical-align: middle;">
-                <span>Display name: </span><FancyTextBox BackgroundColor="@(roomProfile.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")" @bind-Value="@roomProfile.DisplayName"></FancyTextBox><br/>
-                <span>Avatar URL: </span><FancyTextBox BackgroundColor="@(roomProfile.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")" @bind-Value="@roomProfile.AvatarUrl"></FancyTextBox>
-                <InputFile OnChange="@(ifcea => RoomAvatarChanged(ifcea, roomId))"></InputFile><br/>
-                <LinkButton OnClick="@(() => UpdateRoomProfile(roomId))">Update profile</LinkButton>
-            </div>
-            <br/>
-            @if (!string.IsNullOrWhiteSpace(Status)) {
-                <p>@Status</p>
             }
         </details>
         <br/>
@@ -107,44 +90,50 @@
         OldProfile = (await Homeserver.GetProfileAsync(Homeserver.WhoAmI.UserId)); //.DeepClone();
         Status = "Loading room profiles...";
         var roomProfiles = Homeserver.GetRoomProfilesAsync();
+        List<Task> roomInfoTasks = [];
         await foreach (var (roomId, roomProfile) in roomProfiles) {
-            var room = Homeserver.GetRoom(roomId);
-            var roomNameTask = room.GetNameOrFallbackAsync();
-            var roomIconTask = room.GetAvatarUrlAsync();
-            var roomInfo = new RoomInfo(room) {
-                OwnMembership = roomProfile
-            };
-            try {
-                roomInfo.RoomIcon = (await roomIconTask).Url;
-            }
-            catch (MatrixException e) {
-                if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
-            }
+            var task = Task.Run(async () => {
+                var room = Homeserver.GetRoom(roomId);
+                var roomNameTask = room.GetNameOrFallbackAsync();
+                var roomIconTask = room.GetAvatarUrlAsync();
+                var roomInfo = new RoomInfo(room) {
+                    OwnMembership = roomProfile
+                };
+                try {
+                    roomInfo.RoomIcon = (await roomIconTask).Url;
+                }
+                catch (MatrixException e) {
+                    if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
+                }
 
-            try {
-                roomInfo.RoomName = await roomNameTask;
-            }
-            catch (MatrixException e) {
-                if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
-            }
+                try {
+                    RoomNames[roomId] = roomInfo.RoomName = await roomNameTask;
+                }
+                catch (MatrixException e) {
+                    if (e is not { ErrorCode: "M_NOT_FOUND" }) throw;
+                }
 
-            Rooms.Add(roomInfo);
-            // Status = $"Got profile for {roomId}...";
-            RoomProfiles[roomId] = roomProfile; //.DeepClone();
+                Rooms.Add(roomInfo);
+                // Status = $"Got profile for {roomId}...";
+                RoomProfiles[roomId] = roomProfile; //.DeepClone();
+            });
+            roomInfoTasks.Add(task);
         }
+        
+        await Task.WhenAll(roomInfoTasks);
 
         StateHasChanged();
         Status = "Room profiles loaded, loading room names...";
 
-        var roomNameTasks = RoomProfiles.Keys.Select(x => Homeserver.GetRoom(x)).Select(async x => {
-            var name = await x.GetNameOrFallbackAsync();
-            return new KeyValuePair<string, string?>(x.RoomId, name);
-        }).ToAsyncEnumerable();
+        // var roomNameTasks = RoomProfiles.Keys.Select(x => Homeserver.GetRoom(x)).Select(async x => {
+        // var name = await x.GetNameOrFallbackAsync();
+        // return new KeyValuePair<string, string?>(x.RoomId, name);
+        // }).ToAsyncEnumerable();
 
-        await foreach (var (roomId, roomName) in roomNameTasks) {
-            // Status = $"Got room name for {roomId}: {roomName}";
-            RoomNames[roomId] = roomName;
-        }
+        // await foreach (var (roomId, roomName) in roomNameTasks) {
+        // Status = $"Got room name for {roomId}: {roomName}";
+        // RoomNames[roomId] = roomName;
+        // }
 
         StateHasChanged();
         Status = null;

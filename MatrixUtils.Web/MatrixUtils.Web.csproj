@@ -13,6 +13,10 @@
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <BlazorCacheBootResources>false</BlazorCacheBootResources>
 <!--        <RunAOTCompilation>true</RunAOTCompilation>-->
+
+
+        <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+        <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
 
     <ItemGroup>

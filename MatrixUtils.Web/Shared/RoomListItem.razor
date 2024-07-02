@@ -7,13 +7,15 @@
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
         @if (OwnMemberState != null) {
             @* Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))" *@
-            <MxcImage Homeserver="hs" Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
+            @* <MxcImage Homeserver="hs" Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/> *@
+            <MxcAvatar Homeserver="Homeserver" Circular="true" Size="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
             <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
                 @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
             </span>
             <span class="centerVertical noLeftPadding">-></span>
         }
-        <MxcImage Circular="true" Height="32" Width="32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/>
+        @* <MxcImage Circular="true" Height="32" Width="32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/> *@
+        <MxcAvatar Homeserver="Homeserver" Circular="true" Size="32" MxcUri="@RoomInfo.RoomIcon"/>
         <div class="inlineBlock">
             <span class="centerVertical">@RoomInfo.RoomName</span>
             @if (ChildContent is not null) {
@@ -42,8 +44,6 @@ else {
         }
     }
 
-    
-
     [Parameter]
     public bool ShowOwnProfile { get; set; } = false;
 
@@ -61,6 +61,9 @@ else {
             OnParametersSetAsync();
         }
     }
+    
+    [Parameter]
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     private bool HasOldRoomVersion { get; set; } = false;
     private bool HasDangerousRoomVersion { get; set; } = false;
@@ -68,20 +71,19 @@ else {
     private static SemaphoreSlim _semaphoreSlim = new(8);
     private RoomInfo? _roomInfo;
     private bool _loadData = false;
-    private static AuthenticatedHomeserverGeneric? hs { get; set; }
 
     private bool _hooked;
-    
+
     private async Task RoomInfoChanged() {
         RoomInfo.PropertyChanged += async (_, a) => {
             if (a.PropertyName == nameof(RoomInfo.CreationEventContent)) {
                 await CheckRoomVersion();
             }
-            
+
             StateHasChanged();
         };
     }
-    
+
     // protected override async Task OnParametersSetAsync() {
     //     if (RoomInfo != null) {
     //         if (!_hooked) {
@@ -127,21 +129,24 @@ else {
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
 
-        hs ??= await RMUStorage.GetCurrentSessionOrNavigate();
-        if (hs is null) return;
+        // hs ??= await RMUStorage.GetCurrentSessionOrNavigate();
+        // if (hs is null) return;
 
+        if (Homeserver is null) {
+            Console.WriteLine($"RoomListItem called without homeserver");
+        }
         await CheckRoomVersion();
     }
 
     private async Task LoadOwnProfile() {
         if (!ShowOwnProfile) return;
         try {
-    // OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
-            GlobalProfile ??= await hs.GetProfileAsync(hs.UserId);
+            // OwnMemberState ??= (await RoomInfo.GetStateEvent("m.room.member", hs.UserId)).TypedContent as RoomMemberEventContent;
+            GlobalProfile ??= await Homeserver.GetProfileAsync(Homeserver.UserId);
         }
         catch (MatrixException e) {
             if (e is { ErrorCode: "M_FORBIDDEN" }) {
-                Console.WriteLine($"Failed to get profile for {hs.UserId}: {e.Message}");
+                Console.WriteLine($"Failed to get profile for {Homeserver.UserId}: {e.Message}");
                 ShowOwnProfile = false;
             }
             else {
@@ -151,8 +156,8 @@ else {
     }
 
     private async Task CheckRoomVersion() {
-        if (RoomInfo?.CreationEventContent is null) return; 
-        
+        if (RoomInfo?.CreationEventContent is null) return;
+
         var ce = RoomInfo.CreationEventContent;
         if (int.TryParse(ce.RoomVersion, out var rv)) {
             if (rv < 10)
@@ -163,7 +168,7 @@ else {
 
         if (RoomConstants.DangerousRoomVersions.Contains(ce.RoomVersion)) {
             HasDangerousRoomVersion = true;
-    // RoomName = "Dangerous room: " + RoomName;
+            // RoomName = "Dangerous room: " + RoomName;
         }
     }
 

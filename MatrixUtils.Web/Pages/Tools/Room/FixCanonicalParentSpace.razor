@@ -1,0 +1,139 @@
+@page "/Tools/Room/FixCanonicalParentSpace"
+@using System.Collections.ObjectModel
+@using System.Text.Json.Serialization
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.RoomTypes
+<h3>Fix canonical parent space</h3>
+<hr/>
+<p>Note: This requires relevant privileges in space children.</p>
+<p>You <b>MUST</b> click "check" before executing, otherwise nothing will happen!</p>
+<p>Also, worth noting that canonical parent will be set if none or multiple were set previously!</p>
+<br/>
+
+<span>Old space ID: </span>
+<InputText @bind-Value="@OldSpaceId"></InputText>
+<br/>
+<span>New space ID: </span>
+<InputText @bind-Value="@NewSpaceId"></InputText>
+<br/>
+
+<br/>
+<LinkButton OnClick="Check">Check</LinkButton>
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+
+<br/>
+@foreach (var line in log.Reverse()) {
+    <pre>@line</pre>
+}
+
+@code {
+    private ObservableCollection<string> log { get; set; } = new();
+
+    [Parameter, SupplyParameterFromQuery(Name = "OldSpaceId")]
+    public string OldSpaceId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "NewSpaceId")]
+    public string NewSpaceId { get; set; }
+
+    private AuthenticatedHomeserverGeneric hs { get; set; }
+    private Dictionary<GenericRoom, CurrentStatus> _children = new();
+    private string[] NewVias = [];
+
+    protected override async Task OnInitializedAsync() {
+        log.CollectionChanged += (sender, args) => StateHasChanged();
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        log.Add($"Signed in as {hs.UserId}... Ready for input!");
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Check() {
+        _children.Clear();
+        var newSpace = hs.GetRoom(NewSpaceId).AsSpace;
+
+        await foreach (var room in newSpace.GetChildrenAsync()) {
+            try {
+                var status = new CurrentStatus();
+                status.PowerLevels = await room.GetPowerLevelsAsync();
+                status.HasPermission = status.PowerLevels.UserHasStatePermission(hs.UserId, SpaceParentEventContent.EventId);
+
+                status.RoomState = await room.GetFullStateAsListAsync();
+                var parentEvents = status.RoomState.Where(x => x.Type == SpaceParentEventContent.EventId);
+
+                status.CurrentCanonicalParents = parentEvents
+                    .Where(x => x.RawContent?["canonical"]?.GetValue<bool?>() == true)
+                    .Select(x => x.StateKey)
+                    .ToList()!;
+
+                // Just for end user usage:
+                status.Name = await room.GetNameOrFallbackAsync(maxMemberNames: 4);
+                
+                log.Add($"{room.RoomId}: {status.ToJson()}");
+                _children.Add(room, status);
+            }
+            catch (MatrixException e) {
+                if (e is { ErrorCode: "M_FORBIDDEN" }) {
+                    log.Add($"Warning: not in room {room.RoomId}!");
+                }
+                else {
+                    log.Add($"Error checking {room.RoomId}: {e.Message}");
+                }
+            }
+        }
+
+        log.Add("Calculating new Via's...");
+        // Not compliant with spec recommendations, but selecting top 10 servers by member count is a fairly safe bet
+        var newSpaceMembers = await newSpace.GetMembersByHomeserverAsync();
+        NewVias = newSpaceMembers
+            .OrderByDescending(x => x.Value.Count)
+            .Select(x=>x.Key)
+            .Take(10)
+            .ToArray();
+        log.Add("New vias: " + NewVias.ToJson());
+        log.Add("Done! Verify that everything looks okay, and then click Execute!");
+    }
+
+    private async Task Execute() {
+        foreach (var (room, status) in _children) {
+            if (!status.HasPermission) {
+                log.Add($"Skipping {room.RoomId} due to lack of permissions!");
+                continue;
+            }
+
+            log.Add($"Updating parent spaces for {room.RoomId}");
+            foreach (var parentId in status.CurrentCanonicalParents) {
+                var oldParentEvent = await room.GetStateEventAsync(SpaceParentEventContent.EventId, parentId);
+                oldParentEvent.RawContent!["canonical"] = false;
+                await room.SendStateEventAsync(SpaceParentEventContent.EventId, parentId, oldParentEvent.RawContent);
+            }
+
+            var newParentEvent = new SpaceParentEventContent() {
+                Canonical = true,
+                Via = NewVias
+            };
+            
+            await room.SendStateEventAsync(SpaceParentEventContent.EventId, NewSpaceId, newParentEvent);
+        }
+
+        log.Add("Done!");
+    }
+
+    private class CurrentStatus {
+        public string Name { get; set; } = "";
+        public bool HasPermission { get; set; }
+        public List<string> CurrentCanonicalParents { get; set; } = [];
+
+        [JsonIgnore]
+        public List<StateEventResponse> RoomState { get; set; } = [];
+
+        [JsonIgnore]
+        public RoomPowerLevelEventContent PowerLevels { get; set; } = new();
+    }
+
+}

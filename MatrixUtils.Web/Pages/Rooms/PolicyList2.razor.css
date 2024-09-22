@@ -1,0 +1,32 @@
+th {
+    border-width: 1px;
+}
+
+table {
+    width: fit-content;
+    border-width: 1px;
+    vertical-align: middle;
+}
+
+.flex-grid {
+    display: grid;
+    /*grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));*/
+    /*// fit based on content max width*/
+    grid-template-columns: repeat(auto-fill, minmax(min-content, 1fr));
+    
+    gap: 10px;
+}
+
+.flex-item {
+    /*flex: 1 1 30%;*/
+    /*margin: 0.25rem;*/
+    /*position: relative;*/
+    /*display: flex;*/
+    /*flex-direction: column;*/
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff1;
+    background-clip: border-box;
+    border: 1px solid rgba(0, 0, 0, .125);
+    border-radius: .5rem
+}

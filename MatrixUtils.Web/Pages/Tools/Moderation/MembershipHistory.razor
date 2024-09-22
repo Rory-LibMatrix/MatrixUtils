@@ -55,75 +55,92 @@
         if (ChronologicalOrder) {
             filteredMemberships = filteredMemberships.Reverse();
         }
-        if(!string.IsNullOrWhiteSpace(Sender)) {
+
+        if (!string.IsNullOrWhiteSpace(Sender)) {
             filteredMemberships = filteredMemberships.Where(x => x.Sender == Sender);
         }
-        if(!string.IsNullOrWhiteSpace(User)) {
+
+        if (!string.IsNullOrWhiteSpace(User)) {
             filteredMemberships = filteredMemberships.Where(x => x.StateKey == User);
         }
 
+    <table>
         @foreach (var membership in filteredMemberships) {
             RoomMemberEventContent content = membership.TypedContent as RoomMemberEventContent;
-            @switch (content.Membership) {
-                case RoomMemberEventContent.MembershipTypes.Invite: {
-                    if (_showInvites) {
-                        <p style="color: green;">@membership.Sender invited @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                    }
+            StateEventResponse? previous = previousMemberships.GetValueOrDefault(membership.StateKey);
+            RoomMemberEventContent? previousContent = previous?.TypedContent as RoomMemberEventContent;
+            <tr>
+                <td>@DateTimeOffset.FromUnixTimeMilliseconds(membership.OriginServerTs ?? 0).ToString("g")</td>
+                <td>
+                    @switch (content.Membership) {
+                        case RoomMemberEventContent.MembershipTypes.Invite: {
+                            if (_showInvites) {
+                                <p style="color: green;">@membership.Sender invited @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
+                            }
 
-                    break;
-                }
-                case RoomMemberEventContent.MembershipTypes.Ban: {
-                    if (_showBans) {
-                        <p style="color: red;">@membership.Sender banned @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                    }
+                            break;
+                        }
+                        case RoomMemberEventContent.MembershipTypes.Ban: {
+                            if (_showBans) {
+                                <p style="color: red;">@membership.Sender banned @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
+                            }
 
-                    break;
-                }
-                case RoomMemberEventContent.MembershipTypes.Leave: {
-                    if (membership.Sender == membership.StateKey) {
-                        if (_showLeaves) {
-                            <p style="color: #C66;">@membership.Sender left the room</p>
+                            break;
+                        }
+                        case RoomMemberEventContent.MembershipTypes.Leave: {
+                            if (membership.Sender == membership.StateKey) {
+                                if (_showLeaves) {
+                                    <p style="color: #C66;">@membership.Sender left the room</p>
+                                }
+                            }
+                            else {
+                                if (_showKicks) {
+                                    <p style="color: darkorange;">@membership.Sender kicked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
+                                }
+                            }
+
+                            break;
+                        }
+                        case RoomMemberEventContent.MembershipTypes.Knock: {
+                            if (_showKnocks) {
+                                <p>@membership.Sender knocked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
+                            }
+
+                            break;
+                        }
+                        case RoomMemberEventContent.MembershipTypes.Join: {
+                            if (previousContent is { Membership: RoomMemberEventContent.MembershipTypes.Join }) {
+                                if (_showUpdates) {
+                                    <p style="color: #777;">
+                                        @membership.Sender changed their profile<br/>
+                                        Display name: @previousContent.DisplayName -> @content.DisplayName<br/>
+                                        Avatar URL: @previousContent.AvatarUrl -> @content.AvatarUrl
+                                    </p>
+                                }
+                            }
+                            else {
+                                if (_showJoins) {
+                                    <p style="color: #6C6;">
+                                        @membership.Sender joined the room @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")<br/>
+                                        Display name: @content.DisplayName<br/>
+                                        Avatar URL: @content.AvatarUrl
+                                    </p>
+                                }
+                            }
+
+                            break;
+                        }
+                        default: {
+                            <b>Unknown membership @content.Membership!</b>
+                            break;
                         }
                     }
-                    else {
-                        if (_showKicks) {
-                            <p style="color: darkorange;">@membership.Sender kicked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                        }
-                    }
-
-                    break;
-                }
-                case RoomMemberEventContent.MembershipTypes.Knock: {
-                    if (_showKnocks) {
-                        <p>@membership.Sender knocked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                    }
-
-                    break;
-                }
-                case RoomMemberEventContent.MembershipTypes.Join: {
-                    if (previousMemberships.TryGetValue(membership.StateKey, out var previous)
-                        && (previous.TypedContent as RoomMemberEventContent).Membership == RoomMemberEventContent.MembershipTypes.Join) {
-                        if (_showUpdates) {
-                            <p style="color: #777;">@membership.Sender changed their profile</p>
-                        }
-                    }
-                    else {
-                        if (_showJoins) {
-                            <p style="color: #6C6;">@membership.Sender joined the room @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                        }
-                    }
-
-                    break;
-                }
-                default: {
-                    <b>Unknown membership @content.Membership!</b>
-                    break;
-                }
-            }
+                </td>
+            </tr>
 
             previousMemberships[membership.StateKey] = membership;
         }
-    }
+    </table>}
 </details>
 
 <br/>
@@ -217,9 +234,9 @@
             StateHasChanged();
         }
     }
-    
+
     private string sender = "";
-    
+
     private string Sender {
         get => sender;
         set {
@@ -227,9 +244,9 @@
             StateHasChanged();
         }
     }
-    
+
     private string user = "";
-    
+
     private string User {
         get => user;
         set {

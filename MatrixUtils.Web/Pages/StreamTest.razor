@@ -11,8 +11,8 @@
     @* <StreamedImage Stream="@Stream"/> *@
 
     <br/>
-    @foreach (var stream in Streams.OrderBy(x=>x.GetHashCode())) {
-        <StreamedImage Stream="@stream" style="width: 12em; height: 12em;"/>
+    @foreach (var stream in Streams.OrderBy(x => x.GetHashCode())) {
+        <StreamedImage Stream="@stream" style="width: 12em; height: 12em; object-fit: cover;"/>
     }
 }
 
@@ -47,20 +47,34 @@
         var roomState = await Homeserver.GetRoom("!dSMpkVKGgQHlgBDSpo:matrix.org").GetFullStateAsListAsync();
         var members = roomState.Where(x => x.Type == RoomMemberEventContent.EventId).ToList();
         Console.WriteLine($"Got {members.Count()} members");
+        var ss = new SemaphoreSlim(1, 1);
         foreach (var stateEventResponse in members) {
             // Console.WriteLine(stateEventResponse.ToJson());
             var mc = stateEventResponse.TypedContent as RoomMemberEventContent;
             if (!string.IsNullOrWhiteSpace(mc?.AvatarUrl)) {
                 var uri = mc.AvatarUrl[6..].Split('/');
                 var url = $"/_matrix/media/v3/download/{uri[0]}/{uri[1]}";
+                // Homeserver.GetMediaStreamAsync(mc?.AvatarUrl).ContinueWith(async x => {
+                // await ss.WaitAsync();
+                // var stream = x.Result;
+                // Streams.Add(stream);
+                // StateHasChanged();
+                await Task.Delay(100);
+                // ss.Release();
+                // });
                 try {
                     Homeserver.ClientHttpClient.GetStreamAsync(url).ContinueWith(async x => {
+                        // await ss.WaitAsync();
                         var stream = x.Result;
                         Streams.Add(stream);
                         StateHasChanged();
+                        // await Task.Delay(100);
+                        // ss.Release();
                     });
                 }
-                catch { }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                }
             }
         }
     }

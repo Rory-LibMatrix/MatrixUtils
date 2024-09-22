@@ -1,12 +1,14 @@
 @page "/Rooms/{RoomId}/Space"
+@using System.Collections.ObjectModel
 @using LibMatrix.RoomTypes
 @using ArcaneLibs.Extensions
 @using LibMatrix
+@using MatrixUtils.Abstractions
 <h3>Room manager - Viewing Space</h3>
 
 <button onclick="@JoinAllRooms">Join all rooms</button>
 @foreach (var room in Rooms) {
-    <RoomListItem Room="room" ShowOwnProfile="true"></RoomListItem>
+    <RoomListItem RoomInfo="room" ShowOwnProfile="true"></RoomListItem>
 }
 
 
@@ -27,7 +29,7 @@
     private GenericRoom? Room { get; set; }
 
     private StateEventResponse[] States { get; set; } = Array.Empty<StateEventResponse>();
-    private List<GenericRoom> Rooms { get; } = new();
+    private List<RoomInfo> Rooms { get; } = new();
     private List<string> ServersInSpace { get; } = new();
 
     protected override async Task OnInitializedAsync() {
@@ -43,7 +45,18 @@
                     var roomId = stateEvent.StateKey;
                     var room = hs.GetRoom(roomId);
                     if (room is not null) {
-                        Rooms.Add(room);
+                        Task.Run(async () => {
+                            try {
+                                Rooms.Add(new(Room, await room.GetFullStateAsListAsync()));
+                            }
+                            catch (MatrixException e) {
+                                if (e is { ErrorCode: MatrixException.ErrorCodes.M_FORBIDDEN }) {
+                                    Rooms.Add(new(Room) {
+                                        RoomName = "M_FORBIDDEN"
+                                    });
+                                }
+                            }
+                        });
                     }
                     break;
                 }
@@ -96,8 +109,32 @@
         // List<Task<RoomIdResponse>> tasks = Rooms.Select(room => room.JoinAsync(ServersInSpace.ToArray())).ToList();
         // await Task.WhenAll(tasks);
         foreach (var room in Rooms) {
-            await room.JoinAsync(ServersInSpace.ToArray());
+            await JoinRecursive(room.Room.RoomId);
         }
+    }
+
+    private async Task JoinRecursive(string roomId) {
+        var room = Room!.Homeserver.GetRoom(roomId);
+        if (room is null) return;
+        try {
+            await room.JoinAsync(ServersInSpace.ToArray());
+            var joined = false;
+            while (!joined) {
+                var ce = await room.GetCreateEventAsync();
+                if(ce is null) continue;
+                if (ce.Type == "m.space") {
+                     var children = room.AsSpace.GetChildrenAsync(true);
+                     await foreach (var child in children) {
+                         JoinRecursive(child.RoomId);
+                     }
+                }
+                joined = true;
+            }
+        }
+        catch (Exception e) {
+            Console.WriteLine(e);
+        }
+
     }
 
 }

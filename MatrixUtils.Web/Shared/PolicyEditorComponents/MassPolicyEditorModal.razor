@@ -1,0 +1,102 @@
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using System.Reflection
+@using ArcaneLibs.Attributes
+@using LibMatrix
+@using System.Collections.Frozen
+@using LibMatrix.EventTypes
+@using LibMatrix.RoomTypes
+<ModalWindow Title="@("Creating many new " + (PolicyTypes.ContainsKey(MappedType??"") ? PolicyTypes[MappedType!].GetFriendlyNamePluralOrNull()?.ToLower() ?? PolicyTypes[MappedType!].Name : "event"))"
+             OnCloseClicked="@OnClose" X="60" Y="60" MinWidth="600">
+    <span>Policy type:</span>
+    <select @bind="@MappedType">
+        <option>Select a value</option>
+        @foreach (var (type, mappedType) in PolicyTypes) {
+            <option value="@type">@mappedType.GetFriendlyName().ToLower()</option>
+        }
+    </select><br/>
+    
+    <span>Reason:</span>
+    <FancyTextBox @bind-Value="@Reason"></FancyTextBox><br/>
+    
+    <span>Recommendation:</span>
+    <FancyTextBox @bind-Value="@Recommendation"></FancyTextBox><br/>
+
+    <span>Entities:</span><br/>
+    <InputTextArea @bind-Value="@Users" style="width: 500px;"></InputTextArea><br/>
+    
+    
+    @* <details> *@
+    @*     <summary>JSON data</summary> *@
+    @*     <pre> *@
+    @*             $1$ @PolicyEvent.ToJson(true, true) #1# *@
+    @*     </pre> *@
+    @* </details> *@
+    <LinkButton OnClick="@(() => { OnClose.Invoke(); return Task.CompletedTask; })"> Cancel </LinkButton>
+    <LinkButton OnClick="@(() => { _ = Save(); return Task.CompletedTask; })"> Save </LinkButton>
+
+</ModalWindow>
+
+@code {
+
+    [Parameter]
+    public required Action OnClose { get; set; }
+
+    [Parameter]
+    public required Action OnSaved { get; set; }
+
+    [Parameter]
+    public required GenericRoom Room { get; set; }
+
+    public string Recommendation { get; set; } = "m.ban";
+    public string Reason { get; set; } = "spam";
+    public string Users { get; set; } = "";
+
+    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+
+    private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
+        .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
+
+    private string? MappedType { get; set; }
+
+    private async Task Save() {
+        try {
+            await DoActualSave();
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to save: {e}");
+        }
+    }
+
+    private async Task DoActualSave() {
+        Console.WriteLine($"Saving ---");
+        Console.WriteLine($"Users = {Users}");
+        var users = Users.Split("\n").Select(x => x.Trim()).Where(x => x.StartsWith('@')).ToList();
+        var tasks = users.Select(x => ExecuteBan(Room, x)).ToList();
+        await Task.WhenAll(tasks);
+        
+        OnSaved.Invoke();
+    }
+
+    private async Task ExecuteBan(GenericRoom room, string entity) {
+        bool success = false;
+        while (!success) {
+            try {
+                var content = Activator.CreateInstance(PolicyTypes[MappedType!]) as PolicyRuleEventContent;
+                content.Recommendation = Recommendation;
+                content.Reason = Reason;
+                content.Entity = entity;
+                await room.SendStateEventAsync(MappedType!, content.GetDraupnir2StateKey(), content);
+                success = true;
+            }
+            catch (MatrixException e) {
+                if (e is not { ErrorCode: MatrixException.ErrorCodes.M_FORBIDDEN }) throw;
+                Console.WriteLine(e);
+            }
+            catch (Exception e) {
+                //ignored
+                Console.WriteLine(e);
+            }
+        }
+    }
+
+}

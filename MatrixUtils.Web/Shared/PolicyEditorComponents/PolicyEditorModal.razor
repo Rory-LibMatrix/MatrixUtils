@@ -35,39 +35,61 @@
             </thead>
             <tbody>
                 @foreach (var prop in props) {
+                    var isNullable = Nullable.GetUnderlyingType(prop.PropertyType) is not null;
                     <tr>
                         <td style="padding-right: 8px;">
                             <span>@prop.GetFriendlyName()</span>
-                            @if (Nullable.GetUnderlyingType(prop.PropertyType) is not null) {
+                            @if (Nullable.GetUnderlyingType(prop.PropertyType) is null) {
                                 <span style="color: red;">*</span>
                             }
                         </td>
                         @{
                             var getter = prop.GetGetMethod();
                             var setter = prop.GetSetMethod();
-                        }
-                        @switch (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) {
-                            case Type t when t == typeof(string):
-                                <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></FancyTextBox>
-                                break;
-                            default:
-                                <p style="color: red;">Unsupported type: @prop.PropertyType</p>
-                                break;
+                            if (getter is null) {
+                                <p style="color: red;">Missing property getter: @prop.Name</p>
+                            }
+                            else {
+                                switch (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) {
+                                    case Type t when t == typeof(string):
+                                        <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></FancyTextBox>
+                                        break;
+                                    case Type t when t == typeof(DateTime):
+                                        if (!isNullable) {
+                                            <InputDate TValue="DateTime" Value="@(getter?.Invoke(PolicyData, null) as DateTime? ?? new DateTime())" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></InputDate>
+                                        }
+                                        else {
+                                            var value = getter?.Invoke(PolicyData, null) as DateTime?;
+                                            if (value is null) {
+                                                <button @onclick="() => { setter?.Invoke(PolicyData, [DateTime.Now]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">Add value</button>
+                                            }
+                                            else {
+                                                var notNullValue = Nullable.GetValueRefOrDefaultRef(ref value);
+                                                Console.WriteLine($"Value: {value?.ToString() ?? "null"}");
+                                                <InputDate TValue="DateTime" ValueExpression="@(() => notNullValue)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></InputDate>
+                                                <button @onclick="() => { setter?.Invoke(PolicyData, [null]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">Remove value</button>
+                                            }
+                                        }
+
+                                        break;
+                                    default:
+                                        <p style="color: red;">Unsupported type: @prop.PropertyType</p>
+                                        break;
+                                }
+                            }
                         }
                     </tr>
                 }
             </tbody>
         </table>
-        <br/>
-        <pre>
-            @PolicyEvent.ToJson(true, false)
-        </pre>
+        <details>
+            <summary>JSON data</summary>
+            <pre>
+                @PolicyEvent.ToJson(true, true)
+            </pre>
+        </details>
         <LinkButton OnClick="@(() => { OnClose.Invoke(); return Task.CompletedTask; })"> Cancel </LinkButton>
         <LinkButton OnClick="@(() => { OnSave.Invoke(PolicyEvent); return Task.CompletedTask; })"> Save </LinkButton>
-        @* <span>Target entity: </span> *@
-        @* <FancyTextBox @bind-Value="@policyData.Entity"></FancyTextBox><br/> *@
-        @* <span>Reason: </span> *@
-        @* <FancyTextBox @bind-Value="@policyData.Reason"></FancyTextBox> *@
     }
     else {
         <p>Policy data is null</p>
@@ -102,7 +124,7 @@
         .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
 
     private StateEventResponse? _policyEvent;
-    
+
     private string? MappedType {
         get => _policyEvent?.Type;
         set {
@@ -110,9 +132,9 @@
                 PolicyEvent.Type = value;
                 PolicyEvent.TypedContent ??= Activator.CreateInstance(PolicyTypes[value]) as PolicyRuleEventContent;
                 PolicyData = PolicyEvent.TypedContent as PolicyRuleEventContent;
+                PolicyData.Recommendation ??= "m.ban";
             }
         }
     }
-    
 
 }

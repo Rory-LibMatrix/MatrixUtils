@@ -168,17 +168,11 @@ Small collection of tools to do not-so-everyday things.
         }
 
         List<string> offlineServers = [];
-        var sema = new SemaphoreSlim(64, 64);
+        var sema = new SemaphoreSlim(8, 8);
         var updateSw = Stopwatch.StartNew();
         var tasks = tokens.Select(async token => {
             await sema.WaitAsync();
-            if ((!string.IsNullOrWhiteSpace(token.Proxy) && offlineServers.Contains(token.Proxy)) || offlineServers.Contains(token.Homeserver)) {
-                _offlineSessions.Add(token);
-                sema.Release();
-                scannedSessions++;
-                return;
-            }
-
+            
             AuthenticatedHomeserverGeneric hs;
             try {
                 hs = await hsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
@@ -187,7 +181,7 @@ Small collection of tools to do not-so-everyday things.
                 var serverVersionTask = hs.FederationClient?.GetServerVersionAsync();
                 _sessions.Add(new() {
                     UserInfo = new() {
-                        AvatarUrl = (await profileTask).AvatarUrl ?? "meow",
+                        AvatarUrl = (await profileTask).AvatarUrl,
                         RoomCount = (await joinedRoomsTask).Count,
                         DisplayName = (await profileTask).DisplayName ?? hs.WhoAmI.UserId
                     },

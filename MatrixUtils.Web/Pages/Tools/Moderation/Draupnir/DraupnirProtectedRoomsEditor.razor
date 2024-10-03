@@ -1,6 +1,8 @@
 @page "/Moderation/DraupnirProtectedRoomsEditor"
 @page "/Tools/Moderation/DraupnirProtectedRoomsEditor"
+@page "/Tools/Moderation/Draupnir/ProtectedRoomsEditor"
 @using System.Text.Json.Serialization
+@using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.RoomTypes
 <h3>Edit Draupnir protected rooms</h3>
@@ -11,12 +13,14 @@
 @if (data is not null) {
     <div class="row">
         <div class="col-12">
-            <h4>Current rooms</h4>
-            <ul>
-                @foreach (var room in data.Rooms) {
-                    <li>@room</li>
-                }
-            </ul>
+            <details>
+                <summary>Currently protected room IDs</summary>
+                <ul>
+                    @foreach (var room in data.Rooms) {
+                        <li>@room</li>
+                    }
+                </ul>
+            </details>
             <hr/>
             <h4>Tickyboxes</h4>
             <table class="table">
@@ -78,6 +82,43 @@
         }).ToList();
         await Task.WhenAll(tasks);
         await Task.Delay(500);
+
+        foreach (var protectedRoomId in data.Rooms) {
+            if (Rooms.Any(x => x.Room.RoomId == protectedRoomId)) continue;
+            var room = hs.GetRoom(protectedRoomId);
+            var editorRoomInfo = new EditorRoomInfo {
+                Room = room,
+                IsProtected = true
+            };
+
+            try {
+                var pl = await room.GetPowerLevelsAsync();
+                editorRoomInfo.PowerLevels = pl;
+            }
+            catch (MatrixException e) {
+                Console.WriteLine($"Failed to get power levels for {room.RoomId}: {e}");
+            }
+
+            try {
+                editorRoomInfo.RoomName = await room.GetNameOrFallbackAsync();
+            }
+            catch (MatrixException e) {
+                Console.WriteLine($"Failed to get name for {room.RoomId}: {e}");
+            }
+
+            try {
+                var membership = await room.GetStateEventOrNullAsync(hs.UserId);
+                if (membership is not null) {
+                    editorRoomInfo.RoomName = $"(!! {membership.ContentAs<RoomMemberEventContent>()?.Membership ?? "null"} !!) {editorRoomInfo.RoomName}";
+                }
+            }
+            catch (MatrixException e) {
+                Console.WriteLine($"Failed to get membership for {room.RoomId}: {e}");
+            }
+
+            Rooms.Add(editorRoomInfo);
+        }
+
         StateHasChanged();
     }
 

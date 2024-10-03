@@ -214,13 +214,13 @@ else {
     private string GetPolicyTypeName(Type type) => GetPolicyTypeNameOrNull(type) ?? type.Name;
 
     private async Task RemovePolicyAsync(StateEventResponse policyEvent) {
-        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey.UrlEncode(), new { });
+        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey, new { });
         PolicyEventsByType[policyEvent.MappedType].Remove(policyEvent);
         await LoadStatesAsync();
     }
 
     private async Task UpdatePolicyAsync(StateEventResponse policyEvent) {
-        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey.UrlEncode(), policyEvent.RawContent);
+        await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey, policyEvent.RawContent);
         CurrentlyEditingEvent = null;
         await LoadStatesAsync();
     }

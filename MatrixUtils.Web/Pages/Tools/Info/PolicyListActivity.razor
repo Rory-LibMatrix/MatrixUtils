@@ -5,6 +5,8 @@
 @using LibMatrix.EventTypes.Common
 
 
+
+@* <ActivityGraph Data="TestData"/> *@
 @if (RoomData.Count == 0)
 {
     <p>Loading...</p>
@@ -15,10 +17,8 @@ else
         <h3>@room.Key</h3>
         @foreach (var year in room.Value.OrderBy(x => x.Key))
         {
-            <h5>@year.Key</h5>
-            <ActivityGraph Data="@year.Value" GlobalMax="MaxValue"
-                           RLabel="removed" GLabel="new" BLabel="updated policies">
-            </ActivityGraph>
+            <span>@year.Key</span>
+            <ActivityGraph Data="@year.Value" GlobalMax="MaxValue" RLabel="removed" GLabel="new" BLabel="updated policies"/>
         }
     }
 
@@ -42,15 +42,22 @@ else
         await base.OnInitializedAsync();
         Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
         if (Homeserver is null) return;
-
+        //
         //random test data
-        for (DateOnly i = new DateOnly(2020, 1, 1); i < new DateOnly(2020, 12, 30); i = i.AddDays(Random.Shared.Next(5)))
+        for (DateOnly i = new DateOnly(2020, 1, 1); i < new DateOnly(2020, 12, 30); i = i.AddDays(2))
         {
+            // TestData[i] = new()
+            // {
+            //     R = (int)(Random.Shared.NextSingle() * 255),
+            //     G = (int)(Random.Shared.NextSingle() * 255),
+            //     B = (int)(Random.Shared.NextSingle() * 255)
+            // };
+            // rgb based on number of week
             TestData[i] = new()
             {
-                R = (int)(Random.Shared.NextSingle() * 255),
-                G = (int)(Random.Shared.NextSingle() * 255),
-                B = (int)(Random.Shared.NextSingle() * 255)
+                R = i.DayOfYear % 255,
+                G = i.DayOfYear + 96 % 255,
+                B = i.DayOfYear + 192 % 255
             };
         }
 
@@ -109,7 +116,7 @@ else
             }
 
             //use timeline
-            var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 5000);
+            var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 2000);
             await foreach (var response in timeline)
             {
                 Console.WriteLine($"Got {response.State.Count} state, {response.Chunk.Count} timeline");

@@ -27,6 +27,27 @@
 <br/>
 <br/>
 
+
+<h4>Add with access token</h4>
+<hr/>
+
+<span style="display: block;">
+    <label>Homeserver:</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Homeserver"></FancyTextBox>
+</span>
+<span style="display: block;">
+    <label>Access token:</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Password" IsPassword="true"></FancyTextBox>
+</span>
+<span style="display: block">
+    <label>Proxy (<a href="https://cgit.rory.gay/matrix/MxApiExtensions.git">MxApiExtensions</a> or similar):</label>
+    <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
+</span>
+<br/>
+<LinkButton OnClick="@(() => AddWithAccessToken(newRecordInput))">Add session</LinkButton>
+<br/>
+<br/>
+
 <h4>Import from TSV</h4>
 <hr/>
 <span>Import credentials from a TSV (Tab Separated Values) file</span><br/>
@@ -154,6 +175,29 @@
         
         [JsonIgnore]
         internal Exception? Exception { get; set; }
+    }
+
+    private async Task AddWithAccessToken(LoginStruct record) {
+        try {
+            var session = await hsProvider.GetAuthenticatedWithToken(record.Homeserver, record.Password, record.Proxy);
+            if (session == null) {
+                Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+                return;
+            }
+            
+            await RMUStorage.AddToken(new UserAuth() {
+                UserId = session.WhoAmI.UserId,
+                AccessToken = session.AccessToken,
+                Proxy = record.Proxy,
+                DeviceId = session.WhoAmI.DeviceId
+            });
+            LoggedInSessions = await RMUStorage.GetAllTokens();
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
+            Console.WriteLine(e);
+            record.Exception = e;
+        }
     }
 
 }

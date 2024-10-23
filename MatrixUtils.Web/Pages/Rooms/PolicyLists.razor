@@ -1,0 +1,177 @@
+@page "/PolicyLists"
+@using System.Collections.ObjectModel
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes
+@using LibMatrix.EventTypes.Common
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using LibMatrix.RoomTypes
+@inject ILogger<Index> logger
+<h3>Policy lists </h3> @* <LinkButton href="/Rooms/Create">Create new policy list</LinkButton> *@
+
+@if (!string.IsNullOrWhiteSpace(Status)) {
+    <p>@Status</p>
+}
+@if (!string.IsNullOrWhiteSpace(Status2)) {
+    <p>@Status2</p>
+}
+<hr/>
+
+<table>
+    <thead>
+        <tr>
+            <th/>
+            <th>Room name</th>
+            <th>Policies</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var room in Rooms.OrderByDescending(x => x.PolicyCounts.Sum(y => y.Value))) {
+            <tr>
+                <td>
+                    <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Policies")">
+                        <span class="oi oi-pencil" aria-hidden="true"></span>
+                    </LinkButton>
+                </td>
+                <td style="padding-right: 24px;">
+                    <span>@room.RoomName</span>
+                    @if (room.IsLegacy) {
+                        <span style="color: red;"> (legacy)</span>
+                    }
+                    <br/>
+                    @if (!string.IsNullOrWhiteSpace(room.Shortcode)) {
+                        <span style="font-size: 0.8em;">@room.Shortcode</span>
+                    }
+                    else {
+                        <span style="color: red;">(no shortcode)</span>
+                    }
+                </td>
+                <td>
+                    <span>@(room.PolicyCounts.GetValueOrDefault(RoomInfo.PolicyType.User) ?? 0) user policies</span><br/>
+                    <span>@(room.PolicyCounts.GetValueOrDefault(RoomInfo.PolicyType.Server) ?? 0) server policies</span><br/>
+                    <span>@(room.PolicyCounts.GetValueOrDefault(RoomInfo.PolicyType.Room) ?? 0) room policies</span><br/>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+
+    private List<RoomInfo> Rooms { get; } = [];
+
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+
+        Status = "Fetching rooms...";
+
+        var userEventTypes = EventContent.GetMatchingEventTypes<UserPolicyRuleEventContent>();
+        var serverEventTypes = EventContent.GetMatchingEventTypes<ServerPolicyRuleEventContent>();
+        var roomEventTypes = EventContent.GetMatchingEventTypes<RoomPolicyRuleEventContent>();
+        var knownPolicyTypes = (List<string>) [..userEventTypes, ..serverEventTypes, ..roomEventTypes];
+
+        List<GenericRoom> roomsByType = [];
+        await foreach (var room in Homeserver.GetJoinedRoomsByType("support.feline.policy.lists.msc.v1")) {
+            roomsByType.Add(room);
+            Status2 = $"Found {room.RoomId} (MSC3784)...";
+        }
+
+        List<Task<RoomInfo>> tasks = roomsByType.Select(async room => {
+            Status2 = $"Fetching room {room.RoomId}...";
+            return await RoomInfo.FromRoom(room);
+        }).ToList();
+
+        var results = tasks.ToAsyncEnumerable();
+        await foreach (var result in results) {
+            Rooms.Add(result);
+            StateHasChanged();
+        }
+
+        Status = "Searching for legacy lists...";
+
+        var rooms = (await Homeserver.GetJoinedRooms())
+            .Where(x => !Rooms.Any(y => y.Room.RoomId == x.RoomId))
+            .Select(async room => {
+                var state = await room.GetFullStateAsListAsync();
+                var policies = state
+                    .Where(x => knownPolicyTypes.Contains(x.Type))
+                    .ToList();
+                if (policies.Count == 0) return null;
+                Status2 = $"Found legacy list {room.RoomId}...";
+                return await RoomInfo.FromRoom(room, state, true);
+            })
+            .ToAsyncEnumerable();
+
+        await foreach (var room in rooms) {
+            if (room is not null) {
+                Rooms.Add(room);
+                StateHasChanged();
+            }
+        }
+
+        Status = "";
+        Status2 = "";
+        await base.OnInitializedAsync();
+    }
+
+    private string _status;
+
+    public string Status {
+        get => _status;
+        set {
+            _status = value;
+            StateHasChanged();
+        }
+    }
+
+    private string _status2;
+
+    public string Status2 {
+        get => _status2;
+        set {
+            _status2 = value;
+            StateHasChanged();
+        }
+    }
+
+    private class RoomInfo {
+        public GenericRoom Room { get; set; }
+        public string RoomName { get; set; }
+        public string? Shortcode { get; set; }
+        public Dictionary<PolicyType, int?> PolicyCounts { get; set; }
+        public bool IsLegacy { get; set; }
+
+        public enum PolicyType {
+            User,
+            Room,
+            Server
+        }
+
+        private static readonly List<string> userEventTypes = EventContent.GetMatchingEventTypes<UserPolicyRuleEventContent>();
+        private static readonly List<string> serverEventTypes = EventContent.GetMatchingEventTypes<ServerPolicyRuleEventContent>();
+        private static readonly List<string> roomEventTypes = EventContent.GetMatchingEventTypes<RoomPolicyRuleEventContent>();
+        private static readonly List<string> allKnownPolicyTypes = [..userEventTypes, ..serverEventTypes, ..roomEventTypes];
+
+        public static async Task<RoomInfo> FromRoom(GenericRoom room, List<StateEventResponse>? state = null, bool legacy = false) {
+            state ??= await room.GetFullStateAsListAsync();
+            return new RoomInfo() {
+                Room = room,
+                IsLegacy = legacy,
+                RoomName = await room.GetNameAsync()
+                           ?? (await room.GetCanonicalAliasAsync())?.Alias
+                           ?? (await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId))?.Shortcode
+                           ?? room.RoomId,
+                Shortcode = (await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId))?.Shortcode,
+                PolicyCounts = new() {
+                    { PolicyType.User, state.Count(x => userEventTypes.Contains(x.Type)) },
+                    { PolicyType.Server, state.Count(x => serverEventTypes.Contains(x.Type)) },
+                    { PolicyType.Room, state.Count(x => roomEventTypes.Contains(x.Type)) }
+                }
+            };
+        }
+    }
+
+}

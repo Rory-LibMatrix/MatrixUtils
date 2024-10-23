@@ -6,6 +6,9 @@
 @using MatrixUtils.Abstractions
 <h3>Room manager - Viewing Space</h3>
 
+<span>Add new room to space: </span>
+<FancyTextBox @bind-Value="@NewRoomId"></FancyTextBox>
+<button onclick="@AddNewRoom">Add</button>
 <button onclick="@JoinAllRooms">Join all rooms</button>
 @foreach (var room in Rooms) {
     <RoomListItem RoomInfo="room" ShowOwnProfile="true"></RoomListItem>
@@ -31,6 +34,7 @@
     private StateEventResponse[] States { get; set; } = Array.Empty<StateEventResponse>();
     private List<RoomInfo> Rooms { get; } = new();
     private List<string> ServersInSpace { get; } = new();
+    private string? NewRoomId { get; set; }
 
     protected override async Task OnInitializedAsync() {
         var hs = await RMUStorage.GetCurrentSessionOrNavigate();
@@ -123,7 +127,7 @@
                 var ce = await room.GetCreateEventAsync();
                 if(ce is null) continue;
                 if (ce.Type == "m.space") {
-                     var children = room.AsSpace.GetChildrenAsync(true);
+                     var children = room.AsSpace.GetChildrenAsync(false);
                      await foreach (var child in children) {
                          JoinRecursive(child.RoomId);
                      }
@@ -135,6 +139,11 @@
             Console.WriteLine(e);
         }
 
+    }
+
+    private async Task AddNewRoom() {
+        if (string.IsNullOrWhiteSpace(NewRoomId)) return;
+        await Room.AsSpace.AddChildByIdAsync(NewRoomId);
     }
 
 }

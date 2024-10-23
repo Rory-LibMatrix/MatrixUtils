@@ -140,7 +140,7 @@ else
 
                     var rgb = RoomData[roomName][date.Year][date];
                     if (message.RawContent?.Count == 0) rgb.R++;
-                    else if (string.IsNullOrWhiteSpace(message.Unsigned?.ReplacesState)) rgb.G++;
+                    else if (message.Unsigned?.ContainsKey("replaces_state") ?? false) rgb.G++;
                     else rgb.B++;
                     RoomData[roomName][date.Year][date] = rgb;
                 }

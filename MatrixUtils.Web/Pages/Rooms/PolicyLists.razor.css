@@ -1,0 +1,6 @@
+table, th, td {
+    border-width: 1px;
+}
+td {
+    padding: 8px;
+}

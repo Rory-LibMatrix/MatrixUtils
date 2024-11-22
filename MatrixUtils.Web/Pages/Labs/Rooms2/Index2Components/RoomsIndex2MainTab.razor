@@ -22,26 +22,27 @@
 @*     </div> *@
 @* </div> *@
 
-<div>
-    <div class="row">
-        <div class="col-3" style="background-color: #ffffff22;">
-            <LinkButton>Uncategorised rooms</LinkButton>
-            @foreach (var space in GetTopLevelSpaces()) {
-                @* @RecursingSpaceChildren(space) *@
-                <MainTabSpaceItem Space="space" OpenedSpaces="OpenedSpaces" @bind-SelectedSpace="SelectedSpace" />
-            }
-        </div>
-        <div class="col-9" style="background-color: #ff00ff66;">
-            <p>Placeholder for rooms list...</p>
-            @if (SelectedSpace != null) {
-                foreach (var room in GetSpaceChildRooms(SelectedSpace)) {
-                    <p>@room.RoomName</p>
+<CascadingValue Name="Homeserver" Value="@Data.Homeserver">
+    <div>
+        <div class="row">
+            <div class="col-3" style="background-color: #ffffff22;">
+                <LinkButton>Uncategorised rooms</LinkButton>
+                @foreach (var space in GetTopLevelSpaces()) {
+                    @* @RecursingSpaceChildren(space) *@
+                    <MainTabSpaceItem Space="space" OpenedSpaces="OpenedSpaces" @bind-SelectedSpace="SelectedSpace"/>
                 }
-            }
+            </div>
+            <div class="col-9" style="background-color: #ff00ff66;">
+                <p>Placeholder for rooms list...</p>
+                @if (SelectedSpace != null) {
+                    foreach (var room in GetSpaceChildRooms(SelectedSpace)) {
+                        <p>@room.RoomName</p>
+                    }
+                }
+            </div>
         </div>
     </div>
-</div>
-
+</CascadingValue>
 
 @code {
 
@@ -118,7 +119,7 @@
         var childSpaces = children.Where(x => x.RoomType == "m.space").ToList();
         return childSpaces;
     }
-    
+
     private List<RoomInfo> GetSpaceChildRooms(RoomInfo space) {
         var children = GetSpaceChildren(space);
         var childRooms = children.Where(x => x.RoomType != "m.space").ToList();

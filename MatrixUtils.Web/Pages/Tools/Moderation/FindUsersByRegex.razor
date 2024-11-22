@@ -1,0 +1,193 @@
+@page "/Tools/Moderation/FindUsersByRegex"
+@using System.Collections.Frozen
+@using ArcaneLibs.Extensions
+@using LibMatrix.RoomTypes
+@using System.Collections.ObjectModel
+@using System.Text.RegularExpressions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.Filters
+@using LibMatrix.Helpers
+@using LibMatrix.Utilities
+<h3>Find users by regex</h3>
+<hr/>
+
+<p>Users (regex): </p>
+<InputTextArea @bind-Value="@UserIdString"></InputTextArea>
+
+<LinkButton OnClick="Execute">Execute</LinkButton>
+<br/>
+<LinkButton OnClick="RemoveKicks">Remove kicks</LinkButton>
+<LinkButton OnClick="RemoveBans">Remove bans</LinkButton>
+<br/>
+
+
+<details>
+    <summary>Results</summary>
+    @foreach (var (userId, events) in matches) {
+        <h4>@userId</h4>
+        <ul>
+            @foreach (var match in events) {
+                <li>
+                    <ul>
+                        <li>@match.RoomName (<span>@match.Room.RoomId</span>)</li>
+                        <li>Membership: @(match.Event.RawContent.ToJson(indent: false)) (sent by @match.Event.Sender)</li>
+                    </ul>
+                </li>
+            }
+        </ul>
+    }
+</details>
+
+<br/>
+@foreach (var line in log.Reverse()) {
+    <pre>@line</pre>
+}
+
+@code {
+
+    private ObservableCollection<string> log { get; set; } = new();
+
+    // List<RoomInfo> rooms { get; set; } = new();
+    List<GenericRoom> rooms { get; set; } = [];
+    Dictionary<string, List<Match>> matches = new();
+
+    private string UserIdString {
+        get => string.Join("\n", UserIDs);
+        set => UserIDs = value.Split("\n").Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+    }
+
+    private List<string> UserIDs { get; set; } = new();
+
+    private AuthenticatedHomeserverGeneric hs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        log.CollectionChanged += (sender, args) => StateHasChanged();
+        log.Add("Authenticating");
+        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        StateHasChanged();
+        Console.WriteLine("Rerendered!");
+        await base.OnInitializedAsync();
+    }
+
+    private async Task<string> Execute() {
+        log.Add("Constructing sync helper...");
+        var sh = new SyncHelper(hs) {
+            Filter = new SyncFilter() {
+                AccountData = new(types: []),
+                Presence = new(types: []),
+                Room = new() {
+                    AccountData = new(types: []),
+                    Ephemeral = new(types: []),
+                    State = new(types: [RoomMemberEventContent.EventId]),
+                    Timeline = new(types: []),
+                    IncludeLeave = false
+                },
+            }
+        };
+
+        log.Add("Starting sync...");
+        var res = await sh.SyncAsync();
+
+        log.Add("Got sync response, parsing...");
+
+        var roomNames = (await Task.WhenAll((await hs.GetJoinedRooms()).Select(async room => { return (room.RoomId, await room.GetNameOrFallbackAsync()); }).ToList())).ToFrozenDictionary(x => x.Item1, x => x.Item2);
+
+        foreach (var userIdRegex in UserIDs) {
+            var regex = new Regex(userIdRegex, RegexOptions.Compiled);
+            log.Add($"Searching for {regex}:");
+            foreach (var (roomId, joinedRoom) in res.Rooms.Join) {
+                log.Add($"- Checking room {roomId}...");
+                foreach (var evt in joinedRoom.State.Events) {
+                    if (evt.StateKey is null) continue;
+                    if (evt.Type is not RoomMemberEventContent.EventId) continue;
+
+                    if (regex.IsMatch(evt.StateKey)) {
+                        log.Add($"  - Found match in {roomId} for {evt.StateKey}");
+                        if (!matches.ContainsKey(evt.StateKey)) {
+                            matches[evt.StateKey] = new();
+                        }
+
+                        var room = hs.GetRoom(roomId);
+                        matches[evt.StateKey].Add(new Match {
+                            Room = room,
+                            Event = evt,
+                            RoomName = roomNames[roomId]
+                        });
+                    }
+                }
+            }
+        }
+
+        log.Add("Done!");
+
+        StateHasChanged();
+
+        return "";
+    }
+
+    public string? ImportFromRoomId { get; set; }
+
+    private async Task DoImportFromRoomId() {
+        try {
+            if (ImportFromRoomId is null) return;
+            var room = rooms.FirstOrDefault(x => x.RoomId == ImportFromRoomId);
+            UserIdString = string.Join("\n", (await room.GetMembersListAsync()).Select(x => x.StateKey));
+        }
+        catch (Exception e) {
+            Console.WriteLine(e);
+            log.Add("Could not fetch members list!\n" + e.ToString());
+        }
+
+        StateHasChanged();
+    }
+
+    private class Match {
+        public GenericRoom Room;
+        public StateEventResponse Event;
+        public string RoomName { get; set; }
+    }
+
+    private async IAsyncEnumerable<Match> GetMatches(string userId) {
+        var results = rooms.Select(async room => {
+            var state = await room.GetStateEventOrNullAsync(room.RoomId, userId);
+            if (state is not null) {
+                return new Match {
+                    Room = room,
+                    Event = state,
+                    RoomName = await room.GetNameOrFallbackAsync()
+                };
+            }
+
+            return null;
+        }).ToAsyncEnumerable();
+        await foreach (var result in results) {
+            if (result is not null) {
+                yield return result;
+            }
+        }
+    }
+
+    private Task RemoveKicks() {
+        foreach (var (userId, matches) in matches) {
+            matches.RemoveAll(x => x.Event.ContentAs<RoomMemberEventContent>()!.Membership == "leave" && x.Event.Sender != x.Event.StateKey);
+        }
+
+        matches.RemoveAll((x, y) => y.Count == 0);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task RemoveBans() {
+        foreach (var (userId, matches) in matches) {
+            matches.RemoveAll(x => x.Event.ContentAs<RoomMemberEventContent>()!.Membership == "ban" && x.Event.Sender != x.Event.StateKey);
+        }
+
+        matches.RemoveAll((x, y) => y.Count == 0);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+}

@@ -76,6 +76,19 @@ else {
                                 @if (policy.IsLegacyType) {
                                     <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
                                 }
+
+                                @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(policy.EventId)) {
+                                    <LinkButton OnClick="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent (wildcard)</LinkButton>
+                                    @if (CurrentUserIsDraupnir) {
+                                        <LinkButton OnClick="@(() => UpgradePolicyAsync(policy))">Kick matching users</LinkButton>
+                                    }
+                                }
+                                else {
+                                    <p>meow</p>
+                                }
+                            }
+                            else {
+                                <p>No permission to modify</p>
                             }
                         </div>
                     </div>
@@ -132,6 +145,7 @@ else {
 
     private bool _enableAvatars;
     private StateEventResponse? _currentlyEditingEvent;
+    private StateEventResponse? _serverPolicyToMakePermanent;
 
     private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
 
@@ -143,9 +157,18 @@ else {
         }
     }
 
+    private StateEventResponse? ServerPolicyToMakePermanent {
+        get => _serverPolicyToMakePermanent;
+        set {
+            _serverPolicyToMakePermanent = value;
+            StateHasChanged();
+        }
+    }
+
     private AuthenticatedHomeserverGeneric Homeserver { get; set; }
     private GenericRoom Room { get; set; }
     private RoomPowerLevelEventContent PowerLevels { get; set; }
+    private bool CurrentUserIsDraupnir { get; set; }
 
     protected override async Task OnInitializedAsync() {
         var sw = Stopwatch.StartNew();
@@ -154,6 +177,7 @@ else {
         if (Homeserver is null) return;
         Room = Homeserver.GetRoom(RoomId!);
         PowerLevels = (await Room.GetPowerLevelsAsync())!;
+        CurrentUserIsDraupnir = (await Homeserver.GetAccountDataOrNullAsync<object>("org.matrix.mjolnir.protected_rooms")) is not null;
         await LoadStatesAsync();
         Console.WriteLine($"Policy list editor initialized in {sw.Elapsed}!");
     }
@@ -209,5 +233,8 @@ else {
     // event types, unnamed
     private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
         .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
+
+    private static Dictionary<Type, string[]> PolicyTypeIds = KnownPolicyTypes
+        .ToDictionary(x => x, x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName).ToArray());
 
 }

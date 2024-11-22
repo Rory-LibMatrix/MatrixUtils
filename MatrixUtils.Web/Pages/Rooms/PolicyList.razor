@@ -6,13 +6,25 @@
 @using System.Diagnostics
 @using LibMatrix.RoomTypes
 @using System.Collections.Frozen
+@using System.Numerics
 @using System.Reflection
+@using System.Runtime.InteropServices.JavaScript
 @using ArcaneLibs.Attributes
 @using LibMatrix.EventTypes
+@using LibMatrix.EventTypes.Common
+@using LibMatrix.EventTypes.Interop.Draupnir
 
 @using MatrixUtils.Web.Shared.PolicyEditorComponents
+@using SpawnDev.BlazorJS.WebWorkers
+@inject WebWorkerService WebWorkerService
 
-<h3>Policy list editor - Editing @RoomId</h3>
+<h3>Policy list editor - Editing @(RoomName ?? RoomId)</h3>
+@if (!string.IsNullOrWhiteSpace(DraupnirShortcode)) {
+    <span style="margin-right: 2em;">Shortcode: @DraupnirShortcode</span>
+}
+@if (!string.IsNullOrWhiteSpace(RoomAlias)) {
+    <span>Alias: @RoomAlias</span>
+}
 <hr/>
 @* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
 <LinkButton OnClick="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
@@ -56,10 +68,10 @@ else {
                         .Where(x => x.GetCustomAttribute<TableHideAttribute>() is null)
                         .ToFrozenSet();
                     var propNames = props.Select(x => x.GetFriendlyNameOrNull() ?? x.GetJsonPropertyName()!).ToFrozenSet();
-                    
+
                     var proxySafeProps = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                         .Where(x => props.Any(y => y.Name == x.Name))
-                        .ToFrozenSet(); 
+                        .ToFrozenSet();
                     Console.WriteLine($"{proxySafeProps?.Count} proxy safe props found in {policies.FirstOrDefault()?.TypedContent?.GetType()}");
                 }
                 <thead>
@@ -87,6 +99,16 @@ else {
                                         @if (policy.IsLegacyType) {
                                             <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
                                         }
+
+                                        @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(policy.Type)) {
+                                            <LinkButton OnClick="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent</LinkButton>
+                                            @if (CurrentUserIsDraupnir) {
+                                                <LinkButton Color="@(ActiveKicks.ContainsKey(policy) ? "#FF0000" : null)" OnClick="@(() => DraupnirKickMatching(policy))">Kick users @(ActiveKicks.ContainsKey(policy) ? $"({ActiveKicks[policy]})" : null)</LinkButton>
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        <p>No permission to modify</p>
                                     }
                                 </div>
                             </td>
@@ -130,6 +152,12 @@ else {
     <PolicyEditorModal PolicyEvent="@CurrentlyEditingEvent" OnClose="@(() => CurrentlyEditingEvent = null)" OnSave="@(e => UpdatePolicyAsync(e))"></PolicyEditorModal>
 }
 
+@if (ServerPolicyToMakePermanent is not null) {
+    <ModalWindow Title="Make policy permanent">
+
+    </ModalWindow>
+}
+
 @if (MassCreatePolicies) {
     <MassPolicyEditorModal Room="@Room" OnClose="@(() => MassCreatePolicies = false)" OnSaved="@(() => { MassCreatePolicies = false; LoadStatesAsync(); })"></MassPolicyEditorModal>
 }
@@ -150,6 +178,7 @@ else {
     private bool _enableAvatars;
     private StateEventResponse? _currentlyEditingEvent;
     private bool _massCreatePolicies;
+    private StateEventResponse? _serverPolicyToMakePermanent;
 
     private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
 
@@ -161,9 +190,22 @@ else {
         }
     }
 
+    public StateEventResponse? ServerPolicyToMakePermanent {
+        get => _serverPolicyToMakePermanent;
+        set {
+            _serverPolicyToMakePermanent = value;
+            StateHasChanged();
+        }
+    }
+
     private AuthenticatedHomeserverGeneric Homeserver { get; set; }
     private GenericRoom Room { get; set; }
     private RoomPowerLevelEventContent PowerLevels { get; set; }
+    public bool CurrentUserIsDraupnir { get; set; }
+    public string? RoomName { get; set; }
+    public string? RoomAlias { get; set; }
+    public string? DraupnirShortcode { get; set; }
+    public Dictionary<StateEventResponse, int> ActiveKicks { get; set; } = [];
 
     public bool MassCreatePolicies {
         get => _massCreatePolicies;
@@ -179,7 +221,13 @@ else {
         Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
         if (Homeserver is null) return;
         Room = Homeserver.GetRoom(RoomId!);
-        PowerLevels = (await Room.GetPowerLevelsAsync())!;
+        await Task.WhenAll([
+            Task.Run(async () => { PowerLevels = (await Room.GetPowerLevelsAsync())!; }),
+            Task.Run(async () => { DraupnirShortcode = (await Room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId))?.Shortcode; }),
+            Task.Run(async () => { RoomAlias = (await Room.GetCanonicalAliasAsync())?.Alias; }),
+            Task.Run(async () => { RoomName = await Room.GetNameOrFallbackAsync(); }),
+            Task.Run(async () => { CurrentUserIsDraupnir = (await Homeserver.GetAccountDataOrNullAsync<object>("org.matrix.mjolnir.protected_rooms")) is not null; }),
+        ]);
         await LoadStatesAsync();
         Console.WriteLine($"Policy list editor initialized in {sw.Elapsed}!");
     }
@@ -235,5 +283,140 @@ else {
     // event types, unnamed
     private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
         .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
+
+    private static Dictionary<Type, string[]> PolicyTypeIds = KnownPolicyTypes
+        .ToDictionary(x => x, x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName).ToArray());
+
+#region Draupnir interop
+
+    private SemaphoreSlim ss = new(16, 16);
+
+    private async Task DraupnirKickMatching(StateEventResponse policy) {
+        try {
+            var content = policy.TypedContent! as PolicyRuleEventContent;
+            if (content is null) return;
+            if (string.IsNullOrWhiteSpace(content.Entity)) return;
+
+            var data = await Homeserver.GetAccountDataAsync<DraupnirProtectedRoomsData>(DraupnirProtectedRoomsData.EventId);
+            var rooms = data.Rooms.Select(Homeserver.GetRoom).ToList();
+
+            ActiveKicks.Add(policy, rooms.Count);
+            StateHasChanged();
+            await Task.Delay(500);
+
+            // for (int i = 0; i < 12; i++) {
+            // _ = WebWorkerService.TaskPool.Invoke(WasteCpu);
+            // }
+
+            // static async Task runKicks(string roomId, PolicyRuleEventContent content) {
+            //     Console.WriteLine($"Checking {roomId}...");
+            //     // Console.WriteLine($"Checking {room.RoomId}...");
+            //     //
+            //     // try {
+            //     //     var members = await room.GetMembersListAsync();
+            //     //     foreach (var member in members) {
+            //     //         var membership = member.ContentAs<RoomMemberEventContent>();
+            //     //         if (member.StateKey == room.Homeserver.WhoAmI.UserId) continue;
+            //     //         if (membership?.Membership is "leave" or "ban") continue;
+            //     //
+            //     //         if (content.EntityMatches(member.StateKey!))
+            //     //             // await room.KickAsync(member.StateKey, content.Reason ?? "No reason given");
+            //     //             Console.WriteLine($"Would kick {member.StateKey} from {room.RoomId} (EntityMatches)");
+            //     //     }
+            //     // }
+            //     // finally {
+            //     //     Console.WriteLine($"Finished checking {room.RoomId}...");
+            //     // }
+            // }
+            //
+            // try {
+            //     var tasks = rooms.Select(room => WebWorkerService.TaskPool.Invoke(runKicks, room.RoomId, content)).ToList();
+            //
+            //     await Task.WhenAll(tasks);
+            // }
+            // catch (Exception e) {
+            //     Console.WriteLine(e);
+            // }
+
+            await NastyInternalsPleaseIgnore.ExecuteKickWithWasmWorkers(WebWorkerService, Homeserver, policy, data.Rooms);
+            // await Task.Run(async () => {
+            //     foreach (var room in rooms) {
+            //         try {
+            //             Console.WriteLine($"Checking {room.RoomId}...");
+            //             var members = await room.GetMembersListAsync();
+            //             foreach (var member in members) {
+            //                 var membership = member.ContentAs<RoomMemberEventContent>();
+            //                 if (member.StateKey == room.Homeserver.WhoAmI.UserId) continue;
+            //                 if (membership?.Membership is "leave" or "ban") continue;
+            //
+            //                 if (content.EntityMatches(member.StateKey!))
+            //                     // await room.KickAsync(member.StateKey, content.Reason ?? "No reason given");
+            //                     Console.WriteLine($"Would kick {member.StateKey} from {room.RoomId} (EntityMatches)");
+            //             }
+            //             ActiveKicks[policy]--;
+            //             StateHasChanged();
+            //         }
+            //         finally {
+            //             Console.WriteLine($"Finished checking {room.RoomId}...");
+            //         }
+            //     }
+            // });
+        }
+        finally {
+            ActiveKicks.Remove(policy);
+            StateHasChanged();
+            await Task.Delay(500);
+        }
+    }
+
+#region Nasty, nasty internals, please ignore!
+
+    private static class NastyInternalsPleaseIgnore {
+        public async static Task ExecuteKickWithWasmWorkers(WebWorkerService workerService, AuthenticatedHomeserverGeneric hs, StateEventResponse evt, List<string> roomIds) {
+            try {
+                // var tasks = roomIds.Select(roomId => workerService.TaskPool.Invoke(ExecuteKickInternal, hs.WellKnownUris.Client, hs.AccessToken, roomId, content.Entity)).ToList();
+                var tasks = roomIds.Select(roomId => workerService.TaskPool.Invoke(ExecuteKickInternal2, hs.WellKnownUris, hs.AccessToken, roomId, evt)).ToList();
+                // workerService.TaskPool.Invoke(ExecuteKickInternal, hs.BaseUrl, hs.AccessToken, roomIds, content.Entity);
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        }
+
+        private async static Task ExecuteKickInternal(string homeserverBaseUrl, string accessToken, string roomId, string entity) {
+            try {
+                Console.WriteLine("args: " + string.Join(", ", homeserverBaseUrl, accessToken, roomId, entity));
+                Console.WriteLine($"Checking {roomId}...");
+                var hs = new AuthenticatedHomeserverGeneric(homeserverBaseUrl, new() { Client = homeserverBaseUrl }, null, accessToken);
+                Console.WriteLine($"Got HS...");
+                var room = hs.GetRoom(roomId);
+                Console.WriteLine($"Got room...");
+                var members = await room.GetMembersListAsync();
+                Console.WriteLine($"Got members...");
+                // foreach (var member in members) {
+                //     var membership = member.ContentAs<RoomMemberEventContent>();
+                //     if (member.StateKey == hs.WhoAmI.UserId) continue;
+                //     if (membership?.Membership is "leave" or "ban") continue;
+                //
+                //     if (entity == member.StateKey)
+                //         // await room.KickAsync(member.StateKey, content.Reason ?? "No reason given");
+                //         Console.WriteLine($"Would kick {member.StateKey} from {room.RoomId} (EntityMatches)");
+                // }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        }
+
+        private async static Task ExecuteKickInternal2(HomeserverResolverService.WellKnownUris wellKnownUris, string accessToken, string roomId, StateEventResponse policy) {
+            Console.WriteLine($"Checking {roomId}...");
+            Console.WriteLine(policy.EventId);
+        }
+    }
+
+#endregion
+
+#endregion
 
 }

@@ -13,7 +13,7 @@
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <BlazorCacheBootResources>false</BlazorCacheBootResources>
         <TrimMode>full</TrimMode>
-<!--        <RunAOTCompilation>true</RunAOTCompilation>-->
+        <!--        <RunAOTCompilation>true</RunAOTCompilation>-->
 
 
         <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
@@ -21,59 +21,38 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-        <PackageReference Include="Blazored.SessionStorage" Version="2.4.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.0" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.0" />
-        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.5.18" />
+        <PackageReference Include="Blazored.LocalStorage" Version="4.5.0"/>
+        <PackageReference Include="Blazored.SessionStorage" Version="2.4.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.0" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.0"/>
+        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.5.18"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Condition="Exists('..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" />
-        <PackageReference Condition="!Exists('..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj')" Include="ArcaneLibs.Blazor.Components" Version="*-preview*" />
-        <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
-        <ProjectReference Include="..\MatrixUtils.Abstractions\MatrixUtils.Abstractions.csproj" />
-        <ProjectReference Include="..\MatrixUtils.LibDMSpace\MatrixUtils.LibDMSpace.csproj" />
+        <ProjectReference Include="..\MatrixUtils.Abstractions\MatrixUtils.Abstractions.csproj"/>
+        <ProjectReference Include="..\MatrixUtils.LibDMSpace\MatrixUtils.LibDMSpace.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="appsettings.Development.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-      <Content Update="appsettings.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-      <Content Update="wwwroot\appsettings.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+        <PackageReference Include="ArcaneLibs.Blazor.Components" Version="1.0.0-preview.20241122-053825" Condition="Configuration == 'Release'"/>
+        <ProjectReference Include="..\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" Condition="Configuration == 'Debug'"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+        <Content Update="appsettings.Development.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Update="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Update="wwwroot\appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\ClientRoomList.razor" />
-      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\ClientStatusList.razor" />
-      <_ContentIncludedByDefault Remove="Pages\Client\ClientComponents\MatrixClient.razor" />
-      <_ContentIncludedByDefault Remove="Pages\Client\Index.razor" />
+        <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js"/>
     </ItemGroup>
 
-    <ItemGroup>
-      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\ClientRoomList.razor" />
-      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\ClientStatusList.razor" />
-      <AdditionalFiles Include="Pages\Labs\Client\ClientComponents\MatrixClient.razor" />
-      <AdditionalFiles Include="Pages\Labs\Client\Index.razor" />
-      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage0.razor" />
-      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage1.razor" />
-      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage2.razor" />
-      <AdditionalFiles Include="Pages\Labs\DMSpace\DMSpaceStages\DMSpaceStage3.razor" />
-      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\MainTabComponents\MainTabSpaceItem.razor" />
-      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2ByRoomTypeTab.razor" />
-      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2DMsTab.razor" />
-      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2MainTab.razor" />
-      <AdditionalFiles Include="Pages\Labs\Rooms2\Index2Components\RoomsIndex2SyncContainer.razor" />
-    </ItemGroup>
-    
 </Project>

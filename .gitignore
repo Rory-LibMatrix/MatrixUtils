@@ -10,6 +10,7 @@ MatrixRoomUtils.Bot/bot_data/
 appsettings.Local*.json
 nixpkgs/
 *.DotSettings.user
+**/.DS_Store
 *.patch
 
 test.tsv

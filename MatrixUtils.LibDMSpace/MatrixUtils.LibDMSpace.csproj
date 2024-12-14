@@ -8,8 +8,4 @@
         <LangVersion>preview</LangVersion>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj"/>
-    </ItemGroup>
 </Project>

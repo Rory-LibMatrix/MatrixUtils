@@ -52,7 +52,7 @@
                             else {
                                 switch (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) {
                                     case Type t when t == typeof(string):
-                                        <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></FancyTextBox>
+                                        <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@((string e) => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></FancyTextBox>
                                         break;
                                     case Type t when t == typeof(DateTime):
                                         if (!isNullable) {

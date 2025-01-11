@@ -42,7 +42,7 @@
     private async Task Execute() {
         foreach (var hs in hss) {
             var rooms = await hs.GetJoinedRooms();
-            var tasks = rooms.Select(x=>Execute(hs, x)).ToAsyncEnumerable();
+            var tasks = rooms.Select(x=>ApplyPowerlevelsInRoom(hs, x)).ToAsyncEnumerable();
             await foreach (var a in tasks) {
                 if (!string.IsNullOrWhiteSpace(a)) {
                     log.Add(a);
@@ -52,7 +52,7 @@
         }
     }
 
-    private async Task<string> Execute(AuthenticatedHomeserverGeneric hs, GenericRoom room) {
+    private async Task<string> ApplyPowerlevelsInRoom(AuthenticatedHomeserverGeneric hs, GenericRoom room) {
         try {
             var pls = await room.GetPowerLevelsAsync();
             // if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) == pls.UsersDefault) return "I am default PL in " + room.RoomId;

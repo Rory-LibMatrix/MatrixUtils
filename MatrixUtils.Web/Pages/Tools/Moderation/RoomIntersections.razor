@@ -3,6 +3,7 @@
 @using System.Collections.ObjectModel
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>Room intersections</h3>
 <hr/>
 
@@ -113,7 +114,7 @@
 
     protected override async Task OnInitializedAsync() {
         Log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
         StateHasChanged();

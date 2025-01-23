@@ -1,5 +1,4 @@
 @page "/Rooms/{RoomId}/Space"
-@using System.Collections.ObjectModel
 @using LibMatrix.RoomTypes
 @using ArcaneLibs.Extensions
 @using LibMatrix
@@ -37,7 +36,7 @@
     private string? NewRoomId { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
         Room = hs.GetRoom(RoomId.Replace('~', '.'));

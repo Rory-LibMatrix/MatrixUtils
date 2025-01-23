@@ -121,7 +121,7 @@
         if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
         StateHasChanged();
         try {
-            var result = new UserAuth(await hsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
+            var result = new UserAuth(await HsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
                 Proxy = record.Proxy
             };
             if (result == null) {
@@ -131,8 +131,8 @@
 
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-            await RMUStorage.AddToken(result);
-            LoggedInSessions = await RMUStorage.GetAllTokens();
+            await RmuStorage.AddToken(result);
+            LoggedInSessions = await RmuStorage.GetAllTokens();
         }
         catch (Exception e) {
             Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
@@ -144,7 +144,7 @@
     }
 
     private async Task FileChanged(InputFileChangeEventArgs obj) {
-        LoggedInSessions = await RMUStorage.GetAllTokens();
+        LoggedInSessions = await RmuStorage.GetAllTokens();
         Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions {
             WriteIndented = true
         }));
@@ -162,7 +162,7 @@
     }
 
     private async Task AddRecord() {
-        LoggedInSessions = await RMUStorage.GetAllTokens();
+        LoggedInSessions = await RmuStorage.GetAllTokens();
         records.Add(newRecordInput);
         newRecordInput = new();
     }
@@ -179,19 +179,19 @@
 
     private async Task AddWithAccessToken(LoginStruct record) {
         try {
-            var session = await hsProvider.GetAuthenticatedWithToken(record.Homeserver, record.Password, record.Proxy);
+            var session = await HsProvider.GetAuthenticatedWithToken(record.Homeserver, record.Password, record.Proxy);
             if (session == null) {
                 Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
                 return;
             }
             
-            await RMUStorage.AddToken(new UserAuth() {
+            await RmuStorage.AddToken(new UserAuth() {
                 UserId = session.WhoAmI.UserId,
                 AccessToken = session.AccessToken,
                 Proxy = record.Proxy,
                 DeviceId = session.WhoAmI.DeviceId
             });
-            LoggedInSessions = await RMUStorage.GetAllTokens();
+            LoggedInSessions = await RmuStorage.GetAllTokens();
         }
         catch (Exception e) {
             Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");

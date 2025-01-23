@@ -28,7 +28,7 @@
     private SvgIdenticonGenerator _identiconGenerator = new();
 
     protected override async Task OnInitializedAsync() {
-        _homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        _homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (_homeserver is null) return;
 
         if (User == null) {

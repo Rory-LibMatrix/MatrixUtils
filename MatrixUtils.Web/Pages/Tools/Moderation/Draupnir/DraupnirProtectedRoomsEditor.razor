@@ -1,10 +1,10 @@
 @page "/Moderation/DraupnirProtectedRoomsEditor"
 @page "/Tools/Moderation/DraupnirProtectedRoomsEditor"
 @page "/Tools/Moderation/Draupnir/ProtectedRoomsEditor"
-@using System.Text.Json.Serialization
 @using LibMatrix
 @using LibMatrix.EventTypes.Interop.Draupnir
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.RoomTypes
 <h3>Edit Draupnir protected rooms</h3>
 <hr/>
@@ -43,7 +43,7 @@
                             </td>
                             <td>@(room.PowerLevels.Kick <= room.PowerLevels.GetUserPowerLevel(hs.UserId) ? "X" : "")</td>
                             <td>@(room.PowerLevels.Ban <= room.PowerLevels.GetUserPowerLevel(hs.UserId) ? "X" : "")</td>
-                            <td>@(room.PowerLevels.UserHasStatePermission(hs.UserId, RoomServerACLEventContent.EventId) ? "X" : "")</td>
+                            <td>@(room.PowerLevels.UserHasStatePermission(hs.UserId, RoomServerAclEventContent.EventId) ? "X" : "")</td>
                             <td>@room.Room.RoomId</td>
                             <td>@room.RoomName</td>
                         </tr>
@@ -63,7 +63,7 @@
     private AuthenticatedHomeserverGeneric hs { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         data = await hs.GetAccountDataAsync<DraupnirProtectedRoomsData>(DraupnirProtectedRoomsData.EventId);
         StateHasChanged();

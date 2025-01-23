@@ -22,17 +22,17 @@ if (Environment.GetEnvironmentVariable("MODERATIONBOT_APPSETTINGS_PATH") is stri
     builder.ConfigureAppConfiguration(x => x.AddJsonFile(path));
 
 var host = builder.ConfigureServices((_, services) => {
-    services.AddScoped<TieredStorageService>(x =>
-        new TieredStorageService(
-            cacheStorageProvider: new FileStorageProvider("bot_data/cache/"),
-            dataStorageProvider: new FileStorageProvider("bot_data/data/")
-        )
-    );
+    // services.AddScoped<TieredStorageService>(x =>
+    //     new TieredStorageService(
+    //         cacheStorageProvider: new FileStorageProvider("bot_data/cache/"),
+    //         dataStorageProvider: new FileStorageProvider("bot_data/data/")
+    //     )
+    // );
     services.AddSingleton<ModerationBotConfiguration>();
 
     services.AddRoryLibMatrixServices();
 
-    services.AddSingleton<ModerationBotRoomProvider>();
+    // services.AddSingleton<ModerationBotRoomProvider>();
 
     services.AddHostedService<ModerationBot.ModerationBot>();
 }).UseConsoleLifetime().Build();

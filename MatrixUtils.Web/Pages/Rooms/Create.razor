@@ -7,7 +7,6 @@
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Responses
 @using MatrixUtils.Web.Classes.RoomCreationTemplates
-@using Microsoft.AspNetCore.Components.Forms
 @* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
 
 <h3>Room Manager - Create Room</h3>
@@ -134,7 +133,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerACLEventContent).Allow.Count) allow rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerAclEventContent).Allow.Count) allow rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -144,7 +143,7 @@
                 }
                 else {
                     <details>
-                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerACLEventContent).Deny.Count) deny rules</summary>
+                        <summary>@((creationEvent["m.room.server_acls"].TypedContent as RoomServerAclEventContent).Deny.Count) deny rules</summary>
                         @* <StringListEditor @bind-Items="@serverAcl.Allow"></StringListEditor> *@
                     </details>
                 }
@@ -256,11 +255,11 @@
 
     private RoomHistoryVisibilityEventContent? historyVisibility => creationEvent?["m.room.history_visibility"].TypedContent as RoomHistoryVisibilityEventContent;
     private RoomGuestAccessEventContent? guestAccessEvent => creationEvent?["m.room.guest_access"].TypedContent as RoomGuestAccessEventContent;
-    private RoomServerACLEventContent? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as RoomServerACLEventContent;
+    private RoomServerAclEventContent? serverAcl => creationEvent?["m.room.server_acls"].TypedContent as RoomServerAclEventContent;
     private RoomAvatarEventContent? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventContent;
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
 
         foreach (var x in Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IRoomCreationTemplate))).ToList()) {

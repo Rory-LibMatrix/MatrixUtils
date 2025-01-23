@@ -38,7 +38,7 @@ else {
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs == null) return;
         Rooms = (await hs.GetJoinedRooms()).Select(x => x.RoomId).ToList();
         Console.WriteLine("Fetched joined rooms!");

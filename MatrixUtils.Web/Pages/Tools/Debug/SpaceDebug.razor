@@ -45,7 +45,7 @@
 
     protected override async Task OnInitializedAsync() {
         Status = "Getting homeserver...";
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
         var syncHelper = new SyncHelper(hs) {

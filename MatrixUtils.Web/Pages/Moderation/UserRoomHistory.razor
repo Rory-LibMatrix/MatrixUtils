@@ -2,6 +2,7 @@
 @using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.RoomTypes
 @using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using MatrixUtils.Abstractions
 <h3>UserRoomHistory</h3>
 
@@ -44,11 +45,11 @@ else {
     private AuthenticatedHomeserverGeneric? currentHs { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var sessions = await RMUStorage.GetAllTokens();
+        var sessions = await RmuStorage.GetAllTokens();
         foreach (var userAuth in sessions) {
-            var session = await RMUStorage.GetSession(userAuth);
+            var session = await RmuStorage.GetSession(userAuth);
             if (session is not null) {
                 hss.Add(session);
                 StateHasChanged();

@@ -1,11 +1,7 @@
 @page "/Tools/InviteCounter"
-@using ArcaneLibs.Extensions
-@using LibMatrix.RoomTypes
 @using System.Collections.ObjectModel
-@using LibMatrix
-@using System.Collections.Frozen
 @using LibMatrix.EventTypes.Spec.State
-@using MatrixUtils.Abstractions
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>User Trace</h3>
 <hr/>
 
@@ -39,7 +35,7 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
        
         StateHasChanged();

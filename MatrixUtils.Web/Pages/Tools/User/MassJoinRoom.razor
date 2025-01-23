@@ -2,6 +2,7 @@
 @using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>Mass join room</h3>
 <hr/>
 <p>Room: </p>
@@ -25,11 +26,11 @@
     string roomId { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var sessions = await RMUStorage.GetAllTokens();
+        var sessions = await RmuStorage.GetAllTokens();
         foreach (var userAuth in sessions) {
-            var session = await RMUStorage.GetSession(userAuth);
+            var session = await RmuStorage.GetSession(userAuth);
             if (session is not null) {
                 hss.Add(session);
                 StateHasChanged();

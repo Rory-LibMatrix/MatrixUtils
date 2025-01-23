@@ -19,7 +19,7 @@
 
     async Task<UserAuth?> Login() {
         try {
-            var result = new UserAuth(await hsProvider.Login("http://localhost:5298", $"{Guid.NewGuid().ToString()}", ""));
+            var result = new UserAuth(await HsProvider.Login("http://localhost:5298", $"{Guid.NewGuid().ToString()}", ""));
             if (result == null) {
                 Console.WriteLine($"Failed to login!");
                 return null;

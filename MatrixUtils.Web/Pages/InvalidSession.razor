@@ -40,7 +40,7 @@ else {
     private MatrixException? _loginException { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var tokens = await RMUStorage.GetAllTokens();
+        var tokens = await RmuStorage.GetAllTokens();
         if (tokens is null || tokens.Count == 0) {
             NavigationManager.NavigateTo("/Login");
             return;
@@ -56,9 +56,9 @@ else {
     }
 
     private async Task RemoveUser() {
-        await RMUStorage.RemoveToken(_login!);
-        if ((await RMUStorage.GetCurrentToken())!.AccessToken == _login!.AccessToken)
-            await RMUStorage.SetCurrentToken((await RMUStorage.GetAllTokens())?.FirstOrDefault());
+        await RmuStorage.RemoveToken(_login!);
+        if ((await RmuStorage.GetCurrentToken())!.AccessToken == _login!.AccessToken)
+            await RmuStorage.SetCurrentToken((await RmuStorage.GetAllTokens())?.FirstOrDefault());
         await OnInitializedAsync();
     }
 
@@ -70,14 +70,14 @@ else {
 
     private async Task SwitchSession(UserAuth auth) {
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.AccessToken} {auth.UserId}");
-        await RMUStorage.SetCurrentToken(auth);
+        await RmuStorage.SetCurrentToken(auth);
         await OnInitializedAsync();
     }
 
     private async Task TryLogin() {
         if(_login is null) throw new NullReferenceException("Login is null!");
         try {
-            var result = new UserAuth(await hsProvider.Login(_login.Homeserver, _login.UserId, _password));
+            var result = new UserAuth(await HsProvider.Login(_login.Homeserver, _login.UserId, _password));
             if (result is null) {
                 Console.WriteLine($"Failed to login to {_login.Homeserver} as {_login.UserId}!");
                 return;
@@ -85,9 +85,9 @@ else {
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
             await RemoveUser();
-            await RMUStorage.AddToken(result);
-            if (result.UserId == (await RMUStorage.GetCurrentToken())?.UserId)
-                await RMUStorage.SetCurrentToken(result);
+            await RmuStorage.AddToken(result);
+            if (result.UserId == (await RmuStorage.GetCurrentToken())?.UserId)
+                await RmuStorage.SetCurrentToken(result);
             NavigationManager.NavigateTo("/");
         }
         catch (MatrixException e) {

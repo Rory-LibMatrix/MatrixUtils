@@ -52,7 +52,7 @@
             NavigationManager.NavigateTo(NavigationManager.Uri.Replace("stage=", ""), true); //"/User/DMSpace/Setup"
         }
         DMSpaceRootPage = this;
-        SetupData.Homeserver ??= await RMUStorage.GetCurrentSessionOrNavigate();
+        SetupData.Homeserver ??= await RmuStorage.GetCurrentSessionOrNavigate();
         if (SetupData.Homeserver is null) return;
         try {
             SetupData.DmSpaceConfiguration = await SetupData.Homeserver.GetAccountDataAsync<DMSpaceConfiguration>("gay.rory.dm_space");

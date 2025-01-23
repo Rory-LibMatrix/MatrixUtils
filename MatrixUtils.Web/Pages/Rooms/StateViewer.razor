@@ -70,7 +70,7 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         await LoadStatesAsync();
         Console.WriteLine("Policy list editor initialized!");
@@ -80,7 +80,7 @@
 
     private async Task LoadStatesAsync() {
         var StateLoaded = 0;
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         var response = (hs.GetRoom(RoomId)).GetFullStateAsync();
         await foreach (var _ev in response) {

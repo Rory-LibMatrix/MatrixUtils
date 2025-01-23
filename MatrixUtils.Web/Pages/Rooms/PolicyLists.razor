@@ -1,5 +1,4 @@
 @page "/PolicyLists"
-@using System.Collections.ObjectModel
 @using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes
@@ -63,7 +62,7 @@
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
 
         Status = "Fetching rooms...";

@@ -34,7 +34,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 },
                 new() {
                     Type = "m.room.server_acl",
-                    TypedContent = new RoomServerACLEventContent() {
+                    TypedContent = new RoomServerAclEventContent() {
                         Allow = new List<string>() { "*" },
                         Deny = new List<string>(),
                         AllowIpLiterals = false
@@ -56,7 +56,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                 Redact = 50,
                 Kick = 50,
                 Ban = 50,
-                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPL {
+                NotificationsPl = new RoomPowerLevelEventContent.NotificationsPowerLevels {
                     Room = 50
                 },
                 Events = new() {

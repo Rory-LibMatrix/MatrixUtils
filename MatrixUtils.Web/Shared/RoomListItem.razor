@@ -1,5 +1,6 @@
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
 @using MatrixUtils.Web.Classes.Constants
@@ -129,7 +130,7 @@ else {
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
 
-        // hs ??= await RMUStorage.GetCurrentSessionOrNavigate();
+        // hs ??= await RmuStorage.GetCurrentSessionOrNavigate();
         // if (hs is null) return;
 
         if (Homeserver is null) {

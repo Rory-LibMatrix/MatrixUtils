@@ -24,7 +24,7 @@ else {
     public ServerVersionResponse? ServerVersionResponse { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
         ServerVersionResponse = await (Homeserver.FederationClient?.GetServerVersionAsync() ?? Task.FromResult<ServerVersionResponse?>(null));
         await base.OnInitializedAsync();

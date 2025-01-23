@@ -167,7 +167,7 @@
 
     private async Task Search() {
         Results.Clear();
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is AuthenticatedHomeserverSynapse synapse) {
             var searchRooms = synapse.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
             while (await searchRooms.MoveNextAsync()) {

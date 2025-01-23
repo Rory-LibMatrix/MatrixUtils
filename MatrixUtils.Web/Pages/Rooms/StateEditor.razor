@@ -43,7 +43,7 @@
 
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         RoomId = RoomId.Replace('~', '.');
         await LoadStatesAsync();
@@ -53,7 +53,7 @@
     private DateTime _lastUpdate = DateTime.Now;
 
     private async Task LoadStatesAsync() {
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
 
         var StateLoaded = 0;
         var response = (hs.GetRoom(RoomId)).GetFullStateAsync();

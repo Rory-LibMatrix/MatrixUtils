@@ -2,6 +2,7 @@
 @using System.Collections.ObjectModel
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>Membership history viewer</h3>
 <hr/>
 
@@ -155,7 +156,7 @@
 
 #region Filter bindings
 
-    private bool _chronologicalOrder = false;
+    private bool _chronologicalOrder;
 
     private bool ChronologicalOrder {
         get => _chronologicalOrder;
@@ -266,7 +267,7 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
         StateHasChanged();

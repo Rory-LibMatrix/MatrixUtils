@@ -1,13 +1,10 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
-@* @using Blazored.LocalStorage *@
 @using LibMatrix.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
-@* @using Microsoft.AspNetCore.Components.Web.Virtualization *@
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
-@* @using Microsoft.JSInterop *@
 @using MatrixUtils.Web
 @using MatrixUtils.Web.Classes
 @using MatrixUtils.Web.Shared
@@ -16,8 +13,8 @@
 @using Microsoft.JSInterop
 
 @inject NavigationManager NavigationManager
-@inject RMUStorageWrapper RMUStorage
-@inject HomeserverProviderService hsProvider
+@inject RMUStorageWrapper RmuStorage
+@inject HomeserverProviderService HsProvider
 @inject TieredStorageService TieredStorage
-@inject HomeserverResolverService hsResolver
-@inject IJSRuntime JSRuntime
+@inject HomeserverResolverService HsResolver
+@inject IJSRuntime JsRuntime

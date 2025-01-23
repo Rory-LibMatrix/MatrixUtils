@@ -6,9 +6,9 @@
 @using System.Text.RegularExpressions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Filters
 @using LibMatrix.Helpers
-@using LibMatrix.Utilities
 <h3>Find users by regex</h3>
 <hr/>
 
@@ -64,7 +64,7 @@
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
         log.Add("Authenticating");
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
 
         StateHasChanged();

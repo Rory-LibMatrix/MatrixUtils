@@ -5,6 +5,7 @@
 @using LibMatrix
 @using System.Collections.Frozen
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>User Trace</h3>
 <hr/>
 
@@ -73,12 +74,12 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         rooms.CollectionChanged += (sender, args) => StateHasChanged();
-        var sessions = await RMUStorage.GetAllTokens();
+        var sessions = await RmuStorage.GetAllTokens();
         foreach (var userAuth in sessions) {
-            var session = await RMUStorage.GetSession(userAuth);
+            var session = await RmuStorage.GetSession(userAuth);
             if (session is not null) {
                 var sessionRooms = await session.GetJoinedRooms();
                 foreach (var room in sessionRooms) {

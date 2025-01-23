@@ -1,6 +1,7 @@
 @page "/Tools/Moderation/InviteCounter"
 @using System.Collections.ObjectModel
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>Invite counter</h3>
 <hr/>
 
@@ -34,7 +35,7 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
        
         StateHasChanged();

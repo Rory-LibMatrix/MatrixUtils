@@ -3,6 +3,7 @@
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>RoomManagerTimeline</h3>
 <hr/>
 <p>Loaded @Events.Count events...</p>
@@ -27,7 +28,7 @@
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("RoomId: " + RoomId);
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
         var room = Homeserver.GetRoom(RoomId);
         MessagesResponse? msgs = null;

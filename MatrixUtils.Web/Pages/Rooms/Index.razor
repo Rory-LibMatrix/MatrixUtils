@@ -68,7 +68,7 @@
     // SyncHelper profileSyncHelper;
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
         // var rooms = await Homeserver.GetJoinedRooms();
         // SemaphoreSlim _semaphore = new(160, 160);
@@ -170,7 +170,7 @@
         }
     }
 
-    private bool RenderContents { get; set; } = false;
+    private bool RenderContents { get; set; }
 
     private string _status;
 

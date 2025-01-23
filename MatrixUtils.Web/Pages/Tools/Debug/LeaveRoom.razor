@@ -17,7 +17,7 @@
     public string? RoomId { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         Log.CollectionChanged += (sender, args) => StateHasChanged();
         

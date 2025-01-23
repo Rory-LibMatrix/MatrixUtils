@@ -2,6 +2,7 @@
 @inject ILogger<Index> logger
 @using ArcaneLibs.Extensions
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 
 <PageTitle>StreamText</PageTitle>
 @if (Homeserver is not null) {
@@ -35,7 +36,7 @@
     public List<Stream> Streams { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
 
         //await InitOld();
         await Init2();

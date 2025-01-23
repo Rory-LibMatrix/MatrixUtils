@@ -9,6 +9,7 @@
 @using System.Reflection
 @using ArcaneLibs.Attributes
 @using LibMatrix.EventTypes
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 
 @using MatrixUtils.Web.Shared.PolicyEditorComponents
 
@@ -173,7 +174,7 @@ else {
     protected override async Task OnInitializedAsync() {
         var sw = Stopwatch.StartNew();
         await base.OnInitializedAsync();
-        Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
+        Homeserver = (await RmuStorage.GetCurrentSessionOrNavigate())!;
         if (Homeserver is null) return;
         Room = Homeserver.GetRoom(RoomId!);
         PowerLevels = (await Room.GetPowerLevelsAsync())!;

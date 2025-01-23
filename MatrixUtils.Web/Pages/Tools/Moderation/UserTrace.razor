@@ -3,13 +3,16 @@
 @using LibMatrix.RoomTypes
 @using System.Collections.ObjectModel
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>User Trace</h3>
 <hr/>
 
 <p>Users: </p>
 <InputTextArea @bind-Value="@UserIdString"></InputTextArea>
 <br/>
-<InputText @bind-Value="@ImportFromRoomId"></InputText><LinkButton OnClick="@DoImportFromRoomId">Import from room (ID)</LinkButton>
+<InputText @bind-Value="@ImportFromRoomId"></InputText>
+<LinkButton OnClick="@DoImportFromRoomId">Import from room (ID)</LinkButton>
 
 <details>
     <summary>Rooms to be searched (@rooms.Count)</summary>
@@ -24,18 +27,21 @@
 
 <details>
     <summary>Results</summary>
-    @foreach (var (userId, events) in matches) {
+    @foreach (var (userId, events) in matches.OrderBy(x=>x.Key)) {
         <h4>@userId</h4>
-        <ul>
-            @foreach (var match in events) {
-                <li>
-                    <ul>
-                        <li>@match.RoomName (<span>@match.Room.RoomId</span>)</li>
-                        <li>Membership: @(match.Event.RawContent.ToJson(indent: false))</li>
-                    </ul>
-                </li>
+        <table>
+            @foreach (var match in events.OrderBy(x=>x.RoomName)) {
+                <tr>
+                    <td>@match.RoomName (<span>@match.Room.RoomId</span>)</td>
+                    <td>
+                        <details>
+                            <summary>@SummarizeMembership(match.Event)</summary>
+                            <pre>@match.Event.RawContent.ToJson(indent: true)</pre>
+                        </details>
+                    </td>
+                </tr>
             }
-        </ul>
+        </table>
     }
 </details>
 
@@ -61,56 +67,34 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        // var sessions = await RMUStorage.GetAllTokens();
-        // var baseRooms = new List<GenericRoom>();
-        // foreach (var userAuth in sessions) {
-        //     var session = await RMUStorage.GetSession(userAuth);
-        //     if (session is not null) {
-        //         baseRooms.AddRange(await session.GetJoinedRooms());
-        //         var sessionRooms = (await session.GetJoinedRooms()).Where(x => !rooms.Any(y => y.Room.RoomId == x.RoomId)).ToList();
-        //         StateHasChanged();
-        //         log.Add($"Got {sessionRooms.Count} rooms for {userAuth.UserId}");
-        //     }
-        // }
-        //
-        // log.Add("Done fetching rooms!");
-        //
-        // baseRooms = baseRooms.DistinctBy(x => x.RoomId).ToList();
-        //
-        // // rooms.CollectionChanged += (sender, args) => StateHasChanged();
-        // var tasks = baseRooms.Select(async newRoom => {
-        //     bool success = false;
-        //     while (!success)
-        //         try {
-        //             var state = await newRoom.GetFullStateAsListAsync();
-        //             var newRoomInfo = new RoomInfo(newRoom, state);
-        //             rooms.Add(newRoomInfo);
-        //             log.Add($"Got {newRoomInfo.StateEvents.Count} events for {newRoomInfo.RoomName}");
-        //             success = true;
-        //         }
-        //         catch (MatrixException e) {
-        //             log.Add($"Failed to fetch room {newRoom.RoomId}! {e}");
-        //             throw;
-        //         }
-        //         catch (HttpRequestException e) {
-        //             log.Add($"Failed to fetch room {newRoom.RoomId}! {e}");
-        //         }
-        // });
-        // await Task.WhenAll(tasks);
-        //
-        // log.Add($"Done fetching members!");
-        //
-        // UserIDs.RemoveAll(x => sessions.Any(y => y.UserId == x));
 
-        foreach (var session in await RMUStorage.GetAllTokens()) {
-            var _hs = await RMUStorage.GetSession(session);
-            if (_hs is not null) {
-                rooms.AddRange(await _hs.GetJoinedRooms());
-                log.Add($"Got {rooms.Count} rooms after adding {_hs.UserId}");
+        var sessions = await RmuStorage.GetAllTokens();
+        var tasks = sessions.Select(async session => {
+            try {
+                var _hs = await RmuStorage.GetSession(session);
+                if (_hs is not null) {
+                    try {
+                        var _rooms = await _hs.GetJoinedRooms();
+                        if (!_rooms.Any()) return;
+                        // Check if homeserver supports `?format=event`:
+                        await _rooms.First().GetStateEventAsync(RoomMemberEventContent.EventId, session.UserId);
+                        rooms.AddRange(_rooms);
+                        log.Add($"Got {_rooms.Count} rooms for {_hs.UserId}, total {rooms.Count}");
+                    }
+                    catch (Exception e) {
+                        if (e is LibMatrixException { ErrorCode: LibMatrixException.ErrorCodes.M_UNSUPPORTED })
+                            log.Add($"Homeserver {_hs.UserId} does not support `?format=event`! Skipping...");
+                        else log.Add($"Failed to fetch rooms for {_hs.UserId}! {e}");
+                    }
+                }
             }
-        }
+            catch (Exception e) {
+                log.Add($"Failed to fetch rooms for {session.UserId}! {e}");
+            }
+        });
+        await Task.WhenAll(tasks);
 
         //get distinct rooms evenly distributed per session, accounting for count per session
         rooms = rooms.OrderBy(x => rooms.Count(y => y.Homeserver == x.Homeserver)).DistinctBy(x => x.RoomId).ToList();
@@ -124,17 +108,6 @@
     private async Task<string> Execute() {
         foreach (var userId in UserIDs) {
             matches.Add(userId, new List<Match>());
-
-            // foreach (var room in rooms) {
-            //     var state = room.StateEvents.Where(x => x!.Type == RoomMemberEventContent.EventId).ToList();
-            //     if (state!.Any(x => x.StateKey == userId)) {
-            //         matches[userId].Add(new() {
-            //             Event = state.First(x => x.StateKey == userId),
-            //             Room = room.Room,
-            //             RoomName = room.RoomName ?? "No name"
-            //         });
-            //     }
-            // }
 
             log.Add($"Searching for {userId}...");
             await foreach (var match in GetMatches(userId)) {
@@ -173,13 +146,19 @@
 
     private async IAsyncEnumerable<Match> GetMatches(string userId) {
         var results = rooms.Select(async room => {
-            var state = await room.GetStateEventOrNullAsync(room.RoomId, userId);
-            if (state is not null) {
-                return new Match {
-                    Room = room,
-                    Event = state,
-                    RoomName = await room.GetNameOrFallbackAsync()
-                };
+            try {
+                var state = await room.GetStateEventOrNullAsync(RoomMemberEventContent.EventId, userId);
+                if (state is not null) {
+                    log.Add($"Found {userId} in {room.RoomId} with membership {state.RawContent.ToJson(indent: false)}");
+                    return new Match {
+                        Room = room,
+                        Event = state,
+                        RoomName = await room.GetNameOrFallbackAsync()
+                    };
+                }
+            }
+            catch (Exception e) {
+                log.Add($"Failed to fetch state for {userId} in {room.RoomId}! {e}");
             }
 
             return null;
@@ -189,6 +168,21 @@
                 yield return result;
             }
         }
+    }
+
+    public string SummarizeMembership(StateEventResponse state) {
+        var membership = state.ContentAs<RoomMemberEventContent>();
+        var time = DateTimeOffset.FromUnixTimeMilliseconds(state.OriginServerTs!.Value);
+        return membership switch {
+            { Membership: "invite", Reason: null } => $"Invited by {state.Sender} at {time}",
+            { Membership: "invite", Reason: not null } => $"Invited by {state.Sender} at {time} for {membership.Reason}",
+            { Membership: "join", Reason: null } => $"Joined at {time}",
+            { Membership: "join", Reason: not null } => $"Joined at {time} for {membership.Reason}",
+            { Membership: "leave", Reason: null } => state.Sender == state.StateKey ? $"Left at {time}" : $"Kicked by {state.Sender} at {time}",
+            { Membership: "leave", Reason: not null } => state.Sender == state.StateKey ? $"Left at {time} with reason {membership.Reason}" : $"Kicked by {state.Sender} at {time} for {membership.Reason}",
+            { Membership: "ban", Reason: null } => $"Banned by {state.Sender} at {time}",
+            { Membership: "ban", Reason: not null } => $"Banned by {state.Sender} at {time} for {membership.Reason}",
+        };
     }
 
 }

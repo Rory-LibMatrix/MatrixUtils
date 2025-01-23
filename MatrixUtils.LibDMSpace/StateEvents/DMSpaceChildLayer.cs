@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using LibMatrix.EventTypes;
-using LibMatrix.Interfaces;
 
 namespace MatrixUtils.LibDMSpace.StateEvents;
 

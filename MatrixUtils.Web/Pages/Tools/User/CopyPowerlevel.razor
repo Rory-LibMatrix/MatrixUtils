@@ -2,6 +2,7 @@
 @using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.RoomTypes
 <h3>Copy powerlevel</h3>
 <hr/>
@@ -23,11 +24,11 @@
     List<AuthenticatedHomeserverGeneric> hss { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var sessions = await RMUStorage.GetAllTokens();
+        var sessions = await RmuStorage.GetAllTokens();
         foreach (var userAuth in sessions) {
-            var session = await RMUStorage.GetSession(userAuth);
+            var session = await RmuStorage.GetSession(userAuth);
             if (session is not null) {
                 hss.Add(session);
                 StateHasChanged();

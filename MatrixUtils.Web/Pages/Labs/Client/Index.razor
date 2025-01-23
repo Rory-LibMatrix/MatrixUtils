@@ -40,11 +40,11 @@
     }
 
     protected override async Task OnInitializedAsync() {
-        var tokens = await RMUStorage.GetAllTokens();
+        var tokens = await RmuStorage.GetAllTokens();
         var tasks = tokens.Select(async token => {
             try {
                 var cc = new ClientContext() {
-                    Homeserver = await RMUStorage.GetSession(token)
+                    Homeserver = await RmuStorage.GetSession(token)
                 };
                 cc.SyncWrapper = new ClientSyncWrapper(cc.Homeserver);
 

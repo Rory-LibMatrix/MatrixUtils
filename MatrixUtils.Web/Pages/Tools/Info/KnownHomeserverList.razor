@@ -23,7 +23,7 @@
     AuthenticatedHomeserverGeneric? hs { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        hs = await RMUStorage.GetCurrentSessionOrNavigate();
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
         var fetchTasks = (await hs.GetJoinedRooms()).Select(x=>x.GetMembersByHomeserverAsync()).ToAsyncEnumerable();
         await foreach (var result in fetchTasks) {

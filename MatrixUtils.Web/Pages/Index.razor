@@ -144,23 +144,23 @@ Small collection of tools to do not-so-everyday things.
     private readonly List<UserAuth> _offlineSessions = [];
     private readonly List<UserAuth> _invalidSessions = [];
     private LoginResponse? _currentSession;
-    int scannedSessions = 0, totalSessions = 1;
+    int scannedSessions, totalSessions = 1;
     private SvgIdenticonGenerator _identiconGenerator = new();
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("Index.OnInitializedAsync");
         logger.LogDebug("Initialising index page");
-        _currentSession = await RMUStorage.GetCurrentToken();
+        _currentSession = await RmuStorage.GetCurrentToken();
         _sessions.Clear();
         _offlineSessions.Clear();
-        var tokens = await RMUStorage.GetAllTokens();
+        var tokens = await RmuStorage.GetAllTokens();
         scannedSessions = 0;
         totalSessions = tokens.Count;
         logger.LogDebug("Found {0} tokens", totalSessions);
         if (tokens is not { Count: > 0 }) {
             Console.WriteLine("No tokens found, trying migration from MRU...");
-            await RMUStorage.MigrateFromMRU();
-            tokens = await RMUStorage.GetAllTokens();
+            await RmuStorage.MigrateFromMRU();
+            tokens = await RmuStorage.GetAllTokens();
             if (tokens is not { Count: > 0 }) {
                 Console.WriteLine("No tokens found");
                 return;
@@ -175,7 +175,7 @@ Small collection of tools to do not-so-everyday things.
             
             AuthenticatedHomeserverGeneric hs;
             try {
-                hs = await hsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
+                hs = await HsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
                 var joinedRoomsTask = hs.GetJoinedRooms();
                 var profileTask = hs.GetProfileAsync(hs.WhoAmI.UserId);
                 var serverVersionTask = hs.FederationClient?.GetServerVersionAsync();
@@ -234,7 +234,7 @@ Small collection of tools to do not-so-everyday things.
     private async Task RemoveUser(UserAuth auth, bool logout = false) {
         try {
             if (logout) {
-                await (await hsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken, auth.Proxy)).Logout();
+                await (await HsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken, auth.Proxy)).Logout();
             }
         }
         catch (Exception e) {
@@ -246,15 +246,15 @@ Small collection of tools to do not-so-everyday things.
             Console.WriteLine(e);
         }
 
-        await RMUStorage.RemoveToken(auth);
-        if ((await RMUStorage.GetCurrentToken())?.AccessToken == auth.AccessToken)
-            await RMUStorage.SetCurrentToken((await RMUStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
+        await RmuStorage.RemoveToken(auth);
+        if ((await RmuStorage.GetCurrentToken())?.AccessToken == auth.AccessToken)
+            await RmuStorage.SetCurrentToken((await RmuStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
         StateHasChanged();
     }
 
     private async Task SwitchSession(UserAuth auth) {
         Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");
-        await RMUStorage.SetCurrentToken(auth);
+        await RmuStorage.SetCurrentToken(auth);
         _currentSession = auth;
         StateHasChanged();
     }

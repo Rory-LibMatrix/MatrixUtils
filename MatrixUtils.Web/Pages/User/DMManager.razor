@@ -3,6 +3,7 @@
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>Direct Messages</h3>
 <hr/>
 
@@ -29,7 +30,7 @@
     }
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
         Status = "Loading global profile...";
         if (Homeserver.WhoAmI?.UserId is null) return;

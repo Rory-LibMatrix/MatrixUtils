@@ -1,4 +1,3 @@
-using System.Net;
 using ArcaneLibs.Extensions;
 using LibMatrix;
 using LibMatrix.EventTypes.Spec.State;

@@ -40,7 +40,7 @@ else
     {
         var sw = Stopwatch.StartNew();
         await base.OnInitializedAsync();
-        Homeserver = (await RMUStorage.GetCurrentSessionOrNavigate())!;
+        Homeserver = (await RmuStorage.GetCurrentSessionOrNavigate())!;
         if (Homeserver is null) return;
         //
         //random test data

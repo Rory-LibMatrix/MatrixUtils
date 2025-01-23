@@ -55,7 +55,7 @@
     public RoomListViewData Data { get; set; } = new RoomListViewData();
 
     protected override async Task OnInitializedAsync() {
-        Data.Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Data.Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Data.Homeserver is null) return;
         var rooms = await Data.Homeserver.GetJoinedRooms();
         Data.GlobalProfile = await Data.Homeserver.GetProfileAsync(Data.Homeserver.WhoAmI.UserId);

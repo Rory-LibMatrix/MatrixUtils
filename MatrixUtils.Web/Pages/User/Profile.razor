@@ -1,10 +1,9 @@
 @page "/User/Profile"
 @using LibMatrix.EventTypes.Spec.State
-@using ArcaneLibs.Extensions
 @using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Responses
 @using MatrixUtils.Abstractions
-@using Microsoft.AspNetCore.Components.Forms
 <h3>Manage Profile - @Homeserver?.WhoAmI?.UserId</h3>
 <hr/>
 
@@ -63,7 +62,7 @@
 }
 
 @code {
-    private string? _status = null;
+    private string? _status;
 
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
     private UserProfileResponse? NewProfile { get; set; }
@@ -82,7 +81,7 @@
     private Dictionary<string, string> RoomNames { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RMUStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
         if (Homeserver is null) return;
         Status = "Loading global profile...";
         if (Homeserver.WhoAmI?.UserId is null) return;

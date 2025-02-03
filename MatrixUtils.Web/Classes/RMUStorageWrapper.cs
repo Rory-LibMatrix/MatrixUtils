@@ -47,12 +47,21 @@ public class RMUStorageWrapper(ILogger<RMUStorageWrapper> logger, TieredStorageS
             return null;
         }
 
-        return await homeserverProviderService.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
+        return await GetSession(token);
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetSession(UserAuth userAuth) {
         logger.LogTrace("Getting session.");
-        return await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken, userAuth.Proxy);
+        AuthenticatedHomeserverGeneric hs;
+        try {
+            hs = await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken, userAuth.Proxy);
+        }
+        catch (Exception e) {
+            logger.LogError("Failed to get info for {0} via {1}: {2}", userAuth.UserId, userAuth.Homeserver, e);
+            logger.LogError("Continuing with server-less session");
+            hs = await homeserverProviderService.GetAuthenticatedWithToken(userAuth.Homeserver, userAuth.AccessToken, userAuth.Proxy, useGeneric: true, enableServer: false);
+        }
+        return hs;
     }
 
     public async Task<AuthenticatedHomeserverGeneric?> GetCurrentSessionOrNavigate() {

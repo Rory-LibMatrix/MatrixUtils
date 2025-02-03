@@ -51,8 +51,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ArcaneLibs.Blazor.Components" Version="1.0.0-preview.20241210-161342" Condition="'$(Configuration)' == 'Release'"/>
-        <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" Condition="'$(Configuration)' == 'Debug'"/>
+<!--        <PackageReference Include="ArcaneLibs.Blazor.Components" Version="1.0.0-preview.20241210-161342" Condition="'$(Configuration)' == 'Release'"/>-->
+<!--        <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" Condition="'$(Configuration)' == 'Debug'"/>-->
+        <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

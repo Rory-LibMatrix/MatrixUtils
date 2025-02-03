@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using LibMatrix;
-using LibMatrix.EventTypes.Spec.State;
 using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Responses;
 

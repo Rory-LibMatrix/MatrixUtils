@@ -35,11 +35,13 @@ Small collection of tools to do not-so-everyday things.
                 </td>
                 <td class="user-info">
                     <p>
-                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == auth.AccessToken)" @onclick="@(() => SwitchSession(auth))" style="text-decoration-line: unset;"/>
+                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == auth.AccessToken)" @onclick="@(() => SwitchSession(auth))"
+                               style="text-decoration-line: unset;"/>
                         <b>@session.UserInfo.DisplayName</b> on <b>@auth.Homeserver</b><br/>
                     </p>
                     <span style="display: inline-block; width: 128px;">@session.UserInfo.RoomCount rooms</span>
-                    <a style="color: #888888" href="@("/ServerInfo/" + session.Homeserver?.ServerName + "/")">@session.ServerVersion?.Server.Name @session.ServerVersion?.Server.Version</a>
+                    <a style="color: #888888"
+                       href="@("/ServerInfo/" + session.Homeserver?.ServerName + "/")">@session.ServerVersion?.Server.Name @session.ServerVersion?.Server.Version</a>
                     @if (auth.Proxy != null) {
                         <span class="badge badge-info"> (proxied via @auth.Proxy)</span>
                     }
@@ -114,7 +116,7 @@ Small collection of tools to do not-so-everyday things.
                         </p>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => Task.Run(()=>NavigationManager.NavigateTo($"/InvalidSession?ctx={session.AccessToken}")))">Re-login</LinkButton>
+                        <LinkButton OnClick="@(() => Task.Run(() => NavigationManager.NavigateTo($"/InvalidSession?ctx={session.AccessToken}")))">Re-login</LinkButton>
                     </td>
                     <td>
                         <LinkButton OnClick="@(() => RemoveUser(session))">Remove</LinkButton>
@@ -172,13 +174,27 @@ Small collection of tools to do not-so-everyday things.
         var updateSw = Stopwatch.StartNew();
         var tasks = tokens.Select(async token => {
             await sema.WaitAsync();
-            
+
             AuthenticatedHomeserverGeneric hs;
             try {
-                hs = await HsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
+                Task<ServerVersionResponse> serverVersionTask = Task.FromResult<ServerVersionResponse>(new() {
+                    Server = new() {
+                        Name = "Unknown",
+                        Version = "0.0.0"
+                    }
+                });
+                try {
+                    hs = await HsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy);
+                    serverVersionTask = hs.FederationClient?.GetServerVersionAsync() ?? serverVersionTask!;
+                }
+                catch (Exception e) {
+                    logger.LogError("Failed to get info for {0} via {1}: {2}", token.UserId, token.Homeserver, e);
+                    logger.LogError("Continuing with server-less session");
+                    hs = await HsProvider.GetAuthenticatedWithToken(token.Homeserver, token.AccessToken, token.Proxy, useGeneric: true, enableServer: false);
+                }
+
                 var joinedRoomsTask = hs.GetJoinedRooms();
                 var profileTask = hs.GetProfileAsync(hs.WhoAmI.UserId);
-                var serverVersionTask = hs.FederationClient?.GetServerVersionAsync();
                 _sessions.Add(new() {
                     UserInfo = new() {
                         AvatarUrl = (await profileTask).AvatarUrl,

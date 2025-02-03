@@ -1,31 +1,158 @@
 @page "/Tools/Moderation/MembershipHistory"
+@using System.Collections.Frozen
 @using System.Collections.ObjectModel
+@using System.Diagnostics
 @using LibMatrix
-@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
+@{
+    var sw = Stopwatch.StartNew();
+    Console.WriteLine("Start render");
+}
 <h3>Membership history viewer</h3>
 <hr/>
-
 <br/>
 <span>Room ID: </span>
-<InputText @bind-Value="@roomId"></InputText>
+<InputText @bind-Value="@RoomId"></InputText>
 <LinkButton OnClick="@Execute">Execute</LinkButton>
-<p><InputCheckbox @bind-Value="ChronologicalOrder"/> Chronological order</p>
+<p>
+    <span><InputCheckbox @bind-Value="ChronologicalOrder"/>Chronological order</span>
+    <span><InputCheckbox @bind-Value="DoDisambiguate"/>Enable extended filters</span>
+</p>
 <p>
     <span>Show </span>
-    <InputCheckbox @bind-Value="ShowJoins"/> joins
-    <InputCheckbox @bind-Value="ShowLeaves"/> leaves
-    <InputCheckbox @bind-Value="ShowUpdates"/> profile updates
-    <InputCheckbox @bind-Value="ShowKnocks"/> knocks
-    <InputCheckbox @bind-Value="ShowInvites"/> invites
-    <InputCheckbox @bind-Value="ShowKicks"/> kicks
-    <InputCheckbox @bind-Value="ShowBans"/> bans
+    <span><InputCheckbox @bind-Value="ShowJoins"/> joins</span>
+    <span><InputCheckbox @bind-Value="ShowLeaves"/> leaves</span>
+    <span><InputCheckbox @bind-Value="ShowKnocks"/> knocks</span>
+    <span><InputCheckbox @bind-Value="ShowInvites"/> invites</span>
+    <span><InputCheckbox @bind-Value="ShowBans"/> bans</span>
 </p>
 <p>
-    <LinkButton OnClick="@(async () => { ShowJoins = ShowLeaves = ShowUpdates = ShowKnocks = ShowInvites = ShowKicks = ShowBans = false; })">Hide all</LinkButton>
-    <LinkButton OnClick="@(async () => { ShowJoins = ShowLeaves = ShowUpdates = ShowKnocks = ShowInvites = ShowKicks = ShowBans = true; })">Show all</LinkButton>
-    <LinkButton OnClick="@(async () => { ShowJoins ^= true; ShowLeaves ^= true; ShowUpdates ^= true; ShowKnocks ^= true; ShowInvites ^= true; ShowKicks ^= true; ShowBans ^= true; })">Toggle all</LinkButton>
+    <LinkButton OnClick="@(async () => {
+                             ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = false;
+                             StateHasChanged();
+                         })">Hide all
+    </LinkButton>
+    <LinkButton OnClick="@(async () => {
+                             ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = true;
+                             StateHasChanged();
+                         })">Show all
+    </LinkButton>
+    <LinkButton OnClick="@(async () => {
+                             ShowJoins ^= true;
+                             ShowLeaves ^= true;
+                             ShowKnocks ^= true;
+                             ShowInvites ^= true;
+                             ShowBans ^= true;
+                             StateHasChanged();
+                         })">Toggle all
+    </LinkButton>
 </p>
+<p>
+    <span><InputCheckbox @bind-Value="DoDisambiguate"/> Disambiguate </span>
+    @if (DoDisambiguate) {
+        <span><InputCheckbox @bind-Value="DisambiguateKicks"/> kicks</span>
+        <span><InputCheckbox @bind-Value="DisambiguateUnbans"/> unbans</span>
+        <span><InputCheckbox @bind-Value="DisambiguateProfileUpdates"/> profile updates</span>
+        <details style="display: inline-block; vertical-align: top;">
+            <summary>
+                <InputCheckbox @bind-Value="DisambiguateInviteActions"/>
+                invite actions
+            </summary>
+            <span><InputCheckbox @bind-Value="DisambiguateInviteAccepted"/> accepted</span>
+            <span><InputCheckbox @bind-Value="DisambiguateInviteRejected"/> rejected</span>
+            <span><InputCheckbox @bind-Value="DisambiguateInviteRetracted"/> retracted</span>
+        </details>
+        <details style="display: inline-block; vertical-align: top;">
+            <summary>
+                <InputCheckbox @bind-Value="DisambiguateKnockActions"/>
+                knock actions
+            </summary>
+            <span><InputCheckbox @bind-Value="DisambiguateKnockAccepted"/> accepted</span>
+            <span><InputCheckbox @bind-Value="DisambiguateKnockRejected"/> rejected</span>
+            <span><InputCheckbox @bind-Value="DisambiguateKnockRetracted"/> retracted</span>
+        </details>
+    }
+</p>
+@if (DoDisambiguate) {
+    <p>
+        <span>Show </span>
+        @if (DisambiguateKicks) {
+            <span><InputCheckbox @bind-Value="ShowKicks"/> kicks</span>
+        }
+        @if (DisambiguateUnbans) {
+            <span><InputCheckbox @bind-Value="ShowUnbans"/> unbans</span>
+        }
+        @if (DisambiguateProfileUpdates) {
+            <span><InputCheckbox @bind-Value="ShowProfileUpdates"/> profile updates</span>
+        }
+        @if (DisambiguateInviteActions) {
+        <details style="display: inline-block; vertical-align: top;">
+            <summary>
+                <InputCheckbox @bind-Value="ShowInviteActions"/>
+                invite actions
+            </summary>
+            @if (DisambiguateInviteAccepted) {
+                <span><InputCheckbox @bind-Value="ShowInviteAccepted"/> accepted</span>
+            }
+
+            @if (DisambiguateInviteRejected) {
+                <span><InputCheckbox @bind-Value="ShowInviteRejected"/> rejected</span>
+            }
+
+            @if (DisambiguateInviteRetracted) {
+                <span><InputCheckbox @bind-Value="ShowInviteRetracted"/> retracted</span>
+            }
+        </details>
+    }
+    @if (DisambiguateKnockActions) {
+        <details style="display: inline-block; vertical-align: top;">
+            <summary>
+                <InputCheckbox @bind-Value="ShowKnockActions"/>
+                knock actions
+            </summary>
+            @if (DisambiguateKnockAccepted) {
+                <span><InputCheckbox @bind-Value="ShowKnockAccepted"/> accepted</span>
+            }
+
+            @if (DisambiguateKnockRejected) {
+                <span><InputCheckbox @bind-Value="ShowKnockRejected"/> rejected</span>
+            }
+
+            @if (DisambiguateKnockRetracted) {
+                <span><InputCheckbox @bind-Value="ShowKnockRetracted"/> retracted</span>
+            }
+        </details>
+    }
+    </p>
+
+    <p>
+        <LinkButton OnClick="@(async () => {
+                                 DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = false;
+                                 StateHasChanged();
+                             })">Un-disambiguate all
+        </LinkButton>
+        <LinkButton OnClick="@(async () => {
+                                 DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = true;
+                                 StateHasChanged();
+                             })">Disambiguate all
+        </LinkButton>
+        <LinkButton OnClick="@(async () => {
+                                 DisambiguateProfileUpdates ^= true;
+                                 DisambiguateKicks ^= true;
+                                 DisambiguateUnbans ^= true;
+                                 DisambiguateInviteAccepted ^= true;
+                                 DisambiguateInviteRejected ^= true;
+                                 DisambiguateInviteRetracted ^= true;
+                                 DisambiguateKnockAccepted ^= true;
+                                 DisambiguateKnockRejected ^= true;
+                                 DisambiguateKnockRetracted ^= true;
+                                 DisambiguateKnockActions ^= true;
+                                 DisambiguateInviteActions ^= true;
+                                 StateHasChanged();
+                             })">Toggle all
+        </LinkButton>
+    </p>
+}
 <p>
     <span>Sender: </span>
     <InputSelect @bind-Value="Sender">
@@ -45,109 +172,121 @@
     </InputSelect>
 </p>
 
-
+@{ Console.WriteLine($"Rendering took {sw.Elapsed} for {Memberships.Count} items"); }
 <br/>
 
-<details>
+<details open>
     <summary>Results</summary>
     @{
-        Dictionary<string, StateEventResponse> previousMemberships = [];
-        var filteredMemberships = Memberships.AsEnumerable();
-        if (ChronologicalOrder) {
-            filteredMemberships = filteredMemberships.Reverse();
-        }
-
-        if (!string.IsNullOrWhiteSpace(Sender)) {
-            filteredMemberships = filteredMemberships.Where(x => x.Sender == Sender);
-        }
-
-        if (!string.IsNullOrWhiteSpace(User)) {
-            filteredMemberships = filteredMemberships.Where(x => x.StateKey == User);
-        }
-
+        var filteredMemberships = GetFilteredMemberships();
+    }
     <table>
-        @foreach (var membership in filteredMemberships) {
-            RoomMemberEventContent content = membership.TypedContent as RoomMemberEventContent;
-            StateEventResponse? previous = previousMemberships.GetValueOrDefault(membership.StateKey);
-            RoomMemberEventContent? previousContent = previous?.TypedContent as RoomMemberEventContent;
+        @foreach (var membershipEntry in filteredMemberships) {
+            var (transition, membership, previousMembership) = membershipEntry;
+            RoomMemberEventContent content = membership.TypedContent as RoomMemberEventContent ?? throw new InvalidOperationException("Event is not a RoomMemberEventContent!");
+            RoomMemberEventContent? previousContent = previousMembership?.TypedContent as RoomMemberEventContent;
+
             <tr>
                 <td>@DateTimeOffset.FromUnixTimeMilliseconds(membership.OriginServerTs ?? 0).ToString("g")</td>
                 <td>
-                    @switch (content.Membership) {
-                        case RoomMemberEventContent.MembershipTypes.Invite: {
-                            if (_showInvites) {
-                                <p style="color: green;">@membership.Sender invited @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                            }
-
+                    @switch (transition) {
+                        case MembershipTransition.None:
+                            <b>Unknown membership! Got None</b>
                             break;
-                        }
-                        case RoomMemberEventContent.MembershipTypes.Ban: {
-                            if (_showBans) {
-                                <p style="color: red;">@membership.Sender banned @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                            }
-
+                        case MembershipTransition.Join:
+                            <p style="color: #6C6;">
+                                @membership.StateKey joined the room @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")<br/>
+                                Display name: @content.DisplayName<br/>
+                                Avatar URL: @content.AvatarUrl
+                            </p>
                             break;
-                        }
-                        case RoomMemberEventContent.MembershipTypes.Leave: {
-                            if (membership.Sender == membership.StateKey) {
-                                if (_showLeaves) {
-                                    <p style="color: #C66;">@membership.Sender left the room</p>
-                                }
-                            }
-                            else {
-                                if (_showKicks) {
-                                    <p style="color: darkorange;">@membership.Sender kicked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                                }
-                            }
-
+                        case MembershipTransition.Leave:
+                            <p style="color: #C66;">
+                                @membership.StateKey left the room
+                            </p>
                             break;
-                        }
-                        case RoomMemberEventContent.MembershipTypes.Knock: {
-                            if (_showKnocks) {
-                                <p>@membership.Sender knocked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")</p>
-                            }
-
+                        case MembershipTransition.Knock:
+                            <p style="color: #426">
+                                @membership.StateKey knocked @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
                             break;
-                        }
-                        case RoomMemberEventContent.MembershipTypes.Join: {
-                            if (previousContent is { Membership: RoomMemberEventContent.MembershipTypes.Join }) {
-                                if (_showUpdates) {
-                                    <p style="color: #777;">
-                                        @membership.Sender changed their profile<br/>
-                                        Display name: @previousContent.DisplayName -> @content.DisplayName<br/>
-                                        Avatar URL: @previousContent.AvatarUrl -> @content.AvatarUrl
-                                    </p>
-                                }
-                            }
-                            else {
-                                if (_showJoins) {
-                                    <p style="color: #6C6;">
-                                        @membership.Sender joined the room @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")<br/>
-                                        Display name: @content.DisplayName<br/>
-                                        Avatar URL: @content.AvatarUrl
-                                    </p>
-                                }
-                            }
-
+                        case MembershipTransition.Invite:
+                            <p style="color: #262;">
+                                @membership.Sender invited @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
                             break;
-                        }
-                        default: {
-                            <b>Unknown membership @content.Membership!</b>
+                        case MembershipTransition.Ban:
+                            <p style="color: red;">
+                                @membership.Sender banned @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
                             break;
-                        }
+                        @* disambiguated *@
+                        case MembershipTransition.Kick:
+                            <p style="color: darkorange;">
+                                @membership.Sender kicked @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.ProfileUpdate:
+                            <p style="color: #777;">
+                                @membership.Sender changed their profile<br/>
+                                Display name: @previousContent!.DisplayName -> @content.DisplayName<br/>
+                                Avatar URL: @previousContent.AvatarUrl -> @content.AvatarUrl
+                            </p>
+                            break;
+                        case MembershipTransition.InviteAccepted:
+                            <p style="color: #084;">
+                                @membership.StateKey accepted the invite
+                                from @previousMembership!.Sender @(string.IsNullOrWhiteSpace(previousContent?.Reason) ? "" : $"(invite reason: {previousContent.Reason})") @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(accept reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.KnockAccepted:
+                            <p style="color: #288;">
+                                @membership.StateKey's knock was accepted
+                                by @previousMembership!.Sender @(string.IsNullOrWhiteSpace(previousContent?.Reason) ? "" : $"(knock reason: {previousContent.Reason})") @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(accept reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.KnockRejected:
+                            <p style="color: #828;">
+                                @membership.StateKey's knock was rejected
+                                by @previousMembership!.Sender @(string.IsNullOrWhiteSpace(previousContent?.Reason) ? "" : $"(knock reason: {previousContent.Reason})") @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reject reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.Unban:
+                            <p style="color: #0C0;">
+                                @membership.Sender unbanned @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.InviteRejected:
+                            <p style="color: #733;">
+                                @membership.StateKey rejected the invite
+                                from @previousMembership!.Sender @(string.IsNullOrWhiteSpace(previousContent?.Reason) ? "" : $"(invite reason: {previousContent.Reason})") @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reject reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.InviteRetracted:
+                            <p style="color: #844;">
+                                @membership.Sender retracted the invite
+                                for @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
+                            break;
+                        case MembershipTransition.KnockRetracted:
+                            <p style="color: #b55;">
+                                @membership.Sender retracted the knock
+                                for @membership.StateKey @(string.IsNullOrWhiteSpace(content.Reason) ? "" : $"(reason: {content.Reason})")
+                            </p>
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 </td>
             </tr>
-
-            previousMemberships[membership.StateKey] = membership;
         }
-    </table>}
+    </table>
 </details>
 
 <br/>
 <details open>
     <summary>Log</summary>
-    @foreach (var line in log.Reverse()) {
+    @foreach (var line in Log.Reverse()) {
         <pre>@line</pre>
     }
 </details>
@@ -156,139 +295,280 @@
 
 #region Filter bindings
 
-    private bool _chronologicalOrder;
+    private bool ChronologicalOrder { get; set; }
+    private bool ShowJoins { get; set; } = true;
+    private bool ShowLeaves { get; set; } = true;
+    private bool ShowKnocks { get; set; } = true;
+    private bool ShowInvites { get; set; } = true;
+    private bool ShowBans { get; set; } = true;
 
-    private bool ChronologicalOrder {
-        get => _chronologicalOrder;
-        set {
-            _chronologicalOrder = value;
-            StateHasChanged();
-        }
-    }
+    private bool DoDisambiguate { get; set; } = true;
+    private bool DisambiguateProfileUpdates { get => field && DoDisambiguate; set; } = true;
+    private bool DisambiguateKicks { get => field && DoDisambiguate; set; } = true;
+    private bool DisambiguateUnbans { get => field && DoDisambiguate; set; } = true;
+    private bool DisambiguateInviteAccepted { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
+    private bool DisambiguateInviteRejected { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
+    private bool DisambiguateInviteRetracted { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
+    private bool DisambiguateKnockAccepted { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
+    private bool DisambiguateKnockRejected { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
+    private bool DisambiguateKnockRetracted { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
+    
+    private bool DisambiguateKnockActions { get => field && DoDisambiguate; set; } = true;
+    private bool DisambiguateInviteActions { get => field && DoDisambiguate; set; } = true;
 
-    private bool _showJoins = true;
-
-    private bool ShowJoins {
-        get => _showJoins;
-        set {
-            _showJoins = value;
-            StateHasChanged();
-        }
-    }
-
-    private bool _showLeaves = true;
-
-    private bool ShowLeaves {
-        get => _showLeaves;
-        set {
-            _showLeaves = value;
-            StateHasChanged();
-        }
-    }
-
-    private bool _showUpdates = true;
-
-    private bool ShowUpdates {
-        get => _showUpdates;
-        set {
-            _showUpdates = value;
-            StateHasChanged();
-        }
-    }
-
-    private bool _showKnocks = true;
-
-    private bool ShowKnocks {
-        get => _showKnocks;
-        set {
-            _showKnocks = value;
-            StateHasChanged();
-        }
-    }
-
-    private bool _showInvites = true;
-
-    private bool ShowInvites {
-        get => _showInvites;
-        set {
-            _showInvites = value;
-            StateHasChanged();
-        }
-    }
-
-    private bool _showKicks = true;
+    private bool ShowProfileUpdates {
+        get => field && DisambiguateProfileUpdates;
+        set;
+    } = true;
 
     private bool ShowKicks {
-        get => _showKicks;
+        get => field && DisambiguateKicks;
+        set;
+    } = true;
+
+    private bool ShowUnbans {
+        get => field && DisambiguateUnbans;
+        set;
+    } = true;
+
+    private bool ShowInviteAccepted {
+        get => field && DisambiguateInviteAccepted;
+        set;
+    } = true;
+
+    private bool ShowInviteRejected {
+        get => field && DisambiguateInviteRejected;
+        set;
+    } = true;
+
+    private bool ShowInviteRetracted {
+        get => field && DisambiguateInviteRetracted;
+        set;
+    } = true;
+
+    private bool ShowKnockAccepted {
+        get => field && DisambiguateKnockAccepted;
+        set;
+    } = true;
+
+    private bool ShowKnockRejected {
+        get => field && DisambiguateKnockRejected;
+        set;
+    } = true;
+
+    private bool ShowKnockRetracted {
+        get => field && DisambiguateKnockRetracted;
+        set;
+    } = true;
+
+    private bool ShowKnockActions {
+        get => field && DisambiguateKnockActions;
+        set;
+    } = true;
+
+    private bool ShowInviteActions {
+        get => field && DisambiguateInviteActions;
+        set;
+    } = true;
+
+    [Parameter, SupplyParameterFromQuery(Name = "sender")]
+    public string Sender { get; set; } = "";
+
+    [Parameter, SupplyParameterFromQuery(Name = "user")]
+    public string User { get; set; } = "";
+
+    [Parameter, SupplyParameterFromQuery(Name = "filter")]
+    public string Filter {
+        get;
         set {
-            _showKicks = value;
+            field = value;
+            if (string.IsNullOrWhiteSpace(value)) return;
+            var parts = value.Split(',');
+            ShowJoins = parts.Contains("join");
+            ShowLeaves = parts.Contains("leave");
+            ShowKnocks = parts.Contains("knock");
+            ShowInvites = parts.Contains("invite");
+            ShowBans = parts.Contains("ban");
             StateHasChanged();
         }
-    }
-
-    private bool _showBans = true;
-
-    private bool ShowBans {
-        get => _showBans;
-        set {
-            _showBans = value;
-            StateHasChanged();
-        }
-    }
-
-    private string sender = "";
-
-    private string Sender {
-        get => sender;
-        set {
-            sender = value;
-            StateHasChanged();
-        }
-    }
-
-    private string user = "";
-
-    private string User {
-        get => user;
-        set {
-            user = value;
-            StateHasChanged();
-        }
-    }
+    } = "";
 
 #endregion
 
-    private ObservableCollection<string> log { get; set; } = new();
+    private ObservableCollection<string> Log { get; set; } = new();
     private List<StateEventResponse> Memberships { get; set; } = [];
-    private AuthenticatedHomeserverGeneric hs { get; set; }
+    private AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
 
     [Parameter, SupplyParameterFromQuery(Name = "room")]
-    public string roomId { get; set; }
+    public string RoomId { get; set; } = "";
 
     protected override async Task OnInitializedAsync() {
-        log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RmuStorage.GetCurrentSessionOrNavigate();
-        if (hs is null) return;
+        Log.CollectionChanged += (sender, args) => StateHasChanged();
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
 
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
-        if (!string.IsNullOrWhiteSpace(roomId))
+        if (!string.IsNullOrWhiteSpace(RoomId))
             await Execute();
     }
 
     private async Task Execute() {
         Memberships.Clear();
-        var room = hs.GetRoom(roomId);
+        var room = Homeserver.GetRoom(RoomId);
         var events = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 5000);
         await foreach (var resp in events) {
             var all = resp.State.Concat(resp.Chunk);
             Memberships.AddRange(all.Where(x => x.Type == RoomMemberEventContent.EventId));
 
-            log.Add($"{resp.State.Count} state, {resp.Chunk.Count} timeline");
+            Log.Add($"Got {resp.State.Count} state and {resp.Chunk.Count} timeline events.");
         }
 
+        Log.Add("Reached end of timeline!");
+
         StateHasChanged();
+    }
+
+    private readonly struct MembershipEntry {
+        public required MembershipTransition State { get; init; }
+        public required StateEventResponse Event { get; init; }
+        public required StateEventResponse? Previous { get; init; }
+
+        public void Deconstruct(out MembershipTransition transition, out StateEventResponse evt, out StateEventResponse? prev) {
+            transition = State;
+            evt = Event;
+            prev = Previous;
+        }
+    }
+
+    private enum MembershipTransition : byte {
+        None,
+        Join,
+        Leave,
+        Knock,
+        Invite,
+        Ban,
+
+        // disambiguated
+        ProfileUpdate,
+        Kick,
+        Unban,
+        InviteAccepted,
+        InviteRejected,
+        InviteRetracted,
+        KnockAccepted,
+        KnockRejected,
+        KnockRetracted
+    }
+
+    private static IEnumerable<MembershipEntry> GetTransitions(List<StateEventResponse> evts) {
+        Dictionary<string, MembershipEntry> transitions = new();
+        foreach (var evt in evts.OrderBy(x => x.OriginServerTs)) {
+            var content = evt.TypedContent as RoomMemberEventContent ?? throw new InvalidOperationException("Event is not a RoomMemberEventContent!");
+            var prev = transitions.GetValueOrDefault(evt.StateKey!) as MembershipEntry?;
+            transitions[evt.StateKey ?? throw new Exception("Member event has no state key??")] = new MembershipEntry {
+                Event = evt,
+                Previous = prev?.Event,
+                State = content.Membership switch {
+                    RoomMemberEventContent.MembershipTypes.Join =>
+                        prev?.State switch {
+                            MembershipTransition.Join or MembershipTransition.InviteAccepted => MembershipTransition.ProfileUpdate,
+                            MembershipTransition.Invite => MembershipTransition.InviteAccepted,
+                            _ => MembershipTransition.Join
+                        },
+                    RoomMemberEventContent.MembershipTypes.Leave =>
+                        evt.Sender == evt.StateKey
+                            ? prev?.State switch {
+                                MembershipTransition.Knock => MembershipTransition.KnockRetracted,
+                                MembershipTransition.Invite => MembershipTransition.InviteRejected,
+                                _ => MembershipTransition.Leave
+                            }
+                            : prev?.State switch {
+                                // not self
+                                MembershipTransition.Knock => MembershipTransition.KnockRejected,
+                                MembershipTransition.Invite => MembershipTransition.InviteRetracted,
+                                _ => MembershipTransition.Kick,
+                            },
+                    RoomMemberEventContent.MembershipTypes.Invite =>
+                        prev?.State switch {
+                            MembershipTransition.Knock => MembershipTransition.KnockAccepted,
+                            _ => MembershipTransition.Invite
+                        },
+                    RoomMemberEventContent.MembershipTypes.Knock => MembershipTransition.Knock,
+                    RoomMemberEventContent.MembershipTypes.Ban => MembershipTransition.Ban,
+                    _ => MembershipTransition.None
+                }
+            };
+            yield return transitions[evt.StateKey];
+        }
+    }
+
+    private IEnumerable<MembershipEntry> Disambiguated(IEnumerable<MembershipEntry> entries) {
+        FrozenDictionary<MembershipTransition, MembershipTransition> disambiguated = new Dictionary<MembershipTransition, MembershipTransition>() {
+            { MembershipTransition.ProfileUpdate, MembershipTransition.Join },
+            { MembershipTransition.Kick, MembershipTransition.Leave },
+            { MembershipTransition.Unban, MembershipTransition.Leave },
+            { MembershipTransition.InviteAccepted, MembershipTransition.Join },
+            { MembershipTransition.InviteRejected, MembershipTransition.Leave },
+            { MembershipTransition.InviteRetracted, MembershipTransition.Leave },
+            { MembershipTransition.KnockAccepted, MembershipTransition.Invite },
+            { MembershipTransition.KnockRejected, MembershipTransition.Leave },
+            { MembershipTransition.KnockRetracted, MembershipTransition.Leave }
+        }.ToFrozenDictionary();
+        
+        foreach (var entry in entries) {
+            if (!DoDisambiguate) {
+                yield return entry;
+                continue;
+            }
+
+            var newState = entry.State switch {
+                MembershipTransition.ProfileUpdate when !DoDisambiguate || !DisambiguateProfileUpdates => MembershipTransition.Join,
+                MembershipTransition.Kick when !DoDisambiguate || !DisambiguateKicks => MembershipTransition.Leave,
+                MembershipTransition.Unban when !DoDisambiguate || !DisambiguateUnbans => MembershipTransition.Leave,
+                MembershipTransition.InviteAccepted when !DoDisambiguate || !DisambiguateInviteActions || !DisambiguateInviteAccepted => MembershipTransition.Join,
+                MembershipTransition.InviteRejected when !DoDisambiguate || !DisambiguateInviteActions || !DisambiguateInviteRejected => MembershipTransition.Leave,
+                MembershipTransition.InviteRetracted when !DoDisambiguate || !DisambiguateInviteActions || !DisambiguateInviteRetracted => MembershipTransition.Leave,
+                MembershipTransition.KnockAccepted when !DoDisambiguate || !DisambiguateKnockActions || !DisambiguateKnockAccepted => MembershipTransition.Invite,
+                MembershipTransition.KnockRejected when !DoDisambiguate || !DisambiguateKnockActions || !DisambiguateKnockRejected => MembershipTransition.Leave,
+                MembershipTransition.KnockRetracted when !DoDisambiguate || !DisambiguateKnockActions || !DisambiguateKnockRetracted => MembershipTransition.Leave,
+                _ => entry.State
+            };
+            if (newState != entry.State) {
+                yield return entry with { State = newState };
+            }
+            else yield return entry;
+        }
+    }
+
+    private IEnumerable<MembershipEntry> GetFilteredMemberships() {
+        var filteredMemberships = GetTransitions(Memberships);
+        if (!string.IsNullOrWhiteSpace(Sender)) filteredMemberships = filteredMemberships.Where(x => x.Event.Sender == Sender);
+        if (!string.IsNullOrWhiteSpace(User)) filteredMemberships = filteredMemberships.Where(x => x.Event.StateKey == User);
+        filteredMemberships = Disambiguated(filteredMemberships);
+
+        if (!ShowJoins) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Join);
+        if (!ShowLeaves) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Leave);
+        if (!ShowKnocks) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Knock);
+        if (!ShowInvites) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Invite);
+        if (!ShowBans) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Ban);
+        // extended filters
+        if (DoDisambiguate) {
+            if (!DisambiguateProfileUpdates || !ShowProfileUpdates) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.ProfileUpdate);
+            if (!DisambiguateKicks || !ShowKicks) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Kick);
+            if (!DisambiguateUnbans || !ShowUnbans) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.Unban);
+            if (!DisambiguateInviteActions || !ShowInviteActions || !DisambiguateInviteAccepted || !ShowInviteAccepted) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.InviteAccepted);
+            if (!DisambiguateInviteActions || !ShowInviteActions || !DisambiguateInviteRejected || !ShowInviteRejected) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.InviteRejected);
+            if (!DisambiguateInviteActions || !ShowInviteActions || !DisambiguateInviteRetracted || !ShowInviteRetracted) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.InviteRetracted);
+            if (!DisambiguateKnockActions || !ShowKnockActions || !DisambiguateKnockAccepted || !ShowKnockAccepted) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.KnockAccepted);
+            if (!DisambiguateKnockActions || !ShowKnockActions || !DisambiguateKnockRejected || !ShowKnockRejected) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.KnockRejected);
+            if (!DisambiguateKnockActions || !ShowKnockActions || !DisambiguateKnockRetracted || !ShowKnockRetracted) filteredMemberships = filteredMemberships.Where(x => x.State != MembershipTransition.KnockRetracted);
+        }
+
+        if (!ChronologicalOrder) filteredMemberships = filteredMemberships.Reverse();
+
+        return filteredMemberships;
     }
 
 }

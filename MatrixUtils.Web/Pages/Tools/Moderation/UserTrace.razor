@@ -3,7 +3,6 @@
 @using LibMatrix.RoomTypes
 @using System.Collections.ObjectModel
 @using LibMatrix
-@using LibMatrix.EventTypes.Spec.State
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
 <h3>User Trace</h3>
 <hr/>
@@ -183,6 +182,11 @@
             { Membership: "ban", Reason: null } => $"Banned by {state.Sender} at {time}",
             { Membership: "ban", Reason: not null } => $"Banned by {state.Sender} at {time} for {membership.Reason}",
         };
+    }
+    
+    private async Task ExportJson() {
+        var json = matches.ToJson();
+        
     }
 
 }

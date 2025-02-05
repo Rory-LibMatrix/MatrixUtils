@@ -1,0 +1,12 @@
+﻿@page "/Dev/ModalTest"
+
+<PageTitle>Modal test</PageTitle>
+
+<h3>Rory&::MatrixUtils - Modal test</h3>
+<hr/>
+@for (int i = 0; i < 10; i++)
+{
+    <ModalWindow X="i*75" Y="i*75">
+        <h1>Hello, world!</h1>
+    </ModalWindow>
+}

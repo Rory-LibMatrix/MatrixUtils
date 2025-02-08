@@ -25,6 +25,10 @@ public class RMUStorageWrapper(ILogger<RMUStorageWrapper> logger, TieredStorageS
             await SetCurrentToken(currentToken = allTokens[0]);
         }
 
+        if (currentToken is null) {
+            await SetCurrentToken(currentToken = allTokens[0]);
+        }
+
         if (!allTokens.Any(x => x.AccessToken == currentToken.AccessToken)) {
             await SetCurrentToken(currentToken = allTokens[0]);
         }

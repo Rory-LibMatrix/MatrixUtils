@@ -1,51 +1,85 @@
-@page "/Tools/KnownHomeserverList"
+@page "/Tools/Info/KnownHomeserverList"
 @using ArcaneLibs.Extensions
+@using LibMatrix.RoomTypes
+@using SpawnDev.BlazorJS.WebWorkers
+@inject WebWorkerService workerService
 <h3>Known Homeserver List</h3>
 <hr/>
 
 @if (!IsFinished) {
     <p>
-        <b>Loading...</b>
+        <b>Loading... @RoomCount rooms remaining to process...</b>
     </p>
 }
 
-@foreach (var (homeserver, members) in counts.OrderByDescending(x => x.Value)) {
-    <p>@homeserver - @members</p>
+@{
+    var shownCounts = counts.OrderByDescending(x => x.Value).AsEnumerable();
+    if (!IsFinished && counts.Count > 500) {
+        shownCounts = shownCounts.Where(x => x.Value > 5);
+    }
+}
+@foreach (var (homeserver, members) in shownCounts.ToList()) {
+    <p>@homeserver - @members users</p>
 }
 <hr/>
 
 @code {
     Dictionary<string, List<string>> homeservers { get; set; } = new();
+
     Dictionary<string, int> counts { get; set; } = new();
+
     // List<HomeserverInfo> Homeservers = new();
     bool IsFinished { get; set; }
+
     // HomeserverInfoQueryProgress QueryProgress { get; set; } = new();
     AuthenticatedHomeserverGeneric? hs { get; set; }
+    int RoomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync() {
         hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-        var fetchTasks = (await hs.GetJoinedRooms()).Select(x=>x.GetMembersByHomeserverAsync()).ToAsyncEnumerable();
+        var ss = new SemaphoreSlim(32, 32);
+        var rooms = await hs.GetJoinedRooms();
+        RoomCount = rooms.Count;
+        var fetchTasks = rooms.Select(roomId => workerService.TaskPool.Invoke(() => InternalGetMembersByHomeserver(hs.WellKnownUris.Client, hs.AccessToken, roomId.RoomId))).ToList().ToAsyncEnumerable();
+        // var fetchTasks = rooms.Select(async x => {
+            // await ss.WaitAsync();
+            // var res = await x.GetMembersByHomeserverAsync();
+            // ss.Release();
+            // return res;
+        // }).ToAsyncEnumerable();
         await foreach (var result in fetchTasks) {
             foreach (var (resHomeserver, resMembers) in result) {
                 if (!homeservers.TryAdd(resHomeserver, resMembers)) {
                     homeservers[resHomeserver].AddRange(resMembers);
                 }
+
                 counts[resHomeserver] = homeservers[resHomeserver].Count;
             }
-            // StateHasChanged();
+
+            RoomCount--;
+            StateHasChanged();
             // await Task.Delay(250);
+            await Task.Yield();
         }
 
         foreach (var resHomeserver in homeservers.Keys) {
             homeservers[resHomeserver] = homeservers[resHomeserver].Distinct().ToList();
             counts[resHomeserver] = homeservers[resHomeserver].Count;
+            StateHasChanged();
+            await Task.Yield();
         }
 
         IsFinished = true;
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
+    }
+
+    private static async Task<Dictionary<string, List<string>>> InternalGetMembersByHomeserver(string homeserverBaseUrl, string accessToken, string roomId) {
+        var hs = new AuthenticatedHomeserverGeneric(homeserverBaseUrl, new() { Client = homeserverBaseUrl }, null, accessToken);
+        var room = hs.GetRoom(roomId);
+        return await room.GetMembersByHomeserverAsync();
     }
 
 }

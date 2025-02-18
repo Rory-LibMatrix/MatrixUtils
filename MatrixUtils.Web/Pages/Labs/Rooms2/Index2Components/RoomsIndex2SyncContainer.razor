@@ -16,7 +16,7 @@
 @code {
 
     [Parameter]
-    public Index2.RoomListViewData Data { get; set; } = null!;
+    public Index2.RoomListViewData Data { get; set; }
 
     private SyncHelper syncHelper;
 
@@ -113,7 +113,7 @@
                         statusd.Status = $"{roomId} already known with {room.StateEvents?.Count ?? 0} state events";
                     }
                     else {
-                        statusd.Status = $"Eencountered new room {roomId}!";
+                        statusd.Status = $"Encountered new room {roomId}!";
                         room = new RoomInfo(Data.Homeserver!.GetRoom(roomId), roomData.State?.Events);
                         Data.Rooms.Add(room);
                     }

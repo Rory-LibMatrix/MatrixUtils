@@ -1,69 +1,69 @@
-<img src="@ResolvedUri" style="@StyleString"/>
-@code {
-    private string _mxcUri;
-    private string _style;
-    private string _resolvedUri;
+<AuthorizedImage src="@ResolvedUrl" AccessToken="@Homeserver?.AccessToken" style="@StyleString"/>
 
+@code {
     [Parameter]
-    public string MxcUri {
-        get => _mxcUri ?? "";
+    public string? Uri {
+        get;
         set {
-            Console.WriteLine($"New MXC uri: {value}");
-            _mxcUri = value;
+            // Console.WriteLine($"New MXC uri: {value}");
+            if (field == value) return;
+            field = value;
             UriHasChanged(value);
         }
     }
+
     [Parameter]
     public bool Circular { get; set; }
-    
+
     [Parameter]
     public int? Width { get; set; }
-    
+
     [Parameter]
     public int? Height { get; set; }
-    
+
     [Parameter]
-    public string Style {
-        get => _style;
+    public string? Style {
+        get;
         set {
-            _style = value;
+            field = value;
             StateHasChanged();
         }
     }
-    
-    [CascadingParameter, Parameter]
-    public RemoteHomeserver? Homeserver { get; set; }
 
-    private string ResolvedUri {
-        get => _resolvedUri;
+    [Parameter]
+    public required AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+    private string? ResolvedUrl {
+        get;
         set {
-            _resolvedUri = value;
+            field = value;
             StateHasChanged();
         }
     }
 
     private string StyleString => $"{Style} {(Circular ? "border-radius: 50%;" : "")} {(Width.HasValue ? $"width: {Width}px;" : "")} {(Height.HasValue ? $"height: {Height}px;" : "")} object-fit: cover;";
-    
-    private static readonly string Prefix = "mxc://";
-    private static readonly int PrefixLength = Prefix.Length;
 
-    private async Task UriHasChanged(string value) {
-        // if (!value.StartsWith(Prefix)) {
-        //     Console.WriteLine($"UriHasChanged: {value} does not start with {Prefix}, passing as resolved URI!!!");
-        //     ResolvedUri = value;
-        //     return;
-        // }
-        // var uri = value[PrefixLength..].Split('/');
-        // Console.WriteLine($"UriHasChanged: {value} {uri[0]}");
-        // if (Homeserver is null) {
-        //     Console.WriteLine($"Homeserver is null, creating new remotehomeserver for {uri[0]}");
-        //     Homeserver = await hsProvider.GetRemoteHomeserver(uri[0]);
-        // }
-        // ResolvedUri = Homeserver.ResolveMediaUri(value);
-        // Console.WriteLine($"ResolvedUri: {ResolvedUri}");
+    // private static readonly string Prefix = "mxc://";
+    // private static readonly int PrefixLength = Prefix.Length;
+
+    private async Task UriHasChanged(string? value) {
+        try {
+            if (string.IsNullOrWhiteSpace(value)) {
+                ResolvedUrl = null;
+                return;
+            }
+
+            if (Homeserver is null) {
+                Console.WriteLine($"Homeserver is required for MxcImage! Uri: {value}, Homeserver: {Homeserver?.ToString() ?? "null"}");
+                return;
+            }
+
+            ResolvedUrl = await Homeserver.GetMediaUrlAsync(value);
+            // Console.WriteLine($"[MxcImage] Resolved URL: {ResolvedUrl}");
+            StateHasChanged();
+        } catch (Exception e) {
+            await Console.Error.WriteLineAsync($"Error resolving media URL: {e}");
+        }
     }
-
-    // [Parameter]
-    // public string Class { get; set; }
 
 }

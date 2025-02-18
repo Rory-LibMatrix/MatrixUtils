@@ -1,6 +1,8 @@
 @page "/Tools/Moderation/InviteCounter"
 @using System.Collections.ObjectModel
+@using ArcaneLibs.Extensions
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.Filters
 <h3>Invite counter</h3>
 <hr/>
 
@@ -13,7 +15,7 @@
 
 <details>
     <summary>Results</summary>
-    @foreach (var (userId, events) in invites.OrderByDescending(x=>x.Value).ToList()) {
+    @foreach (var (userId, events) in invites.OrderByDescending(x => x.Value).ToList()) {
         <p>@userId: @events</p>
     }
 </details>
@@ -27,16 +29,15 @@
     private ObservableCollection<string> log { get; set; } = new();
     private Dictionary<string, int> invites { get; set; } = new();
     private AuthenticatedHomeserverGeneric hs { get; set; }
-    
+
     [Parameter, SupplyParameterFromQuery(Name = "room")]
     public string roomId { get; set; }
-    
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
         hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is null) return;
-       
+
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
@@ -44,22 +45,21 @@
 
     private async Task<string> Execute() {
         var room = hs.GetRoom(roomId);
-        var events = room.GetManyMessagesAsync(limit: int.MaxValue);
+        var filter = new SyncFilter.EventFilter() { Types = [RoomMemberEventContent.EventId] };
+        var events = room.GetManyMessagesAsync(limit: int.MaxValue, filter: filter.ToJson(ignoreNull: true, indent: false));
         await foreach (var resp in events) {
             var all = resp.State.Concat(resp.Chunk);
             foreach (var evt in all) {
-                if(evt.Type != RoomMemberEventContent.EventId) continue;
+                if (evt.Type != RoomMemberEventContent.EventId) continue;
                 var content = evt.TypedContent as RoomMemberEventContent;
-                if(content.Membership != "invite") continue;
-                if(!invites.ContainsKey(evt.Sender)) invites[evt.Sender] = 0;
-                invites[evt.Sender]++;
+                if (content?.Membership != "invite") continue;
+                invites.TryAdd(evt.Sender!, 0);
+                invites[evt.Sender!]++;
             }
 
             log.Add($"{resp.State.Count} state, {resp.Chunk.Count} timeline");
         }
-        
-        
-        
+
         StateHasChanged();
 
         return "";

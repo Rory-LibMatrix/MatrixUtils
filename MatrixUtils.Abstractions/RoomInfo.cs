@@ -12,13 +12,13 @@ namespace MatrixUtils.Abstractions;
 public class RoomInfo : NotifyPropertyChanged {
     public RoomInfo(GenericRoom room) {
         Room = room;
-        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        // _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
         RegisterEventListener();
     }
 
     public RoomInfo(GenericRoom room, List<StateEventResponse>? stateEvents) {
         Room = room;
-        _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
+        // _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
         if (stateEvents is { Count: > 0 }) StateEvents = new(stateEvents!);
         RegisterEventListener();
         ProcessNewItems(stateEvents!);
@@ -29,7 +29,7 @@ public class RoomInfo : NotifyPropertyChanged {
     public ObservableCollection<StateEventResponse?> Timeline { get; private set; } = new();
 
     private static ConcurrentBag<AuthenticatedHomeserverGeneric> homeserversWithoutEventFormatSupport = new();
-    private static SvgIdenticonGenerator identiconGenerator = new();
+    // private static SvgIdenticonGenerator identiconGenerator = new();
 
     public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
         if (homeserversWithoutEventFormatSupport.Contains(Room.Homeserver)) return await GetStateEventForged(type, stateKey);
@@ -95,7 +95,7 @@ public class RoomInfo : NotifyPropertyChanged {
     }
 
     public string? RoomIcon {
-        get => _roomIcon ?? _fallbackIcon;
+        get => _roomIcon;
         set => SetField(ref _roomIcon, value);
     }
 

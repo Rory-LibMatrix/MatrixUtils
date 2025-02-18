@@ -1,7 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Engines;
@@ -262,7 +265,7 @@ public class Program {
         if (!DoDisambiguate || !DisambiguateKnockActions || !DisambiguateKnockRejected) _map[MembershipTransition.KnockRejected] = MembershipTransition.Leave;
         if (!DoDisambiguate || !DisambiguateKnockActions || !DisambiguateKnockRetracted) _map[MembershipTransition.KnockRetracted] = MembershipTransition.Leave;
         FrozenDictionary<MembershipTransition, MembershipTransition> map = _map.ToFrozenDictionary();
-        _map = null!;
+        // _map
         foreach (var entry in entries) {
             var newState = map.TryGetValue(entry.State, out var value) ? value : entry.State;
             yield return newState == entry.State ? entry : entry with { State = newState };

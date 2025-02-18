@@ -10,7 +10,7 @@
 @code {
 
     [Parameter]
-    public ObservableCollection<ClientContext> Data { get; set; } = null!;
+    public ObservableCollection<ClientContext> Data { get; set; }
 
     protected override void OnInitialized() {
         Data.CollectionChanged += (_, e) => {

@@ -1,3 +1,4 @@
+@using ArcaneLibs
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Responses
@@ -6,16 +7,20 @@
 @if (RoomInfo is not null) {
     <div class="roomListItem @(HasDangerousRoomVersion ? "dangerousRoomVersion" : HasOldRoomVersion ? "oldRoomVersion" : "")" id="@RoomInfo.Room.RoomId">
         @if (OwnMemberState != null) {
-            @* Class="@("avatar32" + (OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? " highlightChange" : "") + (ChildContent is not null ? " vcenter" : ""))" *@
-            @* <MxcImage Homeserver="hs" Circular="true" Height="32" Width="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/> *@
-            <MxcAvatar Homeserver="Homeserver" Circular="true" Size="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
+            <MxcAvatar Homeserver="@Homeserver" Circular="true" Size="32" MxcUri="@(OwnMemberState.AvatarUrl ?? GlobalProfile.AvatarUrl)"/>
             <span class="centerVertical border75 @(OwnMemberState?.AvatarUrl != GlobalProfile?.AvatarUrl ? "highlightChange" : "")">
                 @(OwnMemberState?.DisplayName ?? GlobalProfile?.DisplayName ?? "Loading...")
             </span>
             <span class="centerVertical noLeftPadding">-></span>
         }
         @* <MxcImage Circular="true" Height="32" Width="32" MxcUri="@RoomInfo.RoomIcon" Style="@(ChildContent is not null ? "vertical-align: middle;" : "")"/> *@
-        <MxcAvatar Homeserver="Homeserver" Circular="true" Size="32" MxcUri="@RoomInfo.RoomIcon"/>
+        
+        @if (!string.IsNullOrWhiteSpace(RoomInfo.RoomIcon)) {
+            <MxcAvatar Homeserver="@Homeserver" Circular="true" Size="32" MxcUri="@RoomInfo.RoomIcon"/>
+        }
+        else {
+            <img src="@Identicon" width="32" height="32" style="border-radius: 50%;"/>
+        }
         <div class="inlineBlock">
             <span class="centerVertical">@RoomInfo.RoomName</span>
             @if (ChildContent is not null) {
@@ -68,6 +73,10 @@ else {
     private bool HasOldRoomVersion { get; set; } = false;
     private bool HasDangerousRoomVersion { get; set; } = false;
 
+    private string Identicon { get; set; }
+    
+    private static SvgIdenticonGenerator _identiconGenerator = new SvgIdenticonGenerator();
+
     private static SemaphoreSlim _semaphoreSlim = new(8);
     private RoomInfo? _roomInfo;
     private bool _loadData = false;
@@ -75,6 +84,9 @@ else {
     private bool _hooked;
 
     private async Task RoomInfoChanged() {
+        if (RoomInfo is null) return;
+        Identicon = _identiconGenerator.GenerateAsDataUri(RoomInfo.Room.RoomId);
+        
         RoomInfo.PropertyChanged += async (_, a) => {
             if (a.PropertyName == nameof(RoomInfo.CreationEventContent)) {
                 await CheckRoomVersion();

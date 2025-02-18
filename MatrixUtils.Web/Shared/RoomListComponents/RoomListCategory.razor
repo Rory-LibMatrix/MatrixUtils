@@ -6,7 +6,7 @@
     <summary>@RoomType (@Rooms.Count)</summary>
     @foreach (var room in Rooms) {
         <div class="room-list-item">
-            <RoomListItem RoomInfo="@room" ShowOwnProfile="@(RoomType == "Room")"></RoomListItem>
+            <RoomListItem RoomInfo="@room" ShowOwnProfile="@(RoomType == "Room")" Homeserver="@Homeserver"/>
             @* @if (RoomVersionDangerLevel(room) != 0 && *@
             @*      (room.StateEvents.FirstOrDefault(x=>x.Type == "m.room.power_levels")?.TypedContent is RoomPowerLevelEventContent powerLevels && powerLevels.UserHasPermission(Homeserver.UserId, "m.room.tombstone"))) { *@
             @*     <MatrixUtils.Web.Shared.SimpleComponents.LinkButton Color="@(RoomVersionDangerLevel(room) == 2 ? "#ff0000" : "#ff8800")" href="@($"/Rooms/Create?Import={room.Room.RoomId}")">Upgrade room</MatrixUtils.Web.Shared.SimpleComponents.LinkButton> *@
@@ -14,10 +14,11 @@
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Timeline")">View timeline</LinkButton>
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/View")">View state</LinkButton>
             <LinkButton href="@($"/Rooms/{room.Room.RoomId}/State/Edit")">Edit state</LinkButton>
+            <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Upgrade")" Color="#888800">Upgrade/replace room</LinkButton>
             <LinkButton href="@($"/Tools/LeaveRoom?roomId={room.Room.RoomId}")" Color="#FF0000">Leave room</LinkButton>
 
             @if (room.CreationEventContent?.Type == "m.space") {
-                <RoomListSpace Space="@room"></RoomListSpace>
+                <RoomListSpace Space="@room" Homeserver="@Homeserver"/>
             }
             else if (room.CreationEventContent?.Type == "support.feline.policy.lists.msc.v1" || RoomType == "org.matrix.mjolnir.policy") {
                 <LinkButton href="@($"/Rooms/{room.Room.RoomId}/Policies")">Manage policies</LinkButton>
@@ -35,9 +36,9 @@
     [Parameter]
     public UserProfileResponse? GlobalProfile { get; set; }
 
-    [CascadingParameter]
-    public AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
-
+    [Parameter]
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    
     private string RoomType => Category.Key;
     private List<RoomInfo> Rooms => Category.Value;
 

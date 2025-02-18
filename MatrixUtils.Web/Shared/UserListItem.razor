@@ -23,13 +23,14 @@
     [Parameter]
     public string UserId { get; set; }
 
-    private AuthenticatedHomeserverGeneric _homeserver = null!;
+    [Parameter]
+    public AuthenticatedHomeserverGeneric _homeserver { get; set; }
 
     private SvgIdenticonGenerator _identiconGenerator = new();
 
     protected override async Task OnInitializedAsync() {
-        _homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
-        if (_homeserver is null) return;
+        // _homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        // if (_homeserver is null) return;
 
         if (User == null) {
             if (UserId == null) {

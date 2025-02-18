@@ -10,7 +10,7 @@
     <h4>Profile</h4>
     <hr/>
     <div>
-        <MxcAvatar MxcUri="@NewProfile.AvatarUrl" Circular="true" Size="96"/>
+        <MxcAvatar Homeserver="@Homeserver" MxcUri="@NewProfile.AvatarUrl" Circular="true" Size="96"/>
         <div style="display: inline-block; vertical-align: middle;">
             <span>Display name: </span><FancyTextBox @bind-Value="@NewProfile.DisplayName"></FancyTextBox><br/>
             <span>Avatar URL: </span><FancyTextBox @bind-Value="@NewProfile.AvatarUrl"></FancyTextBox>
@@ -39,7 +39,7 @@
             </summary>
             @if (room.OwnMembership is not null) {
                 @* <img src="@Homeserver.ResolveMediaUri(room.OwnMembership.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/> *@
-                <MxcAvatar MxcUri="@room.OwnMembership.AvatarUrl" Circular="true" Size="96"/>
+                <MxcAvatar Homeserver="@Homeserver" MxcUri="@room.OwnMembership.AvatarUrl" Circular="true" Size="96"/>
                 <div style="display: inline-block; vertical-align: middle;">
                     <span>Display name: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.DisplayName"></FancyTextBox><br/>
                     <span>Avatar URL: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.AvatarUrl"></FancyTextBox>

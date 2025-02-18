@@ -181,6 +181,9 @@
             { Membership: "leave", Reason: not null } => state.Sender == state.StateKey ? $"Left at {time} with reason {membership.Reason}" : $"Kicked by {state.Sender} at {time} for {membership.Reason}",
             { Membership: "ban", Reason: null } => $"Banned by {state.Sender} at {time}",
             { Membership: "ban", Reason: not null } => $"Banned by {state.Sender} at {time} for {membership.Reason}",
+            { Membership: "knock", Reason: null } => $"Knocked at {time}",
+            { Membership: "knock", Reason: not null } => $"Knocked at {time} for {membership.Reason}",
+            _ => $"Unknown membership {membership.Membership}, sent at {time} by {state.Sender} for {membership.Reason}"
         };
     }
     

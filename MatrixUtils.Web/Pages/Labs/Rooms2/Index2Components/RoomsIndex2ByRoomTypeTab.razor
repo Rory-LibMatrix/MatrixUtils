@@ -22,7 +22,7 @@
 @code {
 
     [CascadingParameter]
-    public Index2.RoomListViewData Data { get; set; } = null!;
+    public Index2.RoomListViewData Data { get; set; }
 
     protected override async Task OnInitializedAsync() {
         Data.Rooms.CollectionChanged += (sender, args) => {

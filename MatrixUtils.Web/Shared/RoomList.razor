@@ -10,7 +10,7 @@
 }
 else {
     @foreach (var category in RoomsWithTypes.OrderBy(x => x.Value.Count)) {
-        <RoomListCategory Category="@category" GlobalProfile="@GlobalProfile"></RoomListCategory>
+        <RoomListCategory Category="@category" GlobalProfile="@GlobalProfile" Homeserver="@Homeserver"></RoomListCategory>
     }
 }
 
@@ -34,6 +34,9 @@ else {
         }
     }
 
+    [Parameter]
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    
     [Parameter]
     public UserProfileResponse? GlobalProfile { get; set; }
 

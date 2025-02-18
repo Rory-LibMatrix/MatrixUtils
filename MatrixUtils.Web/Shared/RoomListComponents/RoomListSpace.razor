@@ -35,15 +35,18 @@
         set => _breadcrumbs = value;
     }
 
+    [Parameter]
+    public required AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
     private ObservableCollection<RoomInfo> Children { get; set; } = new();
     private Collection<RoomInfo> Unjoined { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
         if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));
+        if (Homeserver is null) throw new ArgumentNullException(nameof(Homeserver));
         await Task.Delay(Random.Shared.Next(1000, 10000));
         var rooms = Space.Room.AsSpace.GetChildrenAsync();
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
-        var joinedRooms = await hs.GetJoinedRooms();
+        var joinedRooms = await Homeserver.GetJoinedRooms();
         await foreach (var room in rooms) {
             if (Breadcrumbs.Contains(room.RoomId)) continue;
             var roomInfo = KnownRooms.FirstOrDefault(x => x.Room.RoomId == room.RoomId);
@@ -51,10 +54,12 @@
                 roomInfo = new RoomInfo(room);
                 KnownRooms.Add(roomInfo);
             }
-            if(joinedRooms.Any(x=>x.RoomId == room.RoomId))
+
+            if (joinedRooms.Any(x => x.RoomId == room.RoomId))
                 Children.Add(roomInfo);
             else Unjoined.Add(roomInfo);
         }
+
         await base.OnInitializedAsync();
     }
 

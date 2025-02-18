@@ -13,9 +13,7 @@
 <p>@Status2</p>
 
 <LinkButton href="/Rooms/Create">Create new room</LinkButton>
-<CascadingValue TValue="AuthenticatedHomeserverGeneric" Value="Homeserver">
-    <RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile" @bind-StillFetching="RenderContents"></RoomList>
-</CascadingValue>
+<RoomList Rooms="Rooms" GlobalProfile="@GlobalProfile" @bind-StillFetching="RenderContents" Homeserver="@Homeserver"></RoomList>
 
 @code {
 
@@ -122,7 +120,7 @@
             try {
                 while (queue.Count == 0) {
                     Console.WriteLine("Queue is empty, waiting...");
-                    await Task.Delay(isInitialSync ? 100 : 2500);
+                    await Task.Delay(isInitialSync ? 1000 : 2500);
                 }
 
                 Console.WriteLine($"Queue no longer empty after {renderTimeSw.Elapsed}!");
@@ -131,15 +129,15 @@
                 isInitialSync = false;
                 while (maxUpdates-- > 0 && queue.TryDequeue(out var queueEntry)) {
                     var (roomId, roomData) = queueEntry;
-                    Console.WriteLine($"Dequeued room {roomId}");
+                    // Console.WriteLine($"Dequeued room {roomId}");
                     RoomInfo room;
 
                     if (Rooms.Any(x => x.Room.RoomId == roomId)) {
                         room = Rooms.First(x => x.Room.RoomId == roomId);
-                        Console.WriteLine($"QueueWorker: {roomId} already known with {room.StateEvents?.Count ?? 0} state events");
+                        // Console.WriteLine($"QueueWorker: {roomId} already known with {room.StateEvents?.Count ?? 0} state events");
                     }
                     else {
-                        Console.WriteLine($"QueueWorker: encountered new room {roomId}!");
+                        // Console.WriteLine($"QueueWorker: encountered new room {roomId}!");
                         room = new RoomInfo(Homeserver.GetRoom(roomId), roomData.State?.Events);
                         Rooms.Add(room);
                     }
@@ -155,6 +153,11 @@
                         Console.WriteLine($"QueueWorker: could not merge state for {room.Room.RoomId} as new data contains no state events!");
                     }
 
+                    if (maxUpdates % 100 == 0) {
+                        Console.WriteLine($"QueueWorker: {queue.Count} entries left in queue, {maxUpdates} maxUpdates left, RenderContents: {RenderContents}");
+                        StateHasChanged();
+                        await Task.Yield();
+                    }
                     // await Task.Delay(100);
                 }
 
@@ -225,9 +228,10 @@
                         Rooms.Remove(Rooms.First(x => x.Room.RoomId == leftRoom.Key));
 
             Status = $"Got {Rooms.Count} rooms so far! {queue.Count} entries in processing queue... " +
-                     $"{sync?.Rooms?.Join?.Count ?? 0} new updates!";
+                     $"{sync.Rooms?.Join?.Count ?? 0} new updates!";
 
-            Status2 = $"Next batch: {sync.NextBatch}";
+            Status2 = $"Next batch: {sync?.NextBatch}";
+            await Task.Yield();
         }
     }
 

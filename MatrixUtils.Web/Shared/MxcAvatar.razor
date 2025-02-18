@@ -1,17 +1,16 @@
-<StreamedImage Stream="@_stream" style="@StyleString"/>
+<MxcImage Homeserver="@Homeserver" Uri="@MxcUri" style="@StyleString"/>
 
 @code {
-    private string _mxcUri;
     private string _style;
-    private Stream _stream;
-    
+
     [Parameter]
-    public string MxcUri {
-        get => _mxcUri ?? "";
+    public string? MxcUri {
+        get;
         set {
-            if(_mxcUri == value) return;
-            _mxcUri = value;
-            UriHasChanged(value);
+            if(field == value) return;
+            field = value;
+            // UriHasChanged(value);
+            StateHasChanged();
         }
     }
 
@@ -25,31 +24,26 @@
     public string SizeUnit { get; set; } = "px";
 
     [Parameter]
-    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    public required AuthenticatedHomeserverGeneric Homeserver { get; set; }
     
     private string StyleString => $"{(Circular ? "border-radius: 50%;" : "")} width: {Size}{SizeUnit}; height: {Size}{SizeUnit}; object-fit: cover;";
 
     private static readonly string Prefix = "mxc://";
     private static readonly int PrefixLength = Prefix.Length;
 
-    private async Task UriHasChanged(string value) {
-        if (!value.StartsWith(Prefix)) {
-            // Console.WriteLine($"UriHasChanged: {value} does not start with {Prefix}, passing as resolved URI!!!");
-            // ResolvedUri = value;
-            return;
-        }
-
-        if (Homeserver is null) {
-            Console.WriteLine("Homeserver is required for MxcAvatar");
-            return;
-        }
-
-        var uri = value[PrefixLength..].Split('/');
-        // Console.WriteLine($"UriHasChanged: {value} {uri[0]}");
-        var url = $"/_matrix/media/v3/download/{uri[0]}/{uri[1]}";
-        Console.WriteLine($"ResolvedUri: {url}");
-        _stream = await Homeserver.ClientHttpClient.GetStreamAsync(url);
-        StateHasChanged();
-    }
+    // private async Task UriHasChanged(string? value) {
+    //     if (string.IsNullOrWhiteSpace(value) || !value.StartsWith(Prefix)) {
+    //         Console.WriteLine($"[MxcAvatar] UriHasChanged: {value} does not start with {Prefix}!");
+    //         return;
+    //     }
+    //
+    //     if (Homeserver is null) {
+    //         Console.WriteLine($"[MxcAvatar] Homeserver is required for MxcAvatar! URI: {MxcUri}, Homeserver: {Homeserver?.ToString() ?? "null"}");
+    //         return;
+    //     }
+    //
+    //     Console.WriteLine($"[MxcAvatar] Homeserver: {Homeserver}");
+    //     StateHasChanged();
+    // }
 
 }

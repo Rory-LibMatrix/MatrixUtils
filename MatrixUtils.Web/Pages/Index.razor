@@ -25,8 +25,9 @@ Small collection of tools to do not-so-everyday things.
             var auth = session.UserAuth;
             <tr class="user-entry">
                 <td>
-                    @if (!string.IsNullOrWhiteSpace(@session.UserInfo.AvatarUrl)) {
-                        <MxcAvatar Homeserver="session.Homeserver" MxcUri="@session.UserInfo.AvatarUrl" Circular="true" Size="4" SizeUnit="em"/>
+                    @if (!string.IsNullOrWhiteSpace(@session.UserInfo?.AvatarUrl)) {
+                        // Console.WriteLine($"Rendering {session.UserInfo.AvatarUrl} with homeserver {session.Homeserver}");
+                        <MxcAvatar Homeserver="@session.Homeserver" MxcUri="@session.UserInfo.AvatarUrl" Circular="true" Size="4" SizeUnit="em"/>
                     }
                     else {
                         <img class="avatar" src="@_identiconGenerator.GenerateAsDataUri(session.Homeserver.WhoAmI.UserId)"/>

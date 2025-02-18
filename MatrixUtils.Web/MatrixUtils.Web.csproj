@@ -17,24 +17,24 @@
 
     <!-- Explicitly disable all the unused runtime things trimming would have removed anyways -->
     <!-- https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trimming-options -->
-    <PropertyGroup>
-        <AutoreleasePoolSupport>false</AutoreleasePoolSupport> <!-- Browser != MacOS -->
-        <MetadataUpdaterSupport>false</MetadataUpdaterSupport> <!-- Unreliable -->
-        <DebuggerSupport>false</DebuggerSupport> <!-- Unreliable -->
-        <InvariantGlobalization>true</InvariantGlobalization> <!-- invariant globalization is fine -->
-        <!-- unused features -->
-        <EventSourceSupport>false</EventSourceSupport>
-        <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
-        <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
-        <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
-        <MetricsSupport>false</MetricsSupport>
-        <UseNativeHttpHandler>false</UseNativeHttpHandler>
-        <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
-        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
-        <CustomResourceTypesSupport>false</CustomResourceTypesSupport>
-        <EnableCppCLIHostActivation>false</EnableCppCLIHostActivation>
-        <StartupHookSupport>false</StartupHookSupport>
-    </PropertyGroup>
+<!--    <PropertyGroup>-->
+<!--        <AutoreleasePoolSupport>false</AutoreleasePoolSupport> &lt;!&ndash; Browser != MacOS &ndash;&gt;-->
+<!--        <MetadataUpdaterSupport>false</MetadataUpdaterSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
+<!--        <DebuggerSupport>false</DebuggerSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
+<!--        <InvariantGlobalization>true</InvariantGlobalization> &lt;!&ndash; invariant globalization is fine &ndash;&gt;-->
+<!--        &lt;!&ndash; unused features &ndash;&gt;-->
+<!--        <EventSourceSupport>false</EventSourceSupport>-->
+<!--        <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>-->
+<!--        <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>-->
+<!--        <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>-->
+<!--        <MetricsSupport>false</MetricsSupport>-->
+<!--        <UseNativeHttpHandler>false</UseNativeHttpHandler>-->
+<!--        <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
+<!--        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>-->
+<!--        <CustomResourceTypesSupport>false</CustomResourceTypesSupport>-->
+<!--        <EnableCppCLIHostActivation>false</EnableCppCLIHostActivation>-->
+<!--        <StartupHookSupport>false</StartupHookSupport>-->
+<!--    </PropertyGroup>-->
 
     <ItemGroup>
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0"/>
@@ -42,7 +42,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.1" PrivateAssets="all" />
         <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.1" />
-        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.5.36" />
+        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.5.39" />
     </ItemGroup>
 
     <ItemGroup>

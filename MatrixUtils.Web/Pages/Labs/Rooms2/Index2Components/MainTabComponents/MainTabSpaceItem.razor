@@ -1,14 +1,14 @@
 @using MatrixUtils.Abstractions
-<div class="spaceListItem" style="@(SelectedSpace == Space ? "background-color: #FFFFFF33;" : "")" onclick="@SelectSpace">
+<div class="spaceListItem" style="@(SelectedSpace == Space ? "background-color: #FFFFFF33;" : "")" @onclick="@SelectSpace">
     <div class="spaceListItemContainer">
         @if (IsSpaceOpened()) {
-            <span onclick="@ToggleSpace">▼ </span>
+            <span @onclick="@ToggleSpace">▼ </span>
         }
         else {
-            <span onclick="@ToggleSpace">▶ </span>
+            <span @onclick="@ToggleSpace">▶ </span>
         }
 
-        <MxcImage Circular="true" Height="32" Width="32" MxcUri="@Space.RoomIcon"></MxcImage>
+        <MxcImage Homeserver="@Homeserver" Circular="true" Height="32" Width="32" Uri="@Space.RoomIcon"></MxcImage>
         <span class="spaceNameEllipsis">@Space.RoomName</span>
     </div>
     @if (IsSpaceOpened()) {
@@ -29,6 +29,9 @@
 
     [Parameter]
     public List<RoomInfo> OpenedSpaces { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
     protected override Task OnInitializedAsync() {
         Space.PropertyChanged += (sender, args) => { StateHasChanged(); };

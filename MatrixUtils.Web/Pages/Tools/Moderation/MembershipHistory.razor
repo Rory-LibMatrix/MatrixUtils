@@ -2,8 +2,10 @@
 @using System.Collections.Frozen
 @using System.Collections.ObjectModel
 @using System.Diagnostics
+@using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.Filters
 @{
     var sw = Stopwatch.StartNew();
     Console.WriteLine("Start render");
@@ -397,7 +399,7 @@
 
     private ObservableCollection<string> Log { get; set; } = new();
     private List<StateEventResponse> Memberships { get; set; } = [];
-    private AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
+    private AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "room")]
     public string RoomId { get; set; } = "";
@@ -417,7 +419,8 @@
     private async Task Execute() {
         Memberships.Clear();
         var room = Homeserver.GetRoom(RoomId);
-        var events = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 5000);
+        var filter = new SyncFilter.EventFilter() { Types = [RoomMemberEventContent.EventId] };
+        var events = room.GetManyMessagesAsync(limit: int.MaxValue, filter: filter.ToJson(ignoreNull: true, indent: false));
         await foreach (var resp in events) {
             var all = resp.State.Concat(resp.Chunk);
             Memberships.AddRange(all.Where(x => x.Type == RoomMemberEventContent.EventId));

@@ -1,22 +1,22 @@
 @page "/Tools/Info/PolicyListActivity"
 @using LibMatrix.EventTypes.Spec.State.Policy
 @using System.Diagnostics
+@using System.Reflection
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes
 @using LibMatrix.RoomTypes
 @using LibMatrix.EventTypes.Common
-
-
+@using LibMatrix.Filters
 
 @* <ActivityGraph Data="TestData"/> *@
-@if (RoomData.Count == 0)
-{
+@if (RoomData.Count == 0) {
     <p>Loading...</p>
 }
 else
-    foreach (var room in RoomData)
-    {
+    foreach (var room in RoomData) {
         <h3>@room.Key</h3>
-        @foreach (var year in room.Value.OrderBy(x => x.Key))
-        {
+        @foreach (var year in room.Value.OrderBy(x => x.Key)) {
             <span>@year.Key</span>
             <ActivityGraph Data="@year.Value" GlobalMax="MaxValue" RLabel="removed" GLabel="new" BLabel="updated policies"/>
         }
@@ -29,66 +29,26 @@ else
 
     public Dictionary<DateOnly, ActivityGraph.RGB> TestData { get; set; } = new();
 
-    public ActivityGraph.RGB MaxValue { get; set; } = new()
-    {
+    public ActivityGraph.RGB MaxValue { get; set; } = new() {
         R = 255, G = 255, B = 255
     };
 
     public Dictionary<string, Dictionary<int, Dictionary<DateOnly, ActivityGraph.RGB>>> RoomData { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         var sw = Stopwatch.StartNew();
         await base.OnInitializedAsync();
         Homeserver = (await RmuStorage.GetCurrentSessionOrNavigate())!;
         if (Homeserver is null) return;
-        //
-        //random test data
-        for (DateOnly i = new DateOnly(2020, 1, 1); i < new DateOnly(2020, 12, 30); i = i.AddDays(2))
-        {
-            // TestData[i] = new()
-            // {
-            //     R = (int)(Random.Shared.NextSingle() * 255),
-            //     G = (int)(Random.Shared.NextSingle() * 255),
-            //     B = (int)(Random.Shared.NextSingle() * 255)
-            // };
-            // rgb based on number of week
-            TestData[i] = new()
-            {
-                R = i.DayOfYear % 255,
-                G = i.DayOfYear + 96 % 255,
-                B = i.DayOfYear + 192 % 255
-            };
-        }
-
-        StateHasChanged();
-        // return;
 
         var rooms = await Homeserver.GetJoinedRooms();
-        // foreach (var room in rooms)
-        // {
-        //     var type = await room.GetRoomType();
-        //     if (type == "support.feline.policy.lists.msc.v1")
-        //     {
-        //         Console.WriteLine($"{room.RoomId} is policy list by type");
-        //         FilteredRooms.Add(room);
-        //     }
-        //     else if(await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId) is not null)
-        //     {
-        //         Console.WriteLine($"{room.RoomId} is policy list by shortcode");
-        //         FilteredRooms.Add(room);
-        //     }
-        // }
-        var roomFilterTasks = rooms.Select(async room =>
-        {
+        var roomFilterTasks = rooms.Select(async room => {
             var type = await room.GetRoomType();
-            if (type == "support.feline.policy.lists.msc.v1")
-            {
+            if (type == "support.feline.policy.lists.msc.v1") {
                 Console.WriteLine($"{room.RoomId} is policy list by type");
                 return room;
             }
-            else if (await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId) is not null)
-            {
+            else if (await room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId) is not null) {
                 Console.WriteLine($"{room.RoomId} is policy list by shortcode");
                 return room;
             }
@@ -106,60 +66,75 @@ else
         Console.WriteLine($"Filtered {FilteredRooms.Count} rooms in {sw.ElapsedMilliseconds}ms");
     }
 
-    public async Task FetchRoomHistory(GenericRoom room)
-    {
+    public async Task FetchRoomHistory(GenericRoom room) {
         var roomName = await room.GetNameOrFallbackAsync();
-            if (string.IsNullOrWhiteSpace(roomName)) roomName = room.RoomId;
-            if (!RoomData.ContainsKey(roomName))
-            {
-                RoomData[roomName] = new();
-            }
+        if (string.IsNullOrWhiteSpace(roomName)) roomName = room.RoomId;
+        if (!RoomData.ContainsKey(roomName)) {
+            RoomData[roomName] = new();
+        }
 
-            //use timeline
-            var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 2000);
-            await foreach (var response in timeline)
-            {
-                Console.WriteLine($"Got {response.State.Count} state, {response.Chunk.Count} timeline");
-                if (response.State.Count != 0) throw new Exception("Why the hell did we receive state events?");
-                foreach (var message in response.Chunk)
-                {
-                    if (!message.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
-                    //OriginServerTs to datetime
-                    var dt = DateTimeOffset.FromUnixTimeMilliseconds((long)message.OriginServerTs!.Value).DateTime;
-                    var date = new DateOnly(dt.Year, dt.Month, dt.Day);
-                    if (!RoomData[roomName].ContainsKey(date.Year))
-                    {
-                        RoomData[roomName][date.Year] = new();
-                    }
-
-                    if (!RoomData[roomName][date.Year].ContainsKey(date))
-                    {
-                        // Console.WriteLine($"Adding {date} to {roomName}");
-                        RoomData[roomName][date.Year][date] = new();
-                    }
-
-                    var rgb = RoomData[roomName][date.Year][date];
-                    if (message.RawContent?.Count == 0) rgb.R++;
-                    else if (message.Unsigned?.ContainsKey("replaces_state") ?? false) rgb.G++;
-                    else rgb.B++;
-                    RoomData[roomName][date.Year][date] = rgb;
+        //use timeline
+        var types = StateEventResponse.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent)));
+        var filter = new SyncFilter.EventFilter(types: types.SelectMany(x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName)).ToList());
+        var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 2500, filter: filter.ToJson(indent: false, ignoreNull: true));
+        await foreach (var response in timeline) {
+            Console.WriteLine($"Got {response.State.Count} state, {response.Chunk.Count} timeline");
+            if (response.State.Count != 0) throw new Exception("Why the hell did we receive state events?");
+            foreach (var message in response.Chunk) {
+                if (!message.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
+                //OriginServerTs to datetime
+                var dt = DateTimeOffset.FromUnixTimeMilliseconds((long)message.OriginServerTs!.Value).DateTime;
+                var date = new DateOnly(dt.Year, dt.Month, dt.Day);
+                if (!RoomData[roomName].ContainsKey(date.Year)) {
+                    RoomData[roomName][date.Year] = new();
                 }
 
-                var max = RoomData.SelectMany(x => x.Value.Values).Aggregate(new ActivityGraph.RGB(), (current, next) => new()
-                {
-                    R = Math.Max(current.R, next.Average(x => x.Value.R)),
-                    G = Math.Max(current.G, next.Average(x => x.Value.G)),
-                    B = Math.Max(current.B, next.Average(x => x.Value.B))
-                });
-                MaxValue = new ActivityGraph.RGB(
-                    r: Math.Max(max.R, Math.Max(max.G, max.B)),
-                    g: Math.Max(max.R, Math.Max(max.G, max.B)),
-                    b: Math.Max(max.R, Math.Max(max.G, max.B)));
-                Console.WriteLine($"Max value is {MaxValue.R} {MaxValue.G} {MaxValue.B}");
-                StateHasChanged();
-                await Task.Delay(100);
+                if (!RoomData[roomName][date.Year].ContainsKey(date)) {
+                    // Console.WriteLine($"Adding {date} to {roomName}");
+                    RoomData[roomName][date.Year][date] = new();
+                }
+
+                var rgb = RoomData[roomName][date.Year][date];
+                if (message.RawContent is { Count: 0 } or null) rgb.R++;
+                else if (!message.Unsigned?.ContainsKey("replaces_state") ?? true) rgb.G++;
+                else rgb.B++;
+                RoomData[roomName][date.Year][date] = rgb;
             }
+
+            
+        }
+        var max = RoomData.SelectMany(x => x.Value.Values).Aggregate(new ActivityGraph.RGB(), (current, next) => new() {
+            R = Math.Max(current.R, next.Average(x => x.Value.R)),
+            G = Math.Max(current.G, next.Average(x => x.Value.G)),
+            B = Math.Max(current.B, next.Average(x => x.Value.B))
+        });
+        MaxValue = new ActivityGraph.RGB(
+            r: Math.Max(max.R, Math.Max(max.G, max.B)),
+            g: Math.Max(max.R, Math.Max(max.G, max.B)),
+            b: Math.Max(max.R, Math.Max(max.G, max.B)));
+        Console.WriteLine($"Max value is {MaxValue.R} {MaxValue.G} {MaxValue.B}");
+        StateHasChanged();
+        await Task.Yield();
     }
 
+    private readonly struct StateEventEntry {
+        public required DateTime Timestamp { get; init; }
+        public required StateEventTransition State { get; init; }
+        public required StateEventResponse Event { get; init; }
+        public required StateEventResponse? Previous { get; init; }
+
+        public void Deconstruct(out StateEventTransition transition, out StateEventResponse evt, out StateEventResponse? prev) {
+            transition = State;
+            evt = Event;
+            prev = Previous;
+        }
+    }
+
+    private enum StateEventTransition : byte {
+        None,
+        Add,
+        Update,
+        Remove
+    }
 
 }

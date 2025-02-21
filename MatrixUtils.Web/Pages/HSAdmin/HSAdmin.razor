@@ -12,6 +12,11 @@ else {
         <hr/>
         <a href="/HSAdmin/RoomQuery">Query rooms</a>
     }
+    else if (Homeserver is AuthenticatedHomeserverHSE) {
+        <h4>Rory&amp;::LibMatrix.HomeserverEmulator tools</h4>
+        <hr/>
+        <a href="/HSAdmin/HSE/ManageExternalProfiles">Manage external profiles</a>
+    }
     else {
         <p>Homeserver type @Homeserver.GetType().Name does not have any administration tools in RMU.</p>
         <p>Server info:</p>

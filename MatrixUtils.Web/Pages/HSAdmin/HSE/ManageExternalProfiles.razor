@@ -1,0 +1,43 @@
+@page "/HSAdmin/HSE/ManageExternalProfiles"
+@using ArcaneLibs.Extensions
+@using LibMatrix.Responses
+<h3>Manage external profiles</h3>
+
+<LinkButton OnClick="AddAllLocalProfiles">Add local sessions</LinkButton>
+
+@foreach(var p in ExternalProfiles)
+{
+    <h4>@p.Key</h4>
+    <pre>@p.Value.ToJson(indent: true)</pre>
+}
+
+@code {
+    public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    private Dictionary<string, LoginResponse> ExternalProfiles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        if (Homeserver is null) return;
+        await LoadProfiles();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task LoadProfiles() {
+        if(Homeserver is AuthenticatedHomeserverHSE hse)
+        {
+            ExternalProfiles = await hse.GetExternalProfilesAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async Task AddAllLocalProfiles() {
+        if(Homeserver is AuthenticatedHomeserverHSE hse) {
+            var sessions = await RmuStorage.GetAllTokens();
+            foreach(var session in sessions) {
+                await hse.SetExternalProfile(session.UserId, session);
+            }
+            await LoadProfiles();
+        }
+    }
+}

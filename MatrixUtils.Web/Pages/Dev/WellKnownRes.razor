@@ -1,0 +1,88 @@
+@page "/Dev/WellKnownRes"
+@using ArcaneLibs.Extensions
+@using LibMatrix.Services.WellKnownResolvers
+@inject HomeserverResolverService legacyResolver
+@inject WellKnownResolverService rewriteResolver
+@inject ClientWellKnownResolver rewriteClientResolver
+<h3>Known Homeserver List</h3>
+<hr/>
+
+<span>Room ID: <FancyTextBox @bind-Value="@RoomId"/><LinkButton OnClick="@Execute">Execute</LinkButton></span>
+
+
+<table class="table-bordered">
+    <thead>
+        <td>Homeserver</td>
+        <td>Legacy client URL</td>
+        <td>Rewrite client URL</td>
+    </thead>
+    @foreach (var entry in entries) {
+        <tr style="background-color: @GetColor(entry)">
+            <td>@entry.Homeserver</td>
+            <td>@(entry.LegacyClientUrl ?? "null")</td>
+            <td>@(entry.RewriteClientUrl ?? "null")</td>
+        </tr>
+    }
+</table>
+
+@code {
+    private List<TableEntry> entries = new();
+
+    [SupplyParameterFromQuery]
+    public string? RoomId { get; set; }
+
+    AuthenticatedHomeserverGeneric? hs { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        if (hs is null) return;
+
+        if (RoomId is not null) {
+            await Execute();
+        }
+    }
+
+    private class TableEntry {
+        public required string Homeserver { get; set; }
+        public string? LegacyClientUrl { get; set; }
+        public string? RewriteClientUrl { get; set; }
+    }
+
+    private async Task Execute() {
+        var members = await hs!.GetRoom(RoomId!).GetMembersListAsync();
+        var homeservers = members.Select(x => x.StateKey!.Split(':', 2)[1]).Distinct().ToList();
+        var entries = new List<TableEntry>();
+        foreach (var homeserver in homeservers) {
+            var e = new TableEntry() { Homeserver = homeserver };
+            _ = TryResolveLegacy(e);
+            _ = TryResolveRewrite(e);
+            entries.Add(e);
+        }
+
+        this.entries = entries;
+        StateHasChanged();
+    }
+
+    private async Task TryResolveLegacy(TableEntry entry) {
+        try {
+            entry.LegacyClientUrl = (await legacyResolver.ResolveHomeserverFromWellKnown(entry.Homeserver, enableServer: false)).Client;
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private async Task TryResolveRewrite(TableEntry entry) {
+        try {
+            entry.RewriteClientUrl = (await rewriteClientResolver.TryResolveClientWellKnown(entry.Homeserver)).WellKnown.Homeserver.BaseUrl;
+            StateHasChanged();
+        }
+        catch { }
+    }
+    
+    private string GetColor(TableEntry entry) {
+        if (entry.LegacyClientUrl == entry.RewriteClientUrl && entry.RewriteClientUrl == null) return "#333333";
+        if (entry.LegacyClientUrl == entry.RewriteClientUrl?.TrimEnd('/')) return "#008800";
+        return "#ff0000";
+    }
+
+}

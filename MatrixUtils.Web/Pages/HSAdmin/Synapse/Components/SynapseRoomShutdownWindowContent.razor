@@ -1,0 +1,113 @@
+@using LibMatrix.Homeservers.Extensions.NamedCaches
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
+
+@if (string.IsNullOrWhiteSpace(Context.DeleteId)) {
+    <b>Media options</b>
+    <br/>
+    <hr/>
+    <span>Quarantine local media: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalMedia"/>
+    <br/>
+    <span>Quarantine remote media: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineRemoteMedia"/>
+    <br/>
+    <span>Delete remote media: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteRemoteMedia"/>
+    <br/>
+
+    <b>User options</b>
+    <br/>
+    <hr/>
+    <span>Suspend local users: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.SuspendLocalUsers"></InputCheckbox>
+    <br/>
+    <span>Quarantine <b>ALL</b> local user media: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalUserMedia"></InputCheckbox>
+    <br/>
+    <span>Delete <b>ALL</b> local user media: </span>
+    <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteLocalUserMedia"></InputCheckbox>
+    <br/>
+
+    <b>Room deletion options</b>
+    <br/>
+    <hr/>
+    <span>Block room: </span>
+    <InputCheckbox @bind-Value="@Context.DeleteRequest.Block"/>
+    <br/>
+    <span>Purge room: </span>
+    <InputCheckbox @bind-Value="@Context.DeleteRequest.Purge"/>
+    <br/>
+    <span>Force purge room (unsafe): </span>
+    <InputCheckbox @bind-Value="@Context.DeleteRequest.ForcePurge"></InputCheckbox>
+    <br/>
+    <span>Warning room User ID (optional): </span>
+    <FancyTextBox @bind-Value="@Context.DeleteRequest.NewRoomUserId"/>
+    <br/>
+    @if (!string.IsNullOrWhiteSpace(Context.DeleteRequest.NewRoomUserId)) {
+        <span>Warning room name: </span>
+        <FancyTextBox @bind-Value="@Context.DeleteRequest.RoomName"/>
+        <br/>
+        <span>Warning room message (plaintext): </span>
+        <FancyTextBox Multiline="true" @bind-Value="@Context.DeleteRequest.Message"/>
+        <br/>
+    }
+
+    <LinkButton OnClick="@DeleteRoom">Execute</LinkButton>
+}
+
+@code {
+
+    [Parameter]
+    public required RoomShutdownContext Context { get; set; }
+
+    [Parameter]
+    public required AuthenticatedHomeserverSynapse Homeserver { get; set; }
+
+    private NamedCache<RoomShutdownContext> TaskMap { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync() {
+        TaskMap = new NamedCache<RoomShutdownContext>(Homeserver, "gay.rory.matrixutils.synapse_room_shutdown_tasks");
+    }
+
+    public class RoomShutdownContext {
+        public required string RoomId { get; set; }
+        public string? DeleteId { get; set; }
+        public ExtraDeleteOptions ExtraOptions { get; set; } = new();
+
+        public SynapseAdminRoomDeleteRequest DeleteRequest { get; set; } = new() {
+            Block = true,
+            Purge = true,
+            ForcePurge = false
+        };
+
+        public class ExtraDeleteOptions {
+            // room options
+            public bool QuarantineLocalMedia { get; set; }
+            public bool QuarantineRemoteMedia { get; set; }
+
+            public bool DeleteRemoteMedia { get; set; }
+
+            // user options
+            public bool SuspendLocalUsers { get; set; }
+            public bool QuarantineLocalUserMedia { get; set; }
+            public bool DeleteLocalUserMedia { get; set; }
+        }
+    }
+
+    public async Task OnComplete() {
+        await OnCompleteLock.WaitAsync();
+        try {
+            await TaskMap.RemoveValueAsync(Context.DeleteId!);
+        }
+        finally {
+            OnCompleteLock.Release();
+        }
+    }
+
+    public async Task DeleteRoom() {
+        await TaskMap.SetValueAsync(Context.RoomId, Context);
+    }
+    
+    private static readonly SemaphoreSlim OnCompleteLock = new(1, 1);
+    
+}

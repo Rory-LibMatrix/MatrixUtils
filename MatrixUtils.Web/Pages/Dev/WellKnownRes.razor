@@ -1,6 +1,7 @@
 @page "/Dev/WellKnownRes"
 @using ArcaneLibs.Extensions
-@using LibMatrix.Services.WellKnownResolvers
+@using LibMatrix.Services.WellKnownResolver
+@using LibMatrix.Services.WellKnownResolver.WellKnownResolvers
 @inject HomeserverResolverService legacyResolver
 @inject WellKnownResolverService rewriteResolver
 @inject ClientWellKnownResolver rewriteClientResolver
@@ -9,18 +10,39 @@
 
 <span>Room ID: <FancyTextBox @bind-Value="@RoomId"/><LinkButton OnClick="@Execute">Execute</LinkButton></span>
 
+<span>Stats:</span><br/>
+<span>Server count: @entries.Count</span><br/>
+<span>Client server resolution rate (N/O/T): @entries.Count(x => x.HasClientWellKnown)/@entries.Count(x => !string.IsNullOrWhiteSpace(x.LegacyResolutionResult?.Client))/@entries.Count</span>
+<br/>
+<span>Server server resolution rate (N/T): @entries.Count(x => x.HasServerWellKnown)/@entries.Count</span><br/>
+<span>Support resolution rate (N/T): @entries.Count(x => x.HasSupportWellKnown)/@entries.Count</span><br/>
 
 <table class="table-bordered">
     <thead>
         <td>Homeserver</td>
-        <td>Legacy client URL</td>
-        <td>Rewrite client URL</td>
+        <td>Client API</td>
+        <td>Server API</td>
+        <td>Has support record</td>
     </thead>
     @foreach (var entry in entries) {
-        <tr style="background-color: @GetColor(entry)">
+        <tr>
             <td>@entry.Homeserver</td>
-            <td>@(entry.LegacyClientUrl ?? "null")</td>
-            <td>@(entry.RewriteClientUrl ?? "null")</td>
+            <td style="background-color: @GetClientColor(entry)">
+                <span>L: @entry.LegacyResolutionResult?.Client</span><br/>
+                <span>R: @entry.WellKnownResolutionResult?.ClientWellKnown?.Content?.Homeserver.BaseUrl</span>
+            </td>
+            <td style="background-color: @GetServerColor(entry)">
+                <span>L: @entry.LegacyResolutionResult?.Server</span><br/>
+                <span>R: @entry.WellKnownResolutionResult?.ServerWellKnown?.Content?.Homeserver</span>
+            </td>
+            <td>@(entry.HasSupportWellKnown ? "Y" : "X")</td>
+        </tr>
+        <tr>
+            <td colspan="6">
+                <details>
+                    <pre>@(entry.WellKnownResolutionResult?.ToJson() ?? "null")</pre>
+                </details>
+            </td>
         </tr>
     }
 </table>
@@ -44,8 +66,12 @@
 
     private class TableEntry {
         public required string Homeserver { get; set; }
-        public string? LegacyClientUrl { get; set; }
-        public string? RewriteClientUrl { get; set; }
+        public HomeserverResolverService.WellKnownUris? LegacyResolutionResult { get; set; }
+        public WellKnownResolverService.WellKnownRecords? WellKnownResolutionResult { get; set; }
+
+        public bool HasClientWellKnown => WellKnownResolutionResult?.ClientWellKnown is { Content.Homeserver.BaseUrl: { Length: > 0 } };
+        public bool HasServerWellKnown => WellKnownResolutionResult?.ServerWellKnown is { Content.Homeserver.Length: > 0 };
+        public bool HasSupportWellKnown => WellKnownResolutionResult?.SupportWellKnown?.Content is not null and not { SupportPage: null, Contacts: null or { Count: 0 } };
     }
 
     private async Task Execute() {
@@ -55,7 +81,7 @@
         foreach (var homeserver in homeservers) {
             var e = new TableEntry() { Homeserver = homeserver };
             _ = TryResolveLegacy(e);
-            _ = TryResolveRewrite(e);
+            _ = TryFullResolveRewrite(e);
             entries.Add(e);
         }
 
@@ -65,23 +91,32 @@
 
     private async Task TryResolveLegacy(TableEntry entry) {
         try {
-            entry.LegacyClientUrl = (await legacyResolver.ResolveHomeserverFromWellKnown(entry.Homeserver, enableServer: false)).Client;
+            var cTask = legacyResolver.ResolveHomeserverFromWellKnown(entry.Homeserver, enableServer: false);
+            var sTask = legacyResolver.ResolveHomeserverFromWellKnown(entry.Homeserver, enableClient: false);
+            entry.LegacyResolutionResult = (await cTask);
+            entry.LegacyResolutionResult.Server = (await sTask).Server;
             StateHasChanged();
         }
         catch { }
     }
 
-    private async Task TryResolveRewrite(TableEntry entry) {
+    private async Task TryFullResolveRewrite(TableEntry entry) {
         try {
-            entry.RewriteClientUrl = (await rewriteClientResolver.TryResolveClientWellKnown(entry.Homeserver)).WellKnown.Homeserver.BaseUrl;
+            entry.WellKnownResolutionResult = await rewriteResolver.TryResolveWellKnownRecords(entry.Homeserver);
             StateHasChanged();
         }
         catch { }
     }
-    
-    private string GetColor(TableEntry entry) {
-        if (entry.LegacyClientUrl == entry.RewriteClientUrl && entry.RewriteClientUrl == null) return "#333333";
-        if (entry.LegacyClientUrl == entry.RewriteClientUrl?.TrimEnd('/')) return "#008800";
+
+    private string GetClientColor(TableEntry entry) {
+        if (entry.LegacyResolutionResult?.Client == entry.WellKnownResolutionResult?.ClientWellKnown?.Content?.Homeserver?.BaseUrl && entry.WellKnownResolutionResult?.ClientWellKnown?.Content?.Homeserver?.BaseUrl == null) return "#333333";
+        if (entry.LegacyResolutionResult?.Client == entry.WellKnownResolutionResult?.ClientWellKnown?.Content?.Homeserver?.BaseUrl?.TrimEnd('/')) return "#008800";
+        return "#ff0000";
+    }
+
+    private string GetServerColor(TableEntry entry) {
+        if (entry.LegacyResolutionResult?.Server == entry.WellKnownResolutionResult?.ServerWellKnown?.Content?.Homeserver && entry.WellKnownResolutionResult?.ServerWellKnown?.Content?.Homeserver == null) return "#333333";
+        if (entry.LegacyResolutionResult?.Server == entry.WellKnownResolutionResult?.ServerWellKnown?.Content?.Homeserver.TrimEnd('/')) return "#008800";
         return "#ff0000";
     }
 

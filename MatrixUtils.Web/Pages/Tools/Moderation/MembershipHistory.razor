@@ -2,6 +2,7 @@
 @using System.Collections.Frozen
 @using System.Collections.ObjectModel
 @using System.Diagnostics
+@using System.Text.Json
 @using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
@@ -422,7 +423,15 @@
         var filter = new SyncFilter.EventFilter() { Types = [RoomMemberEventContent.EventId] };
         var events = room.GetManyMessagesAsync(limit: int.MaxValue, filter: filter.ToJson(ignoreNull: true, indent: false));
         await foreach (var resp in events) {
-            var all = resp.State.Concat(resp.Chunk);
+            var all = resp.State.Concat(resp.Chunk)
+                // ugly hack, because some users fuck around too much
+                .Select(x => {
+                    if (x.RawContent?["displayname"]?.GetValueKind() != JsonValueKind.String)
+                        x.RawContent?.Remove("displayname");
+                    if (x.RawContent?["avatar_url"]?.GetValueKind() is not JsonValueKind.String)
+                        x.RawContent?.Remove("avatar_url");
+                    return x;
+                });
             Memberships.AddRange(all.Where(x => x.Type == RoomMemberEventContent.EventId));
 
             Log.Add($"Got {resp.State.Count} state and {resp.Chunk.Count} timeline events.");

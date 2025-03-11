@@ -1,7 +1,10 @@
 @page "/HSAdmin/Synapse/RoomQuery"
-@using LibMatrix.Responses.Admin
-@using LibMatrix.Filters
+@using Microsoft.AspNetCore.WebUtilities
 @using ArcaneLibs.Extensions
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
+@using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components
 
 <h3>Homeserver Administration - Room Query</h3>
 
@@ -48,13 +51,17 @@
 
         <u style="display: block;">Ranges</u>
         <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsGreaterThan"></InputNumber><span class="range-sep">state events</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsLessThan"></InputNumber>
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsGreaterThan"></InputNumber><span class="range-sep">state events</span><InputNumber
+                max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsLessThan"></InputNumber>
         </span>
         <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersGreaterThan"></InputNumber><span class="range-sep">members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersLessThan"></InputNumber>
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersGreaterThan"></InputNumber><span class="range-sep">members</span><InputNumber
+                max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersLessThan"></InputNumber>
         </span>
         <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersGreaterThan"></InputNumber><span class="range-sep">local members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersLessThan"></InputNumber>
+            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersGreaterThan"></InputNumber><span
+                class="range-sep">local members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int"
+                                                                   @bind-Value="@Filter.JoinedLocalMembersLessThan"></InputNumber>
         </span>
     </div>
 </details>
@@ -98,41 +105,84 @@
                 <br/>
             }
         </p>
+        <p>
+            <LinkButton OnClick="@(() => {
+                                     DeleteRequests.Add(res.RoomId, new() {
+                                         RoomId = res.RoomId,
+                                         DeleteRequest = new() {
+                                             Block = true,
+                                             Purge = true,
+                                             ForcePurge = false
+                                         }
+                                     });
+                                     
+                                     return Task.CompletedTask;
+                                 })">Delete room
+            </LinkButton>
+        </p>
         <span>@res.StateEvents state events</span><br/>
-        <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</span>
+        @if (res.LocalMembers is null) {
+            <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</span>
+        }
+        else {
+            <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server: @(string.Join(", ", res.LocalMembers))</span>
+        }
         <details>
             <summary>Full result data</summary>
             <pre>@res.ToJson(ignoreNull: true)</pre>
         </details>
     </div>
 }
+@* *@
+@* @if (DeleteRequest.HasValue) { *@
+@*     <ModalWindow MinWidth="600" Title="@("Delete " + DeleteRequest.Value.RoomId)" OnCloseClicked="@(() => { DeleteRequest = null; })"> *@
+@*          *@
+@*     </ModalWindow> *@
+@* } *@
+
+@* @foreach (var (roomId, status) in DeleteStatuses) { *@
+@*     <ModalWindow Title="@("Delete status for " + roomId)" MinWidth="600"> *@
+@*         <pre>@status.ToJson()</pre> *@
+@*     </ModalWindow> *@
+@* } *@
+
+@foreach(var (roomId, deleteRequest) in DeleteRequests) {
+    <SynapseRoomShutdownWindowContent Context="deleteRequest" Homeserver="Homeserver"/>
+}
 
 <style>
     .int-input {
         width: 128px;
     }
+
     .tile {
         display: inline-block;
         padding: 4px;
         border: 1px solid #ffffff22;
     }
+
     .tile280 {
         min-width: 280px;
     }
+
     .tile150 {
         min-width: 150px;
     }
+
     .range-sep {
         display: inline-block;
         padding: 4px;
         width: 150px;
     }
+
     .range-sep::before {
         content: "@("<") ";
     }
+
     .range-sep::after {
         content: " @("<")";
     }
+
     .center-children {
         text-align: center;
     }
@@ -152,16 +202,92 @@
     [SupplyParameterFromQuery(Name = "ascending")]
     public bool Ascending { get; set; }
 
-    public List<AdminRoomListingResult.AdminRoomListingResultRoom> Results { get; set; } = new();
+    private List<RoomInfo> Results { get; set; } = new();
+
+    private AuthenticatedHomeserverSynapse Homeserver { get; set; } = null!;
 
     private string Status { get; set; }
 
-    public LocalRoomQueryFilter Filter { get; set; } = new();
+    public SynapseAdminLocalRoomQueryFilter Filter { get; set; } = new();
+
+    private Dictionary<string, SynapseRoomShutdownWindowContent.RoomShutdownContext> DeleteRequests { get; set; } = [];
+
+    // private Dictionary<string, SynapseAdminRoomDeleteStatus> DeleteStatuses { get; set; } = new();
 
     protected override Task OnParametersSetAsync() {
         if (Ascending == null)
             Ascending = true;
         OrderBy ??= "name";
+
+        var execute = false;
+
+        foreach (var (key, value) in QueryHelpers.ParseQuery(new Uri(NavigationManager.Uri).Query)) {
+            switch (key) {
+                case "RoomIdContains":
+                    Filter.RoomIdContains = value[0]!;
+                    break;
+                case "NameContains":
+                    Filter.NameContains = value[0]!;
+                    break;
+                case "CanonicalAliasContains":
+                    Filter.CanonicalAliasContains = value[0]!;
+                    break;
+                case "VersionContains":
+                    Filter.VersionContains = value[0]!;
+                    break;
+                case "CreatorContains":
+                    Filter.CreatorContains = value[0]!;
+                    break;
+                case "EncryptionContains":
+                    Filter.EncryptionContains = value[0]!;
+                    break;
+                case "JoinRulesContains":
+                    Filter.JoinRulesContains = value[0]!;
+                    break;
+                case "GuestAccessContains":
+                    Filter.GuestAccessContains = value[0]!;
+                    break;
+                case "HistoryVisibilityContains":
+                    Filter.HistoryVisibilityContains = value[0]!;
+                    break;
+                case "Federatable":
+                    Filter.Federatable = bool.Parse(value[0]!);
+                    Filter.CheckFederation = true;
+                    break;
+                case "Public":
+                    Filter.Public = value[0] == "true";
+                    Filter.CheckPublic = true;
+                    break;
+                case "JoinedMembersGreaterThan":
+                    Filter.JoinedMembersGreaterThan = int.Parse(value[0]!);
+                    break;
+                case "JoinedMembersLessThan":
+                    Filter.JoinedMembersLessThan = int.Parse(value[0]!);
+                    break;
+                case "JoinedLocalMembersGreaterThan":
+                    Filter.JoinedLocalMembersGreaterThan = int.Parse(value[0]!);
+                    break;
+                case "JoinedLocalMembersLessThan":
+                    Filter.JoinedLocalMembersLessThan = int.Parse(value[0]!);
+                    break;
+                case "StateEventsGreaterThan":
+                    Filter.StateEventsGreaterThan = int.Parse(value[0]!);
+                    break;
+                case "StateEventsLessThan":
+                    Filter.StateEventsLessThan = int.Parse(value[0]!);
+                    break;
+                case "Execute":
+                    execute = true;
+                    break;
+                default:
+                    Console.WriteLine($"Unknown query parameter: {key}");
+                    break;
+            }
+        }
+
+        if (execute)
+            _ = Search();
+
         return Task.CompletedTask;
     }
 
@@ -169,18 +295,107 @@
         Results.Clear();
         var hs = await RmuStorage.GetCurrentSessionOrNavigate();
         if (hs is AuthenticatedHomeserverSynapse synapse) {
+            Homeserver = synapse;
             var searchRooms = synapse.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
             while (await searchRooms.MoveNextAsync()) {
                 var room = searchRooms.Current;
-                Console.WriteLine("Hit: " + room.ToJson(false));
-                Results.Add(room);
-                if (Results.Count % 10 == 0)
+
+                if (Results.Count < 100)
+                    Console.WriteLine("Hit: " + room.ToJson(false));
+
+                var roomInfo = new RoomInfo {
+                    RoomId = room.RoomId,
+                    Name = room.Name,
+                    CanonicalAlias = room.CanonicalAlias,
+                    Creator = room.Creator,
+                    Version = room.Version,
+                    Encryption = room.Encryption,
+                    Federatable = room.Federatable,
+                    Public = room.Public,
+                    JoinRules = room.JoinRules,
+                    GuestAccess = room.GuestAccess,
+                    HistoryVisibility = room.HistoryVisibility,
+                    StateEvents = room.StateEvents,
+                    JoinedMembers = room.JoinedMembers,
+                    JoinedLocalMembers = room.JoinedLocalMembers
+                };
+
+                Results.Add(roomInfo);
+
+                if (room.JoinedLocalMembers is > 0 and < 100)
+                    roomInfo.LocalMembers = (await synapse.Admin.GetRoomMembersAsync(room.RoomId)).Members.Where(x => x.EndsWith(":" + synapse.ServerName)).ToList();
+
+                if (Results.Count < 200 || Results.Count % 1000 == 0) {
                     StateHasChanged();
+                    await Task.Yield();
+                }
             }
         }
 
         StateHasChanged();
     }
+    //
+    // private async Task DeleteRoom() {
+    //     if (DeleteRequest is { } deleteRequest) {
+    //         var media = await Homeserver.Admin.GetRoomMediaAsync(deleteRequest.RoomId);
+    //         if (deleteRequest.DeleteRequest.QuarantineRemoteMedia) {
+    //             foreach (var remoteMedia in media.Remote) {
+    //                 await Homeserver.Admin.QuarantineMediaById(remoteMedia);
+    //             }
+    //         }
+    //
+    //         if (deleteRequest.DeleteRequest.DeleteRemoteMedia) {
+    //             foreach (var remoteMedia in media.Remote) {
+    //                 await Homeserver.Admin.DeleteMediaById(remoteMedia);
+    //             }
+    //         }
+    //         else if (deleteRequest.DeleteRequest.QuarantineLocalMedia) {
+    //             foreach (var localMedia in media.Local) {
+    //                 await Homeserver.Admin.QuarantineMediaById(localMedia);
+    //             }
+    //         }
+    //
+    //         var deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
+    //         DeleteRequest = null;
+    //         List<string> alreadyCleanedUsers = [];
+    //         while (true) {
+    //             var status = await Homeserver.Admin.GetRoomDeleteStatus(deleteId.DeleteId);
+    //             DeleteStatuses[deleteRequest.RoomId] = status;
+    //             StateHasChanged();
+    //             await Task.Delay(5000);
+    //             if (status.Status == "complete") {
+    //                 DeleteStatuses.Remove(deleteRequest.RoomId);
+    //                 StateHasChanged();
+    //                 break;
+    //             }
+    //
+    //             if (status.Status == "failed") {
+    //                 deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
+    //             }
+    //
+    //             var newCleanedUsers = status.ShutdownRoom?.KickedUsers?.Except(alreadyCleanedUsers).ToList();
+    //             if (newCleanedUsers is not null) {
+    //                 alreadyCleanedUsers.AddRange(newCleanedUsers);
+    //                 foreach (var user in newCleanedUsers) {
+    //                     if (deleteRequest.DeleteRequest.SuspendLocalUsers) {
+    //                         // await Homeserver.Admin.(user);
+    //                     }
+    //
+    //                     if (deleteRequest.DeleteRequest.QuarantineLocalUserMedia) {
+    //                         await Homeserver.Admin.QuarantineMediaByUserId(user);
+    //                     }
+    //
+    //                     if (deleteRequest.DeleteRequest.DeleteLocalUserMedia) {
+    //                         var userMedia = Homeserver.Admin.GetUserMediaEnumerableAsync(user);
+    //                         await foreach (var mediaEntry in userMedia) {
+    //                             await Homeserver.Admin.DeleteMediaById(mediaEntry.MediaId);
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     private readonly Dictionary<string, string> validOrderBy = new() {
         { "name", "Room name" },
@@ -198,4 +413,8 @@
         { "state_events", "Number of state events" }
     };
 
+    private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
+        public List<string>? LocalMembers { get; set; }
+    }
+    
 }

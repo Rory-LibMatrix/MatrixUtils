@@ -1,0 +1,29 @@
+@page "/HSAdmin/Synapse/BackgroundJobs"
+@using ArcaneLibs.Extensions
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
+
+<h3>Homeserver Administration - Background jobs</h3>
+<pre>@BackgroundJobStatus?.ToJson(ignoreNull: true)</pre>
+
+@code {
+    private AuthenticatedHomeserverSynapse? Homeserver { get; set; }
+    private SynapseAdminBackgroundUpdateStatusResponse? BackgroundJobStatus { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate() as AuthenticatedHomeserverSynapse;
+        if (hs is null) return;
+        Homeserver = hs;
+
+        while (true) {
+            try {
+                BackgroundJobStatus = await hs.Admin.GetBackgroundUpdatesStatusAsync();
+                StateHasChanged();
+                await Task.Delay(1000);
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex);
+            }
+        }
+    }
+
+}

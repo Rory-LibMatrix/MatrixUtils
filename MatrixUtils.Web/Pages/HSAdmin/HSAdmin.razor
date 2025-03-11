@@ -10,7 +10,8 @@ else {
     @if (Homeserver is AuthenticatedHomeserverSynapse) {
         <h4>Synapse tools</h4>
         <hr/>
-        <a href="/HSAdmin/RoomQuery">Query rooms</a>
+        <a href="/HSAdmin/Synapse/RoomQuery">Query rooms</a><br/>
+        <a href="/HSAdmin/Synapse/BlockMedia">Block media</a>
     }
     else if (Homeserver is AuthenticatedHomeserverHSE) {
         <h4>Rory&amp;::LibMatrix.HomeserverEmulator tools</h4>

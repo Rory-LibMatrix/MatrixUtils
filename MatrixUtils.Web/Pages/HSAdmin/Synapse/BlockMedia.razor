@@ -1,0 +1,191 @@
+@page "/HSAdmin/Synapse/BlockMedia"
+@using System.Text.Json
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec
+
+<h3>Homeserver Administration - Block media</h3>
+@if (Homeserver is not null) {
+    <label>Event URL: </label>
+    <FancyTextBox @bind-Value="EventUrl"/>
+    <br/>
+    <label>Event JSON: </label>
+    <details>
+        <summary>@(string.IsNullOrEmpty(EventJson) ? "" : "{ ... }")</summary>
+        <FancyTextBox Multiline="true" @bind-Value="EventJson"/>
+    </details>
+    <br/>
+    <label>MXC URI: </label>
+    <FancyTextBox @bind-Value="MxcUrl"/>
+    <br/>
+    <label>Room ID: </label>
+    <FancyTextBox @bind-Value="RoomId"/>
+    <br/>
+    <pre>@MxcUri?.ToJson(ignoreNull: true)</pre>
+
+    @if (Event is not null) {
+        <LinkButton OnClick="@RedactAllEvents">Redact all messages</LinkButton>
+    }
+
+    @if (Event?.Sender?.Split(':', 2)[1] == Homeserver?.ServerName) {
+        <p>User is a local user!</p>
+        <LinkButton OnClick="@DeactivateUser">Deactivate User</LinkButton>
+        <LinkButton OnClick="@QuarantineMediaByUser">Quarantine all media</LinkButton>
+    }
+}
+
+<style>
+    .int-input {
+        width: 128px;
+    }
+
+    .tile {
+        display: inline-block;
+        padding: 4px;
+        border: 1px solid #ffffff22;
+    }
+
+    .tile280 {
+        min-width: 280px;
+    }
+
+    .tile150 {
+        min-width: 150px;
+    }
+
+    .range-sep {
+        display: inline-block;
+        padding: 4px;
+        width: 150px;
+    }
+
+    .range-sep::before {
+        content: "@("<") ";
+    }
+
+    .range-sep::after {
+        content: " @("<")";
+    }
+
+    .center-children {
+        text-align: center;
+    }
+</style>
+
+@code {
+
+    private AuthenticatedHomeserverSynapse? Homeserver { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await RmuStorage.GetCurrentSessionOrNavigate() as AuthenticatedHomeserverSynapse;
+        if (hs is null) return;
+        Homeserver = hs;
+
+        if (!string.IsNullOrWhiteSpace(EventUrl)) {
+            _ = ExpandEventUrl();
+        }
+    }
+
+    [SupplyParameterFromQuery]
+    public string? EventUrl {
+        get;
+        set {
+            field = value?.Split('?')[0];
+            _ = ExpandEventUrl();
+        }
+    }
+
+    private StateEventResponse? Event { get; set; }
+
+    private string? EventJson {
+        get;
+        set {
+            field = value;
+            _ = ExpandEventJson();
+        }
+    }
+
+    private string? MxcUrl {
+        get;
+        set {
+            field = value;
+            _ = ExpandMxcUri();
+        }
+    }
+
+    private MxcUri? MxcUri { get; set; }
+
+    private string? RoomId {
+        get => Event?.RoomId ?? field;
+        set;
+    }
+
+    private async Task ExpandEventUrl() {
+        Console.WriteLine("Expanding event URL...");
+        if (!string.IsNullOrWhiteSpace(EventUrl)) {
+            Console.WriteLine("Parsing event URL...");
+            var data = ParseEventUrl(EventUrl);
+            Console.WriteLine($"Room: {data.room}, Event: {data.eventId}");
+            RoomId = data.room;
+            var room = Homeserver.GetRoom(data.room);
+            var eventResponse = await room.GetEventAsync(data.eventId);
+            eventResponse.RoomId ??= data.room;
+            EventJson = eventResponse?.ToJson() ?? "null";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ExpandEventJson() {
+        Console.WriteLine("Expanding event JSON...");
+        if (!string.IsNullOrWhiteSpace(EventJson)) {
+            Event = JsonSerializer.Deserialize<StateEventResponse>(EventJson);
+            MxcUrl = Event?.ContentAs<RoomMessageEventContent>()?.Url;
+            Console.WriteLine($"MXC URL: {MxcUrl}");
+
+            var possiblyRelated = await Homeserver.Admin.GetRoomMediaAsync(Event!.RoomId!);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ExpandMxcUri() {
+        Console.WriteLine("Expanding MXC URI...");
+        if (!string.IsNullOrWhiteSpace(MxcUrl)) {
+            MxcUri = MxcUrl;
+        }
+
+        StateHasChanged();
+    }
+
+    private (string room, string eventId) ParseEventUrl(string url) {
+        var parts = url.Split('/');
+        Console.WriteLine($"Parts: {string.Join(", ", parts)}");
+        return (parts[4].UrlDecode(), parts[5].Split('?')[0].UrlDecode());
+    }
+
+#region Local user
+
+    private async Task DeactivateUser() {
+        await Homeserver.Admin.DeactivateUserAsync(Event.Sender, true);
+    }
+
+    private async Task QuarantineMediaByUser() {
+        if (Event is null) return;
+        var media = Homeserver.Admin.GetUserMediaEnumerableAsync(Event?.Sender!);
+        await foreach (var m in media) {
+            if (m is not null) {
+                // await Homeserver.Admin.QuarantineMedia(m);
+                // await Homeserver.Admin.DeleteMedia(m);
+            }
+        }
+    }
+
+#endregion
+
+    private async Task RedactAllEvents() {
+        if (Event is null) return;
+        await Homeserver!.Admin.DeleteAllMessages(Event.Sender!);
+    }
+
+}

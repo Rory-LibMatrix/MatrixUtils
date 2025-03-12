@@ -22,7 +22,7 @@ public class LocalStorageProviderService : IStorageProvider {
 
     async Task<bool> IStorageProvider.ObjectExistsAsync(string key) => await _localStorageService.ContainKeyAsync(key);
 
-    async Task<List<string>> IStorageProvider.GetAllKeysAsync() => (await _localStorageService.KeysAsync()).ToList();
+    async Task<IEnumerable<string>> IStorageProvider.GetAllKeysAsync() => (await _localStorageService.KeysAsync()).ToList();
 
     async Task IStorageProvider.DeleteObjectAsync(string key) => await _localStorageService.RemoveItemAsync(key);
 }

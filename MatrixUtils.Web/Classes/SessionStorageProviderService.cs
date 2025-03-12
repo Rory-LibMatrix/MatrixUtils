@@ -22,7 +22,7 @@ public class SessionStorageProviderService : IStorageProvider {
 
     async Task<bool> IStorageProvider.ObjectExistsAsync(string key) => await _sessionStorageService.ContainKeyAsync(key);
 
-    async Task<List<string>> IStorageProvider.GetAllKeysAsync() => (await _sessionStorageService.KeysAsync()).ToList();
+    async Task<IEnumerable<string>> IStorageProvider.GetAllKeysAsync() => (await _sessionStorageService.KeysAsync()).ToList();
 
     async Task IStorageProvider.DeleteObjectAsync(string key) => await _sessionStorageService.RemoveItemAsync(key);
 }

@@ -22,7 +22,7 @@ Small collection of tools to do not-so-everyday things.
 <form>
     <table>
         @foreach (var session in _sessions.OrderByDescending(x => x.UserInfo.RoomCount)) {
-            var auth = session.UserAuth;
+            var auth = session.Auth;
             <tr class="user-entry">
                 <td>
                     @if (!string.IsNullOrWhiteSpace(@session.UserInfo?.AvatarUrl)) {
@@ -36,7 +36,7 @@ Small collection of tools to do not-so-everyday things.
                 </td>
                 <td class="user-info">
                     <p>
-                        <input type="radio" name="csa" checked="@(_currentSession.AccessToken == auth.AccessToken)" @onclick="@(() => SwitchSession(auth))"
+                        <input type="radio" name="csa" checked="@(_currentSession.Auth.AccessToken == auth.AccessToken)" @onclick="@(() => SwitchSession(session.SessionId))"
                                style="text-decoration-line: unset;"/>
                         <b>@session.UserInfo.DisplayName</b> on <b>@auth.Homeserver</b><br/>
                     </p>
@@ -53,13 +53,14 @@ Small collection of tools to do not-so-everyday things.
                         <p>T=@session.Homeserver.GetType().FullName</p>
                         <p>D=@session.Homeserver.WhoAmI.DeviceId</p>
                         <p>U=@session.Homeserver.WhoAmI.UserId</p>
+                        <p>S=@session.Homeserver.WhoAmI.UserId</p>
                     }
                 </td>
                 <td>
                     <p>
-                        <LinkButton OnClick="@(() => ManageUser(auth))">Manage</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(auth))">Remove</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(auth, true))">Log out</LinkButton>
+                        <LinkButton OnClick="@(() => ManageUser(session.SessionId))">Manage</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId, true))">Log out</LinkButton>
                     </p>
                 </td>
             </tr>
@@ -79,16 +80,16 @@ Small collection of tools to do not-so-everyday things.
                     <td>
                         <p>
                             @{
-                                string[] parts = session.UserId.Split(':');
+                                string[] parts = session.Auth.UserId.Split(':');
                             }
                             <span>@parts[0][1..]</span> on <span>@parts[1]</span>
-                            @if (!string.IsNullOrWhiteSpace(session.Proxy)) {
-                                <span class="badge badge-info"> (proxied via @session.Proxy)</span>
+                            @if (!string.IsNullOrWhiteSpace(session.Auth.Proxy)) {
+                                <span class="badge badge-info"> (proxied via @session.Auth.Proxy)</span>
                             }
                         </p>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => RemoveUser(session))">Remove</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
                     </td>
                 </tr>
             }
@@ -108,19 +109,19 @@ Small collection of tools to do not-so-everyday things.
                     <td>
                         <p>
                             @{
-                                string[] parts = session.UserId.Split(':');
+                                string[] parts = session.Auth.UserId.Split(':');
                             }
                             <span>@parts[0][1..]</span> on <span>@parts[1]</span>
-                            @if (!string.IsNullOrWhiteSpace(session.Proxy)) {
-                                <span class="badge badge-info"> (proxied via @session.Proxy)</span>
+                            @if (!string.IsNullOrWhiteSpace(session.Auth.Proxy)) {
+                                <span class="badge badge-info"> (proxied via @session.Auth.Proxy)</span>
                             }
                         </p>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => Task.Run(() => NavigationManager.NavigateTo($"/InvalidSession?ctx={session.AccessToken}")))">Re-login</LinkButton>
+                        <LinkButton OnClick="@(() => Task.Run(() => NavigationManager.NavigateTo($"/InvalidSession?ctx={session.SessionId}")))">Re-login</LinkButton>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => RemoveUser(session))">Remove</LinkButton>
+                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
                     </td>
                 </tr>
             }
@@ -136,34 +137,34 @@ Small collection of tools to do not-so-everyday things.
     private const bool _debug = false;
 #endif
 
-    private class AuthInfo {
-        public UserAuth? UserAuth { get; set; }
+    private class HomepageSessionInfo : RmuSessionStore.SessionInfo {
         public UserInfo? UserInfo { get; set; }
         public ServerVersionResponse? ServerVersion { get; set; }
         public AuthenticatedHomeserverGeneric? Homeserver { get; set; }
     }
 
-    private readonly List<AuthInfo> _sessions = [];
-    private readonly List<UserAuth> _offlineSessions = [];
-    private readonly List<UserAuth> _invalidSessions = [];
-    private LoginResponse? _currentSession;
+    private readonly List<HomepageSessionInfo> _sessions = [];
+    private readonly List<RmuSessionStore.SessionInfo> _offlineSessions = [];
+    private readonly List<RmuSessionStore.SessionInfo> _invalidSessions = [];
+    private RmuSessionStore.SessionInfo? _currentSession;
     int scannedSessions, totalSessions = 1;
     private SvgIdenticonGenerator _identiconGenerator = new();
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("Index.OnInitializedAsync");
         logger.LogDebug("Initialising index page");
-        _currentSession = await RmuStorage.GetCurrentToken();
+        await sessionStore.RunMigrations();
+        
+        _currentSession = await sessionStore.GetCurrentSession();
         _sessions.Clear();
         _offlineSessions.Clear();
-        var tokens = await RmuStorage.GetAllTokens();
+        var tokens = await sessionStore.GetAllSessions();
         scannedSessions = 0;
         totalSessions = tokens.Count;
         logger.LogDebug("Found {0} tokens", totalSessions);
         if (tokens is not { Count: > 0 }) {
             Console.WriteLine("No tokens found, trying migration from MRU...");
-            await RmuStorage.MigrateFromMRU();
-            tokens = await RmuStorage.GetAllTokens();
+            tokens = await sessionStore.GetAllSessions();
             if (tokens is not { Count: > 0 }) {
                 Console.WriteLine("No tokens found");
                 return;
@@ -173,8 +174,9 @@ Small collection of tools to do not-so-everyday things.
         List<string> offlineServers = [];
         var sema = new SemaphoreSlim(8, 8);
         var updateSw = Stopwatch.StartNew();
-        var tasks = tokens.Select(async token => {
+        var tasks = tokens.Select(async session => {
             await sema.WaitAsync();
+            var token = session.Value.Auth;
 
             AuthenticatedHomeserverGeneric hs;
             try {
@@ -197,14 +199,15 @@ Small collection of tools to do not-so-everyday things.
                 var joinedRoomsTask = hs.GetJoinedRooms();
                 var profileTask = hs.GetProfileAsync(hs.WhoAmI.UserId);
                 _sessions.Add(new() {
+                    Auth = token,
+                    SessionId = session.Value.SessionId,
+                    Homeserver = hs,
                     UserInfo = new() {
                         AvatarUrl = (await profileTask).AvatarUrl,
                         RoomCount = (await joinedRoomsTask).Count,
                         DisplayName = (await profileTask).DisplayName ?? hs.WhoAmI.UserId
                     },
-                    UserAuth = token,
                     ServerVersion = await (serverVersionTask ?? Task.FromResult<ServerVersionResponse?>(null)!),
-                    Homeserver = hs
                 });
                 if (updateSw.ElapsedMilliseconds > 25) {
                     updateSw.Restart();
@@ -214,7 +217,7 @@ Small collection of tools to do not-so-everyday things.
             catch (MatrixException e) {
                 if (e is { ErrorCode: "M_UNKNOWN_TOKEN" }) {
                     logger.LogWarning("Got unknown token error for {0} via {1}", token.UserId, token.Homeserver);
-                    _invalidSessions.Add(token);
+                    _invalidSessions.Add(session.Value);
                 }
                 else {
                     logger.LogError("Failed to get info for {0} via {1}: {2}", token.UserId, token.Homeserver, e);
@@ -248,9 +251,10 @@ Small collection of tools to do not-so-everyday things.
         internal int RoomCount { get; set; }
     }
 
-    private async Task RemoveUser(UserAuth auth, bool logout = false) {
+    private async Task RemoveUser(string sessionId, bool logout = false) {
         try {
             if (logout) {
+                var auth = (await sessionStore.GetSession(sessionId))?.Auth;
                 await (await HsProvider.GetAuthenticatedWithToken(auth.Homeserver, auth.AccessToken, auth.Proxy)).Logout();
             }
         }
@@ -263,21 +267,19 @@ Small collection of tools to do not-so-everyday things.
             Console.WriteLine(e);
         }
 
-        await RmuStorage.RemoveToken(auth);
-        if ((await RmuStorage.GetCurrentToken())?.AccessToken == auth.AccessToken)
-            await RmuStorage.SetCurrentToken((await RmuStorage.GetAllTokens() ?? throw new InvalidOperationException()).FirstOrDefault());
+        await sessionStore.RemoveSession(sessionId);
         StateHasChanged();
     }
 
-    private async Task SwitchSession(UserAuth auth) {
-        Console.WriteLine($"Switching to {auth.Homeserver} {auth.UserId} via {auth.Proxy}");
-        await RmuStorage.SetCurrentToken(auth);
-        _currentSession = auth;
+    private async Task SwitchSession(string sessionId) {
+        Console.WriteLine($"Switching to {sessionId}");
+        await sessionStore.SetCurrentSession(sessionId);
+        _currentSession = await sessionStore.GetCurrentSession();
         StateHasChanged();
     }
 
-    private async Task ManageUser(UserAuth auth) {
-        await SwitchSession(auth);
+    private async Task ManageUser(string sessionId) {
+        await sessionStore.SetCurrentSession(sessionId);
         NavigationManager.NavigateTo("/User/Profile");
     }
 }

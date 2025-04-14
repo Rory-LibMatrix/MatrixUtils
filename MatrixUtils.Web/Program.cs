@@ -78,6 +78,6 @@ builder.Services.AddScoped<TieredStorageService>(x =>
 );
 
 builder.Services.AddRoryLibMatrixServices();
-builder.Services.AddScoped<RMUStorageWrapper>();
+builder.Services.AddScoped<RmuSessionStore>();
 // await builder.Build().RunAsync();
 await builder.Build().BlazorJSRunAsync();

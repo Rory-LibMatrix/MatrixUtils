@@ -17,7 +17,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
         await LoadProfiles();
         await base.OnInitializedAsync();
@@ -33,9 +33,9 @@
 
     private async Task AddAllLocalProfiles() {
         if(Homeserver is AuthenticatedHomeserverHSE hse) {
-            var sessions = await RmuStorage.GetAllTokens();
+            var sessions = await sessionStore.GetAllSessions();
             foreach(var session in sessions) {
-                await hse.SetExternalProfile(session.UserId, session);
+                await hse.SetExternalProfile(session.Value.Auth.UserId, session.Value.Auth);
             }
             await LoadProfiles();
         }

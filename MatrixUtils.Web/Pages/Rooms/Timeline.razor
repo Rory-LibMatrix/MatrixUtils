@@ -27,7 +27,7 @@
 
     protected override async Task OnInitializedAsync() {
         Console.WriteLine("RoomId: " + RoomId);
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
         var room = Homeserver.GetRoom(RoomId);
         MessagesResponse? msgs = null;

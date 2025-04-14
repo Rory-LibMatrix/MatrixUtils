@@ -35,7 +35,7 @@
     public List<Stream> Streams { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
 
         //await InitOld();
         await Init2();

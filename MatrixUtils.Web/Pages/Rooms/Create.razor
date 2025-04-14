@@ -258,7 +258,7 @@
     private RoomAvatarEventContent? roomAvatarEvent => creationEvent?["m.room.avatar"].TypedContent as RoomAvatarEventContent;
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
 
         foreach (var x in Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IRoomCreationTemplate))).ToList()) {

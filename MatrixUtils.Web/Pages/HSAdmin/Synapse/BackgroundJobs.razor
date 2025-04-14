@@ -10,7 +10,7 @@
     private SynapseAdminBackgroundUpdateStatusResponse? BackgroundJobStatus { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate() as AuthenticatedHomeserverSynapse;
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true) as AuthenticatedHomeserverSynapse;
         if (hs is null) return;
         Homeserver = hs;
 

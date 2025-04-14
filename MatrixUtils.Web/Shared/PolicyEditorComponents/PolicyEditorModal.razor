@@ -56,7 +56,7 @@
                                         break;
                                     case Type t when t == typeof(DateTime):
                                         if (!isNullable) {
-                                            <InputDate TValue="DateTime" Value="@(getter?.Invoke(PolicyData, null) as DateTime? ?? new DateTime())" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></InputDate>
+                                            @* <InputDate TValue="DateTime" Value="@(getter?.Invoke(PolicyData, null) as DateTime? ?? new DateTime())" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></InputDate> *@
                                         }
                                         else {
                                             var value = getter?.Invoke(PolicyData, null) as DateTime?;

@@ -66,7 +66,7 @@
     // SyncHelper profileSyncHelper;
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
         // var rooms = await Homeserver.GetJoinedRooms();
         // SemaphoreSlim _semaphore = new(160, 160);

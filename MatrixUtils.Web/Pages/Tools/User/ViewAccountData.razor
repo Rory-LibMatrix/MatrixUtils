@@ -16,7 +16,7 @@
     Dictionary<string, EventList?> perRoomAccountData = new();
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         perRoomAccountData = await hs.EnumerateAccountDataPerRoom();
         globalAccountData = await hs.EnumerateAccountData();

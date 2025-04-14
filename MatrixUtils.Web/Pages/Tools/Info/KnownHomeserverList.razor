@@ -36,7 +36,7 @@
     int RoomCount { get; set; } = 0;
 
     protected override async Task OnInitializedAsync() {
-        hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         var ss = new SemaphoreSlim(32, 32);
         var rooms = await hs.GetJoinedRooms();

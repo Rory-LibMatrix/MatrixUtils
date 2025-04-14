@@ -68,7 +68,7 @@
     </thead>
     @foreach (var record in records) {
         var r = record;
-        <tr style="background-color: @(LoggedInSessions.Any(x => x.UserId == $"@{r.Username}:{r.Homeserver}" && x.Proxy == r.Proxy) ? "green" : "unset")">
+        <tr style="background-color: @(LoggedInSessions.Any(x => x.Value.Auth.UserId == $"@{r.Username}:{r.Homeserver}" && x.Value.Auth.Proxy == r.Proxy) ? "green" : "unset")">
             <td style="border-width: 1px;">
                 <FancyTextBox @bind-Value="@r.Username"></FancyTextBox>
             </td>
@@ -108,7 +108,7 @@
     readonly List<LoginStruct> records = new();
     private LoginStruct newRecordInput = new();
 
-    List<UserAuth>? LoggedInSessions { get; set; } = new();
+    Dictionary<string, RmuSessionStore.SessionInfo> LoggedInSessions { get; set; } = new();
 
     async Task LoginAll() {
         var loginTasks = records.Select(Login);
@@ -118,7 +118,7 @@
     async Task Login(LoginStruct record) {
         if (!records.Contains(record)) 
             records.Add(record);
-        if (LoggedInSessions.Any(x => x.UserId == $"@{record.Username}:{record.Homeserver}" && x.Proxy == record.Proxy)) return;
+        if (LoggedInSessions.Any(x => x.Value.Auth.UserId == $"@{record.Username}:{record.Homeserver}" && x.Value.Auth.UserId == record.Proxy)) return;
         StateHasChanged();
         try {
             var result = new UserAuth(await HsProvider.Login(record.Homeserver, record.Username, record.Password, record.Proxy)) {
@@ -131,8 +131,8 @@
 
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-            await RmuStorage.AddToken(result);
-            LoggedInSessions = await RmuStorage.GetAllTokens();
+            await sessionStore.AddSession(result);
+            LoggedInSessions = await sessionStore.GetAllSessions();
         }
         catch (Exception e) {
             Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");
@@ -144,7 +144,7 @@
     }
 
     private async Task FileChanged(InputFileChangeEventArgs obj) {
-        LoggedInSessions = await RmuStorage.GetAllTokens();
+        LoggedInSessions = await sessionStore.GetAllSessions();
         Console.WriteLine(JsonSerializer.Serialize(obj, new JsonSerializerOptions {
             WriteIndented = true
         }));
@@ -162,7 +162,7 @@
     }
 
     private async Task AddRecord() {
-        LoggedInSessions = await RmuStorage.GetAllTokens();
+        LoggedInSessions = await sessionStore.GetAllSessions();
         records.Add(newRecordInput);
         newRecordInput = new();
     }
@@ -185,13 +185,13 @@
                 return;
             }
             
-            await RmuStorage.AddToken(new UserAuth() {
+            await sessionStore.AddSession(new UserAuth() {
                 UserId = session.WhoAmI.UserId,
                 AccessToken = session.AccessToken,
                 Proxy = record.Proxy,
                 DeviceId = session.WhoAmI.DeviceId
             });
-            LoggedInSessions = await RmuStorage.GetAllTokens();
+            LoggedInSessions = await sessionStore.GetAllSessions();
         }
         catch (Exception e) {
             Console.WriteLine($"Failed to login to {record.Homeserver} as {record.Username}!");

@@ -39,7 +39,7 @@
     private string newRoomId { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
 
         StateHasChanged();
@@ -48,7 +48,7 @@
     }
 
     private async Task Execute() {
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         var oldRoom = hs.GetRoom(roomId);
         var newRoom = hs.GetRoom(newRoomId);
@@ -90,7 +90,7 @@
 
     private async Task TryFetchUsers() {
         try {
-            var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+            var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
             if (hs is null) return;
             var room = hs.GetRoom(roomId);
             var members = await room.GetMembersListAsync();

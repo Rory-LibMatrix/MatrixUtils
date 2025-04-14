@@ -141,7 +141,7 @@ else {
     protected override async Task OnInitializedAsync() {
         await base.OnInitializedAsync();
 
-        // hs ??= await RmuStorage.GetCurrentSessionOrNavigate();
+        // hs ??= await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         // if (hs is null) return;
 
         if (Homeserver is null) {

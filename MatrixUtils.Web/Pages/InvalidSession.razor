@@ -6,14 +6,15 @@
 <h3>Rory&::MatrixUtils - Invalid session encountered</h3>
 <p>A session was encountered that is no longer valid. This can happen if you have logged out of the account on another device, or if the access token has expired.</p>
 
-@if (_login is not null) {
-    <p>It appears that the affected user is @_login.UserId (@_login.DeviceId) on @_login.Homeserver!</p>
+@if (_auth is not null) {
+    <p>It appears that the affected user is @_auth.UserId (@_auth.DeviceId) on @_auth.Homeserver!</p>
     <LinkButton OnClick="@(OpenRefreshDialog)">Refresh token</LinkButton>
     <LinkButton OnClick="@(RemoveUser)">Remove</LinkButton>
 
     @if (_showRefreshDialog) {
-        <ModalWindow MinWidth="300" X="275" Y="300" Title="@($"Password for {_login.UserId}")">
-            <FancyTextBox IsPassword="true" @bind-Value="@_password"></FancyTextBox><br/>
+        <ModalWindow MinWidth="300" X="275" Y="300" Title="@($"Password for {_auth.UserId}")">
+            <FancyTextBox IsPassword="true" @bind-Value="@_password"></FancyTextBox>
+            <br/>
             <LinkButton OnClick="TryLogin">Log in</LinkButton>
             @if (_loginException is not null) {
                 <pre style="color: red;">@_loginException.RawContent</pre>
@@ -29,9 +30,9 @@ else {
 {
     [Parameter]
     [SupplyParameterFromQuery(Name = "ctx")]
-    public string Context { get; set; }
+    public string SessionId { get; set; }
 
-    private UserAuth? _login { get; set; }
+    private UserAuth? _auth { get; set; }
 
     private bool _showRefreshDialog { get; set; }
 
@@ -40,25 +41,21 @@ else {
     private MatrixException? _loginException { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var tokens = await RmuStorage.GetAllTokens();
-        if (tokens is null || tokens.Count == 0) {
+        var tokens = await sessionStore.GetAllSessions();
+        if (tokens.Count == 0) {
             NavigationManager.NavigateTo("/Login");
             return;
         }
 
-        _login = tokens.FirstOrDefault(x => x.AccessToken == Context);
-
-        if (_login is null) {
-            Console.WriteLine($"Could not find {_login} in stored tokens!");
-        }
+        if (tokens.TryGetValue(SessionId, out var session))
+            _auth = session.Auth;
+        else Console.WriteLine($"Could not find {SessionId} in stored sessions!");
 
         await base.OnInitializedAsync();
     }
 
     private async Task RemoveUser() {
-        await RmuStorage.RemoveToken(_login!);
-        if ((await RmuStorage.GetCurrentToken())!.AccessToken == _login!.AccessToken)
-            await RmuStorage.SetCurrentToken((await RmuStorage.GetAllTokens())?.FirstOrDefault());
+        await sessionStore.RemoveSession(SessionId);
         await OnInitializedAsync();
     }
 
@@ -68,30 +65,29 @@ else {
         await Task.CompletedTask;
     }
 
-    private async Task SwitchSession(UserAuth auth) {
-        Console.WriteLine($"Switching to {auth.Homeserver} {auth.AccessToken} {auth.UserId}");
-        await RmuStorage.SetCurrentToken(auth);
+    private async Task SwitchSession(string sessionId) {
+        Console.WriteLine($"Switching to session {sessionId}");
+        await sessionStore.SetCurrentSession(sessionId);
         await OnInitializedAsync();
     }
 
     private async Task TryLogin() {
-        if(_login is null) throw new NullReferenceException("Login is null!");
+        if (_auth is null) throw new NullReferenceException("Login is null!");
         try {
-            var result = new UserAuth(await HsProvider.Login(_login.Homeserver, _login.UserId, _password));
+            var result = new UserAuth(await HsProvider.Login(_auth.Homeserver, _auth.UserId, _password));
             if (result is null) {
-                Console.WriteLine($"Failed to login to {_login.Homeserver} as {_login.UserId}!");
+                Console.WriteLine($"Failed to login to {_auth.Homeserver} as {_auth.UserId}!");
                 return;
             }
+
             Console.WriteLine($"Obtained access token for {result.UserId}!");
 
-            await RemoveUser();
-            await RmuStorage.AddToken(result);
-            if (result.UserId == (await RmuStorage.GetCurrentToken())?.UserId)
-                await RmuStorage.SetCurrentToken(result);
+            await sessionStore.RemoveSession(SessionId);
+            await sessionStore.AddSession(result);
             NavigationManager.NavigateTo("/");
         }
         catch (MatrixException e) {
-            Console.WriteLine($"Failed to login to {_login.Homeserver} as {_login.UserId}!");
+            Console.WriteLine($"Failed to login to {_auth.Homeserver} as {_auth.UserId}!");
             Console.WriteLine(e);
             _loginException = e;
             StateHasChanged();

@@ -80,7 +80,7 @@
     private Dictionary<string, string> RoomNames { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
         Status = "Loading global profile...";
         if (Homeserver.WhoAmI?.UserId is null) return;

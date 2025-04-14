@@ -66,19 +66,19 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
 
-        var sessions = await RmuStorage.GetAllTokens();
+        var sessions = await sessionStore.GetAllSessions();
         var tasks = sessions.Select(async session => {
             try {
-                var _hs = await RmuStorage.GetSession(session);
+                var _hs = await sessionStore.GetHomeserver(session.Key);
                 if (_hs is not null) {
                     try {
                         var _rooms = await _hs.GetJoinedRooms();
                         if (!_rooms.Any()) return;
                         // Check if homeserver supports `?format=event`:
-                        await _rooms.First().GetStateEventAsync(RoomMemberEventContent.EventId, session.UserId);
+                        await _rooms.First().GetStateEventAsync(RoomMemberEventContent.EventId, session.Value.Auth.UserId);
                         rooms.AddRange(_rooms);
                         log.Add($"Got {_rooms.Count} rooms for {_hs.UserId}, total {rooms.Count}");
                     }
@@ -90,7 +90,7 @@
                 }
             }
             catch (Exception e) {
-                log.Add($"Failed to fetch rooms for {session.UserId}! {e}");
+                log.Add($"Failed to fetch rooms for {session.Value.Auth.UserId}! {e}");
             }
         });
         await Task.WhenAll(tasks);

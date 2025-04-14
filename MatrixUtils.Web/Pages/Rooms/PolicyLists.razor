@@ -62,7 +62,7 @@
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        Homeserver = await RmuStorage.GetCurrentSessionOrNavigate();
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
 
         Status = "Fetching rooms...";

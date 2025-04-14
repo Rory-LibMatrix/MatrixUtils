@@ -73,20 +73,20 @@
 
     protected override async Task OnInitializedAsync() {
         log.CollectionChanged += (sender, args) => StateHasChanged();
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         rooms.CollectionChanged += (sender, args) => StateHasChanged();
-        var sessions = await RmuStorage.GetAllTokens();
+        var sessions = await sessionStore.GetAllSessions();
         foreach (var userAuth in sessions) {
-            var session = await RmuStorage.GetSession(userAuth);
-            if (session is not null) {
-                var sessionRooms = await session.GetJoinedRooms();
+            var homeserver = await sessionStore.GetHomeserver(userAuth.Key);
+            if (homeserver is not null) {
+                var sessionRooms = await homeserver.GetJoinedRooms();
                 foreach (var room in sessionRooms) {
                     rooms.Add(room);
                 }
 
                 StateHasChanged();
-                log.Add($"Got {sessionRooms.Count} rooms for {userAuth.UserId}");
+                log.Add($"Got {sessionRooms.Count} rooms for {userAuth.Value.Auth.UserId}");
             }
         }
 
@@ -106,7 +106,7 @@
 
         log.Add($"Done fetching members!");
 
-        UserIDs.RemoveAll(x => sessions.Any(y => y.UserId == x));
+        UserIDs.RemoveAll(x => sessions.Any(y => y.Value.Auth.UserId == x));
 
         StateHasChanged();
         Console.WriteLine("Rerendered!");

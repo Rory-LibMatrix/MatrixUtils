@@ -113,7 +113,7 @@
 
     protected override async Task OnInitializedAsync() {
         Log.CollectionChanged += (sender, args) => StateHasChanged();
-        hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
 
         StateHasChanged();

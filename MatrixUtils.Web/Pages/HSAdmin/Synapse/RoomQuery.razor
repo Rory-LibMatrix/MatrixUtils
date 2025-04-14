@@ -293,7 +293,7 @@
 
     private async Task Search() {
         Results.Clear();
-        var hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is AuthenticatedHomeserverSynapse synapse) {
             Homeserver = synapse;
             var searchRooms = synapse.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();

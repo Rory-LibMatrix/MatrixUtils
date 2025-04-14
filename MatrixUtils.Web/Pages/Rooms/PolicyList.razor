@@ -216,7 +216,7 @@ else {
     protected override async Task OnInitializedAsync() {
         var sw = Stopwatch.StartNew();
         await base.OnInitializedAsync();
-        Homeserver = (await RmuStorage.GetCurrentSessionOrNavigate())!;
+        Homeserver = (await sessionStore.GetCurrentHomeserver(navigateOnFailure: true))!;
         if (Homeserver is null) return;
         Room = Homeserver.GetRoom(RoomId!);
         await Task.WhenAll([

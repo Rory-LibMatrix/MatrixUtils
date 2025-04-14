@@ -19,6 +19,10 @@
     <span>Export local storage: </span>
     <button @onclick="@ExportLocalStorage">Export</button>
 </p>
+<details>
+    <summary>Manage local sessions</summary>
+    
+</details>
 
 @if (userSettings is not null) {
     <InputCheckbox @bind-Value="@userSettings.DeveloperSettings.EnableLogViewers" @oninput="@LogStuff"></InputCheckbox>
@@ -35,9 +39,9 @@
 
 @code {
 
-    private RMUStorageWrapper.Settings? userSettings { get; set; }
+    private RmuSessionStore.Settings? userSettings { get; set; }
     protected override async Task OnInitializedAsync() {
-        // userSettings = await TieredStorage.DataStorageProvider.LoadObjectAsync<RMUStorageWrapper.Settings>("rmu.settings");
+        // userSettings = await TieredStorage.DataStorageProvider.LoadObjectAsync<RmuSessionStore.Settings>("rmu.settings");
         
         await base.OnInitializedAsync();
     }

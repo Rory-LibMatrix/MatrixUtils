@@ -62,7 +62,7 @@
     private AuthenticatedHomeserverGeneric hs { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        hs = await RmuStorage.GetCurrentSessionOrNavigate();
+        hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         data = await hs.GetAccountDataAsync<DraupnirProtectedRoomsData>(DraupnirProtectedRoomsData.EventId);
         StateHasChanged();

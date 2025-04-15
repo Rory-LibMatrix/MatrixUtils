@@ -158,14 +158,14 @@ Small collection of tools to do not-so-everyday things.
         _currentSession = await sessionStore.GetCurrentSession();
         _sessions.Clear();
         _offlineSessions.Clear();
-        var tokens = await sessionStore.GetAllSessions();
+        var sessions = await sessionStore.GetAllSessions();
         scannedSessions = 0;
-        totalSessions = tokens.Count;
+        totalSessions = sessions.Count;
         logger.LogDebug("Found {0} tokens", totalSessions);
-        if (tokens is not { Count: > 0 }) {
+        if (sessions is not { Count: > 0 }) {
             Console.WriteLine("No tokens found, trying migration from MRU...");
-            tokens = await sessionStore.GetAllSessions();
-            if (tokens is not { Count: > 0 }) {
+            sessions = await sessionStore.GetAllSessions();
+            if (sessions is not { Count: > 0 }) {
                 Console.WriteLine("No tokens found");
                 return;
             }
@@ -174,7 +174,7 @@ Small collection of tools to do not-so-everyday things.
         List<string> offlineServers = [];
         var sema = new SemaphoreSlim(8, 8);
         var updateSw = Stopwatch.StartNew();
-        var tasks = tokens.Select(async session => {
+        var tasks = sessions.Select(async session => {
             await sema.WaitAsync();
             var token = session.Value.Auth;
 

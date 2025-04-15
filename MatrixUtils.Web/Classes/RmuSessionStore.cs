@@ -142,10 +142,13 @@ public class RmuSessionStore(
 
     private async Task LoadStorage(bool hasMigrated = false) {
         if (!await storageService.DataStorageProvider!.ObjectExistsAsync("rmu.sessions") || !await storageService.DataStorageProvider.ObjectExistsAsync("rmu.session")) {
-            if (!hasMigrated)
-                await MigrateFromMRU();
+            if (!hasMigrated) {
+                await RunMigrations();
+                await LoadStorage(true);
+            }
             else
                 logger.LogWarning("No sessions found in storage.");
+
             return;
         }
 
@@ -184,20 +187,18 @@ public class RmuSessionStore(
 #region Migrations
 
     public async Task RunMigrations() {
-        await LoadStorage();
-        await MigrateFromMRU();
+        await MigrateFromMru();
         await MigrateAccountsToKeyedStorage();
     }
 
-    private async Task MigrateFromMRU() {
-        await LoadStorage();
+    private async Task MigrateFromMru() {
         logger.LogInformation("Migrating from MRU token namespace!");
         var dsp = storageService.DataStorageProvider!;
         if (await dsp.ObjectExistsAsync("token")) {
             var oldToken = await dsp.LoadObjectAsync<UserAuth>("token");
             if (oldToken != null) {
                 await dsp.SaveObjectAsync("rmu.token", oldToken);
-                await dsp.DeleteObjectAsync("tokens");
+                await dsp.DeleteObjectAsync("token");
             }
         }
 
@@ -219,32 +220,24 @@ public class RmuSessionStore(
     }
 
     private async Task MigrateAccountsToKeyedStorage() {
-        await LoadStorage();
-        logger.LogInformation("Migrating accounts to keyed storage!");
         var dsp = storageService.DataStorageProvider!;
-        if (await dsp.ObjectExistsAsync("rmu.tokens")) {
-            var tokens = await dsp.LoadObjectAsync<JsonNode>("rmu.tokens") ?? throw new Exception("Failed to load tokens");
-            if (tokens is JsonArray array) {
-                var keyedTokens = array
-                    .Deserialize<UserAuth[]>()!
-                    .ToDictionary(x => x.GetHashCode().ToString(), x => x);
-                await dsp.SaveObjectAsync("rmu.sessions", keyedTokens);
-                await dsp.DeleteObjectAsync("rmu.tokens");
-            }
-        }
+        if (!await dsp.ObjectExistsAsync("rmu.tokens")) return;
+        logger.LogInformation("Migrating accounts to keyed storage!");
+        var tokens = await dsp.LoadObjectAsync<UserAuth[]>("rmu.tokens") ?? throw new Exception("Failed to load tokens");
+        Dictionary<string, UserAuth> keyedTokens = tokens.ToDictionary(x => x.GetHashCode().ToString(), x => x);
 
         if (await dsp.ObjectExistsAsync("rmu.token")) {
-            var token = await dsp.LoadObjectAsync<UserAuth>("rmu.token") ?? throw new Exception("Failed to load tokens");
-            var sessionId = (await GetAllSessions())
-                .FirstOrDefault(x => x.Value.Equals(token)).Key;
+            var token = await dsp.LoadObjectAsync<UserAuth>("rmu.token") ?? throw new Exception("Failed to load token");
+            var sessionId = keyedTokens.FirstOrDefault(x => x.Value.Equals(token)).Key;
 
-            if (sessionId is not null) {
-                await dsp.SaveObjectAsync("rmu.session", sessionId);
-            }
-            else AddSession(token);
+            if (sessionId is null) keyedTokens.Add(sessionId = token.GetHashCode().ToString(), token);
+            await dsp.SaveObjectAsync("rmu.session", sessionId);
 
             await dsp.DeleteObjectAsync("rmu.token");
         }
+
+        await dsp.SaveObjectAsync("rmu.sessions", keyedTokens);
+        await dsp.DeleteObjectAsync("rmu.tokens");
     }
 
 #endregion

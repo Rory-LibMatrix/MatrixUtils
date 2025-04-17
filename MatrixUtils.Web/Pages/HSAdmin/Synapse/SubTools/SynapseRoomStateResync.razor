@@ -1,41 +1,67 @@
 @page "/HSAdmin/Synapse/ResyncState"
 @using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
 
 <h3>Resync room state with other server</h3>
 <hr/>
-<span>Room ID: </span>
-<InputText @bind-Value="@RoomId"></InputText><br/>
-<span>Via: </span>
-<InputText @bind-Value="@Via"></InputText><br/>
-<LinkButton OnClick="@Execute">Execute</LinkButton>
+
+@if (!Executing) {
+    <p>WARNING: Will likely not work on invite-only/knock rooms! May also mess with history visibility!</p>
+    <span>Room ID: </span>
+    <InputText @bind-Value="@RoomId"></InputText>
+    <br/>
+    <span>Via: </span>
+    <InputText @bind-Value="@Via"></InputText>
+    <br/>
+    <LinkButton OnClick="@Execute">Execute</LinkButton>
+}
 
 @if (Executing) {
     <p>Execution in progress. DO NOT CLOSE THIS PAGE!</p>
-    @* stage 1 *@
+}
+@* stage 1 *@
+@if (Stage >= 1) {
     @if (Members is null) {
         <p>Loading members...</p>
     }
     else {
         <p>Got @Members.Count local members</p>
     }
-    
-    @* stage 2 *@
-    @if (DeleteStatus is not null) {
-        <p>Purging room, please wait...</p>
-        <pre>@DeleteStatus.ToJson(ignoreNull: true)</pre>
-    }
-    else {
-        <p>Purging room...</p>
-        <pre>@DeleteStatus!.ToJson(ignoreNull: true)</pre>
+}
+
+@* stage 2 *@
+@if (Stage == 2) {
+    <p>Purging room, please wait...</p>
+    <pre>@DeleteStatus.ToJson(ignoreNull: true)</pre>
+}
+
+@* stage 3 *@
+
+@if (Stage == 3) {
+    <p>Rejoining room, please wait...</p>
+    <p>Members left to restore: </p>
+    string members = "";
+    foreach (var member in Members) {
+        members += $"{member.StateKey} ({member.ContentAs<RoomMemberEventContent>()?.ToJson(indent: false, ignoreNull: true)})\n";
     }
 
-    @* stage 3 *@
+    <pre>
+        @members
+    </pre>
 }
-@if (Done) {
+
+@if (Stage == 4) {
     <p>Execution finished. You may now close the page :)</p>
 }
 
+@if (Error is not null) {
+    <p style="color: red">Error: @Error.Message</p>
+    <pre>
+        @Error.ToString()
+    </pre>
+}
 
 @code {
 
@@ -46,13 +72,18 @@
     [Parameter]
     [SupplyParameterFromQuery(Name = "via")]
     public string? Via { get; set; }
-    
-    private bool Executing { get; set; }
-    private bool Done { get; set; }
-    
-    private List<string?>? Members { get; set; }
 
     private AuthenticatedHomeserverSynapse? Homeserver { get; set; }
+
+    // Execution flow
+    private int Stage { get; set; }
+    private bool Executing { get; set; }
+    private Exception? Error { get; set; }
+
+    // Stage 1
+    private List<StateEventResponse>? Members { get; set; }
+
+    // Stage 2
     private SynapseAdminRoomDeleteStatus? DeleteStatus { get; set; }
 
     protected override async Task OnInitializedAsync() {
@@ -62,18 +93,119 @@
         StateHasChanged();
     }
 
-    private async Task Execute() {
+    private Task Execute() => Execute(0);
+
+    private async Task Execute(int startStage) {
         if (string.IsNullOrWhiteSpace(RoomId)) return;
         if (string.IsNullOrWhiteSpace(Via)) return;
         Executing = true;
         StateHasChanged();
-        
-        Members = (await Homeserver.Admin.GetRoomMembersAsync(RoomId))
-            .Members.Where(m => m.EndsWith(Homeserver.ServerName))
-            .ToList();
+
+        await ExecuteStages(startStage);
+
         StateHasChanged();
-        
-        
+    }
+
+    private async Task ExecuteStages(int startStage) {
+        if (startStage <= 1)
+            if (!await TryGetRoomMembers())
+                return;
+        if (startStage <= 2)
+            if (!await TryPurgeRoom())
+                return;
+        if (startStage <= 3)
+            if (!await TryRestoreRoom())
+                return;
+
+        Stage = 4;
+        Executing = false;
+        StateHasChanged();
+    }
+
+    private async Task<bool> TryGetRoomMembers() {
+        Stage = 1;
+        try {
+            Members = (await Homeserver.Admin.GetRoomStateAsync(RoomId, type: RoomMemberEventContent.EventId))
+                .Events.Where(m => (m.StateKey?.EndsWith(':' + Homeserver.ServerName) ?? false) && m.ContentAs<RoomMemberEventContent>()!.Membership == "join")
+                .ToList();
+            Console.WriteLine(Members.ToJson(ignoreNull: true));
+            StateHasChanged();
+            return true;
+        }
+        catch (Exception e) {
+            Error = e;
+            return Executing = false;
+        }
+    }
+
+    private async Task<bool> TryPurgeRoom() {
+        Stage = 2;
+
+        try {
+            var resp = await Homeserver.Admin.DeleteRoom(RoomId, new SynapseAdminRoomDeleteRequest {
+                Block = true,
+                Purge = true,
+                ForcePurge = true
+            }, waitForCompletion: false);
+
+            while (true) {
+                // we dont want API failure to break this step
+                try {
+                    DeleteStatus = await Homeserver.Admin.GetRoomDeleteStatus(resp.DeleteId);
+                    StateHasChanged();
+                    if (DeleteStatus.Status == SynapseAdminRoomDeleteStatus.Complete) {
+                        return true;
+                    }
+
+                    if (DeleteStatus.Status == SynapseAdminRoomDeleteStatus.Failed) {
+                        Error = new Exception("Failed to delete room: " + DeleteStatus.ToJson());
+                        return Executing = false;
+                    }
+
+                    await Task.Delay(1000);
+                }
+                catch { }
+            }
+
+            StateHasChanged();
+            return true;
+        }
+        catch (Exception e) {
+            Error = e;
+            return Executing = false;
+        }
+    }
+
+    private async Task<bool> TryRestoreRoom() {
+        Stage = 3;
+        try {
+            await Homeserver.Admin.BlockRoom(RoomId, block: false);
+            Members = Random.Shared.GetItems(Members.ToArray(), Members.Count).ToList();
+            StateHasChanged();
+            foreach (var member in Members) {
+                while (true) {
+                    try {
+                        var hs = member.StateKey == Homeserver.WhoAmI.UserId
+                            ? Homeserver
+                            : await Homeserver.Admin.GetHomeserverForUserAsync(member.StateKey!, TimeSpan.FromMinutes(120));
+                        await hs.GetRoom(RoomId).JoinAsync([Via], reason: "Reconciling state with " + Via, false);
+                        await hs.GetRoom(RoomId).SendStateEventAsync(RoomMemberEventContent.EventId, member.StateKey, member.RawContent);
+                        Members = Members.Skip(1).ToList();
+                        StateHasChanged();
+                        break;
+                    }
+                    catch (Exception e) {
+                        Error = new Exception($"{DateTime.Now:u} Failed to join room: {member.StateKey}, retrying\n", e);
+                    }
+                }
+            }
+
+            return true;
+        }
+        catch (Exception e) {
+            Error = e;
+            return Executing = false;
+        }
     }
 
 }

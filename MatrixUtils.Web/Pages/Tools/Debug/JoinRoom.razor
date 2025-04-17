@@ -1,46 +1,53 @@
-@page "/Tools/Debug/LeaveRoom"
+@page "/Tools/Debug/JoinRoom"
 @using System.Collections.ObjectModel
-<h3>Leave room</h3>
+<h3>Join room</h3>
 <hr/>
 <span>Room ID: </span>
 <InputText @bind-Value="@RoomId"></InputText>
 <br/>
-<LinkButton OnClick="@Leave">Leave</LinkButton>
+<span>Via server: </span>
+<InputText @bind-Value="@Server"></InputText>
+<br/>
+<LinkButton OnClick="@Join">Join</LinkButton>
 <br/><br/>
 @foreach (var line in Log) {
-    <p>@line</p>
+    <pre>@line</pre>
+    <br/>
 }
+
 @code {
     AuthenticatedHomeserverGeneric? hs { get; set; }
     ObservableCollection<string> Log { get; set; } = new ObservableCollection<string>();
+
     [Parameter, SupplyParameterFromQuery(Name = "roomId")]
     public string? RoomId { get; set; }
+    
+    [Parameter, SupplyParameterFromQuery(Name = "via")]
+    public string? Server { get; set; }
 
     protected override async Task OnInitializedAsync() {
         hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (hs is null) return;
         Log.CollectionChanged += (sender, args) => StateHasChanged();
-        
+
         StateHasChanged();
         Console.WriteLine("Rerendered!");
         await base.OnInitializedAsync();
     }
 
-    private async Task Leave() {
-        if(string.IsNullOrWhiteSpace(RoomId)) return;
+    private async Task Join() {
+        if (string.IsNullOrWhiteSpace(RoomId)) return;
         var room = hs.GetRoom(RoomId);
         Log.Add("Got room object...");
-        try {
-            await room.LeaveAsync();
-            Log.Add("Left room!");
+        
+        if (hs is AuthenticatedHomeserverSynapse synapse) {
+            await synapse.Admin.BlockRoom(RoomId, false);
+            Log.Add($"Synapse: unblocked room");
         }
-        catch (Exception e) {
-            Log.Add(e.ToString());
-        }
-
+        
         try {
-            await room.ForgetAsync();
-            Log.Add("Forgot room!");
+            await room.JoinAsync([Server], checkIfAlreadyMember: false);
+            Log.Add("Joined room!");
         }
         catch (Exception e) {
             Log.Add(e.ToString());

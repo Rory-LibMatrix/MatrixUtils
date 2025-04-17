@@ -126,7 +126,7 @@
                 var ce = await room.GetCreateEventAsync();
                 if(ce is null) continue;
                 if (ce.Type == "m.space") {
-                     var children = room.AsSpace.GetChildrenAsync(false);
+                     var children = room.AsSpace().GetChildrenAsync(false);
                      await foreach (var child in children) {
                          JoinRecursive(child.RoomId);
                      }
@@ -142,7 +142,7 @@
 
     private async Task AddNewRoom() {
         if (string.IsNullOrWhiteSpace(NewRoomId)) return;
-        await Room.AsSpace.AddChildByIdAsync(NewRoomId);
+        await Room.AsSpace().AddChildByIdAsync(NewRoomId);
     }
 
 }

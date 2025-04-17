@@ -158,7 +158,7 @@
     }
 
     public async Task AppendSet(string spaceId, List<GenericRoom> rooms) {
-        var space = hs.GetRoom(spaceId).AsSpace;
+        var space = hs.GetRoom(spaceId).AsSpace();
         Log.Add($"Found space {spaceId}");
         var roomIdsEnum = space.GetChildrenAsync(true);
         List<Task> tasks = new();

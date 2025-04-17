@@ -2,9 +2,10 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using ArcaneLibs.Extensions
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
-@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
 @using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components
+@using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components.RoomQuery
+@inject ILogger<RoomQuery> Logger
 
 <h3>Homeserver Administration - Room Query</h3>
 
@@ -21,93 +22,52 @@
 <details>
     <summary>
         <span>Local filtering (slow)</span>
-
     </summary>
-    <div style="margin-left: 8px; margin-bottom: 8px;">
-        <u style="display: block;">String contains</u>
-        <span class="tile tile280">Room ID: <FancyTextBox @bind-Value="@Filter.RoomIdContains"></FancyTextBox></span>
-        <span class="tile tile280">Room name: <FancyTextBox @bind-Value="@Filter.NameContains"></FancyTextBox></span>
-        <span class="tile tile280">Canonical alias: <FancyTextBox @bind-Value="@Filter.CanonicalAliasContains"></FancyTextBox></span>
-        <span class="tile tile280">Creator: <FancyTextBox @bind-Value="@Filter.CreatorContains"></FancyTextBox></span>
-        <span class="tile tile280">Room version: <FancyTextBox @bind-Value="@Filter.VersionContains"></FancyTextBox></span>
-        <span class="tile tile280">Encryption algorithm: <FancyTextBox @bind-Value="@Filter.EncryptionContains"></FancyTextBox></span>
-        <span class="tile tile280">Join rules: <FancyTextBox @bind-Value="@Filter.JoinRulesContains"></FancyTextBox></span>
-        <span class="tile tile280">Guest access: <FancyTextBox @bind-Value="@Filter.GuestAccessContains"></FancyTextBox></span>
-        <span class="tile tile280">History visibility: <FancyTextBox @bind-Value="@Filter.HistoryVisibilityContains"></FancyTextBox></span>
-
-        <u style="display: block;">Optional checks</u>
-        <span class="tile tile150">
-            <InputCheckbox @bind-Value="@Filter.CheckFederation"></InputCheckbox> Is federated:
-            @if (Filter.CheckFederation) {
-                <InputCheckbox @bind-Value="@Filter.Federatable"></InputCheckbox>
-            }
-        </span>
-        <span class="tile tile150">
-            <InputCheckbox @bind-Value="@Filter.CheckPublic"></InputCheckbox> Is public:
-            @if (Filter.CheckPublic) {
-                <InputCheckbox @bind-Value="@Filter.Public"></InputCheckbox>
-            }
-        </span>
-
-        <u style="display: block;">Ranges</u>
-        <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsGreaterThan"></InputNumber><span class="range-sep">state events</span><InputNumber
-                max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsLessThan"></InputNumber>
-        </span>
-        <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersGreaterThan"></InputNumber><span class="range-sep">members</span><InputNumber
-                max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersLessThan"></InputNumber>
-        </span>
-        <span class="tile center-children">
-            <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersGreaterThan"></InputNumber><span
-                class="range-sep">local members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int"
-                                                                   @bind-Value="@Filter.JoinedLocalMembersLessThan"></InputNumber>
-        </span>
-    </div>
+    <SynapseRoomQueryFilter Filter="@Filter"/>
 </details>
 <button class="btn btn-primary" @onclick="Search">Search</button>
 <br/>
 
 @if (Results.Count > 0) {
     <p>Found @Results.Count rooms</p>
-    <details>
-        <summary>TSV data (copy/paste)</summary>
-        <pre style="font-size: 0.6em;">
-            <table>
-                @foreach (var res in Results) {
-                    <tr>
-                        <td style="padding: 8px;">@res.RoomId@("\t")</td>
-                        <td style="padding: 8px;">@res.CanonicalAlias@("\t")</td>
-                        <td style="padding: 8px;">@res.Creator@("\t")</td>
-                        <td style="padding: 8px;">@res.Name</td>
-                    </tr>
-                }
-            </table>
-        </pre>
-    </details>
+    @*     <details> *@
+    @*         <summary>TSV data (copy/paste)</summary> *@
+    @*         <pre style="font-size: 0.6em;"> *@
+    @*             <table> *@
+    @*                 @foreach (var res in Results) { *@
+    @*                     <tr> *@
+    @*                         <td style="padding: 8px;">@res.RoomId@("\t")</td> *@
+    @*                         <td style="padding: 8px;">@res.CanonicalAlias@("\t")</td> *@
+    @*                         <td style="padding: 8px;">@res.Creator@("\t")</td> *@
+    @*                         <td style="padding: 8px;">@res.Name</td> *@
+    @*                     </tr> *@
+    @*                 } *@
+    @*             </table> *@
+    @*         </pre> *@
+    @*     </details> *@
 }
 
 @foreach (var res in Results) {
-    <div style="background-color: #ffffff11; border-radius: 0.5em; display: block; margin-top: 4px; padding: 4px;">
+    <div class="room-list-item">
         @* <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem> *@
         <p>
             @if (!string.IsNullOrWhiteSpace(res.CanonicalAlias)) {
-                <span>@res.CanonicalAlias - @res.RoomId (@res.Name)</span>
-                <br/>
+                <span>@res.CanonicalAlias - </span>
             }
-            else {
-                <span>@res.RoomId (@res.Name)</span>
-                <br/>
+            <span>@res.RoomId</span>
+            @if (!string.IsNullOrWhiteSpace(res.Name)) {
+                <span> (@res.Name)</span>
             }
+            <br/>
+
             @if (!string.IsNullOrWhiteSpace(res.Creator)) {
-                @* <span>Created by <InlineUserItem UserId="@res.Creator"></InlineUserItem></span> *@
                 <span>Created by @res.Creator</span>
                 <br/>
             }
         </p>
         <p>
             <LinkButton OnClick="@(() => {
-                                     DeleteRequests.Add(res.RoomId, new() {
+                                     DeleteRequests.TryAdd(res.RoomId, new() {
                                          RoomId = res.RoomId,
                                          DeleteRequest = new() {
                                              Block = true,
@@ -115,18 +75,65 @@
                                              ForcePurge = false
                                          }
                                      });
-                                     
+                                     StateHasChanged();
+
                                      return Task.CompletedTask;
                                  })">Delete room
             </LinkButton>
+            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={res.RoomId}&via={res.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
         </p>
-        <span>@res.StateEvents state events</span><br/>
-        @if (res.LocalMembers is null) {
-            <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server</span>
+
+        @{
+            List<string?> flags = [];
+            if (res.JoinedLocalMembers > 0) {
+                flags.Add(res.JoinRules switch {
+                    "public" => "Public",
+                    "invite" => "Invite only",
+                    "knock" => "Knock",
+                    "restricted" => "Restricted",
+                    "knock_restricted" => "Knock + restricted",
+                    // TODO: default?
+                    null => null,
+                    "" => null,
+                    _ => "unknown join rule: " + res.JoinRules
+                });
+                if (!string.IsNullOrWhiteSpace(res.Encryption)) flags.Add("encrypted");
+                if (!res.Federatable) flags.Add("unfederated");
+
+                flags.Add(res.HistoryVisibility switch {
+                    "world_readable" => "world readable history",
+                    "shared" => "shared history",
+                    "invited" => "history since invite",
+                    "joined" => "history since join",
+                    // TODO: default?
+                    null => null,
+                    "" => null,
+                    _ => "unknown history setting: " + res.HistoryVisibility
+                });
+
+                flags.Add(res.GuestAccess switch {
+                    "can_join" => "guests allowed",
+                    "forbidden" => null,
+                    // TODO: default?
+                    null => null,
+                    "" => null,
+                    _ => "unknown guest access: " + res.GuestAccess,
+                });
+
+                flags = flags.Where(x => x != null).ToList();
+            }
         }
-        else {
-            <span>@res.JoinedMembers members, of which @res.JoinedLocalMembers are on this server: @(string.Join(", ", res.LocalMembers))</span>
+        <span>@string.Join(", ", flags)</span><br/>
+
+        <span>@res.StateEvents state events, room version @(res.Version ?? "1")</span><br/>
+
+        @{
+            var memberSummary = $"{res.JoinedMembers} members, of which {res.JoinedLocalMembers} are on this server";
+            if (res.LocalMembers is not null) {
+                memberSummary += $": {string.Join(", ", res.LocalMembers)}";
+            }
         }
+        <span>@memberSummary</span>
         <details>
             <summary>Full result data</summary>
             <pre>@res.ToJson(ignoreNull: true)</pre>
@@ -146,46 +153,14 @@
 @*     </ModalWindow> *@
 @* } *@
 
-@foreach(var (roomId, deleteRequest) in DeleteRequests) {
-    <SynapseRoomShutdownWindowContent Context="deleteRequest" Homeserver="Homeserver"/>
+@foreach (var (roomId, deleteRequest) in DeleteRequests) {
+    <ModalWindow Title="@($"Delete room {roomId}")" OnCloseClicked="@(() => { DeleteRequests.Remove(roomId); StateHasChanged(); })">
+        <SynapseRoomShutdownWindowContent Context="deleteRequest" Homeserver="Homeserver"/>
+    </ModalWindow>
 }
 
 <style>
-    .int-input {
-        width: 128px;
-    }
 
-    .tile {
-        display: inline-block;
-        padding: 4px;
-        border: 1px solid #ffffff22;
-    }
-
-    .tile280 {
-        min-width: 280px;
-    }
-
-    .tile150 {
-        min-width: 150px;
-    }
-
-    .range-sep {
-        display: inline-block;
-        padding: 4px;
-        width: 150px;
-    }
-
-    .range-sep::before {
-        content: "@("<") ";
-    }
-
-    .range-sep::after {
-        content: " @("<")";
-    }
-
-    .center-children {
-        text-align: center;
-    }
 </style>
 
 @code {
@@ -200,7 +175,7 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "ascending")]
-    public bool Ascending { get; set; }
+    public bool Ascending { get; set; } = true;
 
     private List<RoomInfo> Results { get; set; } = new();
 
@@ -215,8 +190,6 @@
     // private Dictionary<string, SynapseAdminRoomDeleteStatus> DeleteStatuses { get; set; } = new();
 
     protected override Task OnParametersSetAsync() {
-        if (Ascending == null)
-            Ascending = true;
         OrderBy ??= "name";
 
         var execute = false;
@@ -300,9 +273,6 @@
             while (await searchRooms.MoveNextAsync()) {
                 var room = searchRooms.Current;
 
-                if (Results.Count < 100)
-                    Console.WriteLine("Hit: " + room.ToJson(false));
-
                 var roomInfo = new RoomInfo {
                     RoomId = room.RoomId,
                     Name = room.Name,
@@ -322,14 +292,24 @@
 
                 Results.Add(roomInfo);
 
-                if (room.JoinedLocalMembers is > 0 and < 100)
-                    roomInfo.LocalMembers = (await synapse.Admin.GetRoomMembersAsync(room.RoomId)).Members.Where(x => x.EndsWith(":" + synapse.ServerName)).ToList();
-
-                if (Results.Count < 200 || Results.Count % 1000 == 0) {
+                if ((Results.Count <= 200 && Results.Count % 10 == 0) || Results.Count % 1000 == 0) {
                     StateHasChanged();
                     await Task.Yield();
+                    await Task.Delay(1);
                 }
             }
+
+            StateHasChanged();
+
+            var tasks = Results
+                .Where(x => x.JoinedLocalMembers is > 0 and < 100)
+                .Select(async r => {
+                        var members = (await synapse.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + synapse.ServerName)).ToList();
+                        r.LocalMembers = members;
+                    }
+                );
+            await Task.WhenAll(tasks);
+            //Logger.LogWarning($"Found {tasks.Count} rooms with >0, <100 local members");
         }
 
         StateHasChanged();
@@ -416,5 +396,5 @@
     private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
         public List<string>? LocalMembers { get; set; }
     }
-    
+
 }

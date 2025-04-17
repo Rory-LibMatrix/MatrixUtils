@@ -2,35 +2,6 @@
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
 
 @if (string.IsNullOrWhiteSpace(Context.DeleteId)) {
-    <b>Media options</b>
-    <br/>
-    <hr/>
-    <span>Quarantine local media: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalMedia"/>
-    <br/>
-    <span>Quarantine remote media: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineRemoteMedia"/>
-    <br/>
-    <span>Delete remote media: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteRemoteMedia"/>
-    <br/>
-
-    <b>User options</b>
-    <br/>
-    <hr/>
-    <span>Suspend local users: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.SuspendLocalUsers"></InputCheckbox>
-    <br/>
-    <span>Quarantine <b>ALL</b> local user media: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalUserMedia"></InputCheckbox>
-    <br/>
-    <span>Delete <b>ALL</b> local user media: </span>
-    <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteLocalUserMedia"></InputCheckbox>
-    <br/>
-
-    <b>Room deletion options</b>
-    <br/>
-    <hr/>
     <span>Block room: </span>
     <InputCheckbox @bind-Value="@Context.DeleteRequest.Block"/>
     <br/>
@@ -40,17 +11,43 @@
     <span>Force purge room (unsafe): </span>
     <InputCheckbox @bind-Value="@Context.DeleteRequest.ForcePurge"></InputCheckbox>
     <br/>
-    <span>Warning room User ID (optional): </span>
-    <FancyTextBox @bind-Value="@Context.DeleteRequest.NewRoomUserId"/>
-    <br/>
-    @if (!string.IsNullOrWhiteSpace(Context.DeleteRequest.NewRoomUserId)) {
+    <details>
+        <summary>Media</summary>
+        <span>Quarantine local media: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalMedia"/>
+        <br/>
+        <span>Quarantine remote media: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineRemoteMedia"/>
+        <br/>
+        <span>Delete remote media: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteRemoteMedia"/>
+    </details>
+
+    <details>
+        <summary>Local users</summary>
+        <span>Suspend local users: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.SuspendLocalUsers"></InputCheckbox>
+        <br/>
+        <span>Quarantine <b>ALL</b> local user media: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.QuarantineLocalUserMedia"></InputCheckbox>
+        <br/>
+        <span>Delete <b>ALL</b> local user media: </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteLocalUserMedia"></InputCheckbox>
+    </details>
+
+    <details>
+        <summary>Issue warning to local members (optional)</summary>
+        <b>All fields are required if used!</b><br/>
+        <span>Warning room User ID: </span>
+        <FancyTextBox @bind-Value="@Context.DeleteRequest.NewRoomUserId"/>
+        <br/>
         <span>Warning room name: </span>
         <FancyTextBox @bind-Value="@Context.DeleteRequest.RoomName"/>
         <br/>
         <span>Warning room message (plaintext): </span>
         <FancyTextBox Multiline="true" @bind-Value="@Context.DeleteRequest.Message"/>
         <br/>
-    }
+    </details>
 
     <LinkButton OnClick="@DeleteRoom">Execute</LinkButton>
 }
@@ -107,7 +104,7 @@
     public async Task DeleteRoom() {
         await TaskMap.SetValueAsync(Context.RoomId, Context);
     }
-    
+
     private static readonly SemaphoreSlim OnCompleteLock = new(1, 1);
-    
+
 }

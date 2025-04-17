@@ -45,7 +45,7 @@
         if (Breadcrumbs == null) throw new ArgumentNullException(nameof(Breadcrumbs));
         if (Homeserver is null) throw new ArgumentNullException(nameof(Homeserver));
         await Task.Delay(Random.Shared.Next(1000, 10000));
-        var rooms = Space.Room.AsSpace.GetChildrenAsync();
+        var rooms = Space.Room.AsSpace().GetChildrenAsync();
         var joinedRooms = await Homeserver.GetJoinedRooms();
         await foreach (var room in rooms) {
             if (Breadcrumbs.Contains(room.RoomId)) continue;

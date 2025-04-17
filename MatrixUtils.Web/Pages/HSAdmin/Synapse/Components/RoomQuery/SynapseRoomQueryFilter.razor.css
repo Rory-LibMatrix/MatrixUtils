@@ -1,0 +1,35 @@
+.int-input {
+    width: 128px;
+}
+
+.tile {
+    display: inline-block;
+    padding: 4px;
+    border: 1px solid #ffffff22;
+}
+
+.tile280 {
+    min-width: 280px;
+}
+
+.tile150 {
+    min-width: 150px;
+}
+
+.range-sep {
+    display: inline-block;
+    padding: 4px;
+    width: 150px;
+}
+
+.range-sep::before {
+    content: "< ";
+}
+
+.range-sep::after {
+    content: " <";
+}
+
+.center-children {
+    text-align: center;
+}

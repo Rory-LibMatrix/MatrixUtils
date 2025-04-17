@@ -1,0 +1,50 @@
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
+<div style="margin-left: 8px; margin-bottom: 8px;">
+    <u style="display: block;">String contains</u>
+    <span class="tile tile280">Room ID: <FancyTextBox @bind-Value="@Filter.RoomIdContains"></FancyTextBox></span>
+    <span class="tile tile280">Room name: <FancyTextBox @bind-Value="@Filter.NameContains"></FancyTextBox></span>
+    <span class="tile tile280">Canonical alias: <FancyTextBox @bind-Value="@Filter.CanonicalAliasContains"></FancyTextBox></span>
+    <span class="tile tile280">Creator: <FancyTextBox @bind-Value="@Filter.CreatorContains"></FancyTextBox></span>
+    <span class="tile tile280">Room version: <FancyTextBox @bind-Value="@Filter.VersionContains"></FancyTextBox></span>
+    <span class="tile tile280">Encryption algorithm: <FancyTextBox @bind-Value="@Filter.EncryptionContains"></FancyTextBox></span>
+    <span class="tile tile280">Join rules: <FancyTextBox @bind-Value="@Filter.JoinRulesContains"></FancyTextBox></span>
+    <span class="tile tile280">Guest access: <FancyTextBox @bind-Value="@Filter.GuestAccessContains"></FancyTextBox></span>
+    <span class="tile tile280">History visibility: <FancyTextBox @bind-Value="@Filter.HistoryVisibilityContains"></FancyTextBox></span>
+
+    <u style="display: block;">Optional checks</u>
+    <span class="tile tile150">
+        <InputCheckbox @bind-Value="@Filter.CheckFederation"></InputCheckbox> Is federated:
+        @if (Filter.CheckFederation) {
+            <InputCheckbox @bind-Value="@Filter.Federatable"></InputCheckbox>
+        }
+    </span>
+    <span class="tile tile150">
+        <InputCheckbox @bind-Value="@Filter.CheckPublic"></InputCheckbox> Is public:
+        @if (Filter.CheckPublic) {
+            <InputCheckbox @bind-Value="@Filter.Public"></InputCheckbox>
+        }
+    </span>
+
+    <u style="display: block;">Ranges</u>
+    <span class="tile center-children">
+        <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsGreaterThan"/>
+        <span class="range-sep">state events</span>
+        <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.StateEventsLessThan"/>
+    </span>
+    <span class="tile center-children">
+        <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersGreaterThan"></InputNumber><span class="range-sep">members</span><InputNumber
+            max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedMembersLessThan"></InputNumber>
+    </span>
+    <span class="tile center-children">
+        <InputNumber max="@int.MaxValue" class="int-input" TValue="int" @bind-Value="@Filter.JoinedLocalMembersGreaterThan"></InputNumber><span
+            class="range-sep">local members</span><InputNumber max="@int.MaxValue" class="int-input" TValue="int"
+                                                               @bind-Value="@Filter.JoinedLocalMembersLessThan"></InputNumber>
+    </span>
+</div>
+
+@code {
+
+    [Parameter]
+    public required SynapseAdminLocalRoomQueryFilter Filter { get; set; }
+
+}

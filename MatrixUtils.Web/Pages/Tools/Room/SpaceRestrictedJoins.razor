@@ -40,7 +40,7 @@
     }
 
     private async Task Execute() {
-        var space = hs.GetRoom(RoomId).AsSpace;
+        var space = hs.GetRoom(RoomId).AsSpace();
         await foreach (var room in space.GetChildrenAsync()) {
             log.Add($"Got room {room.RoomId}");
             if (ChangeGuestAccess) {

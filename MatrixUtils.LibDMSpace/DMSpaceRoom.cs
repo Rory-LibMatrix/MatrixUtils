@@ -61,7 +61,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
         }).ToAsyncEnumerable();
 
         await foreach (var ((userId, dmRooms), layer) in layerTasks) {
-            var space = Homeserver.GetRoom(layer.SpaceId).AsSpace;
+            var space = Homeserver.GetRoom(layer.SpaceId).AsSpace();
             foreach (var roomid in dmRooms) {
                 var dri = new DMRoomInfo() {
                     AttributedUser = userId
@@ -122,7 +122,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
         await foreach (var (layer, profile) in getProfileTasks) {
             if (profile is null) continue;
             var layerContent = layer.TypedContent as DMSpaceChildLayer;
-            var space = Homeserver.GetRoom(layerContent!.SpaceId).AsSpace;
+            var space = Homeserver.GetRoom(layerContent!.SpaceId).AsSpace();
 
             try {
                 await space.SendStateEventAsync(RoomAvatarEventContent.EventId, "", new RoomAvatarEventContent() {
@@ -140,7 +140,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
 
     private async Task UpdateLayer(DMSpaceChildLayer layer, string mxid) {
         UserProfileResponse? profile = null;
-        var space = Homeserver.GetRoom(layer.SpaceId).AsSpace;
+        var space = Homeserver.GetRoom(layer.SpaceId).AsSpace();
 
         if (string.IsNullOrWhiteSpace(layer.OverrideAvatar) || string.IsNullOrWhiteSpace(layer.OverrideName)) {
             try {

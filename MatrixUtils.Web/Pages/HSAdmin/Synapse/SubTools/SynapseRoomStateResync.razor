@@ -1,0 +1,79 @@
+@page "/HSAdmin/Synapse/ResyncState"
+@using ArcaneLibs.Extensions
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
+
+<h3>Resync room state with other server</h3>
+<hr/>
+<span>Room ID: </span>
+<InputText @bind-Value="@RoomId"></InputText><br/>
+<span>Via: </span>
+<InputText @bind-Value="@Via"></InputText><br/>
+<LinkButton OnClick="@Execute">Execute</LinkButton>
+
+@if (Executing) {
+    <p>Execution in progress. DO NOT CLOSE THIS PAGE!</p>
+    @* stage 1 *@
+    @if (Members is null) {
+        <p>Loading members...</p>
+    }
+    else {
+        <p>Got @Members.Count local members</p>
+    }
+    
+    @* stage 2 *@
+    @if (DeleteStatus is not null) {
+        <p>Purging room, please wait...</p>
+        <pre>@DeleteStatus.ToJson(ignoreNull: true)</pre>
+    }
+    else {
+        <p>Purging room...</p>
+        <pre>@DeleteStatus!.ToJson(ignoreNull: true)</pre>
+    }
+
+    @* stage 3 *@
+}
+@if (Done) {
+    <p>Execution finished. You may now close the page :)</p>
+}
+
+
+@code {
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? RoomId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "via")]
+    public string? Via { get; set; }
+    
+    private bool Executing { get; set; }
+    private bool Done { get; set; }
+    
+    private List<string?>? Members { get; set; }
+
+    private AuthenticatedHomeserverSynapse? Homeserver { get; set; }
+    private SynapseAdminRoomDeleteStatus? DeleteStatus { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        if (await sessionStore.GetCurrentHomeserver(navigateOnFailure: true) is not AuthenticatedHomeserverSynapse hs) return;
+        Homeserver = hs;
+
+        StateHasChanged();
+    }
+
+    private async Task Execute() {
+        if (string.IsNullOrWhiteSpace(RoomId)) return;
+        if (string.IsNullOrWhiteSpace(Via)) return;
+        Executing = true;
+        StateHasChanged();
+        
+        Members = (await Homeserver.Admin.GetRoomMembersAsync(RoomId))
+            .Members.Where(m => m.EndsWith(Homeserver.ServerName))
+            .ToList();
+        StateHasChanged();
+        
+        
+    }
+
+}

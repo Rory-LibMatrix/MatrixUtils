@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
 using Blazored.SessionStorage;
+using LibMatrix.Extensions;
 using LibMatrix.Services;
 using MatrixUtils.Web;
 using MatrixUtils.Web.Classes;
@@ -76,6 +77,8 @@ builder.Services.AddScoped<TieredStorageService>(x =>
         dataStorageProvider: new LocalStorageProviderService(x.GetRequiredService<ILocalStorageService>())
     )
 );
+
+MatrixHttpClient.LogRequests = false;
 
 builder.Services.AddRoryLibMatrixServices();
 builder.Services.AddScoped<RmuSessionStore>();

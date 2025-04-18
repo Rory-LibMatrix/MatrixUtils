@@ -9,6 +9,7 @@
 
 @if (!Executing) {
     <p>WARNING: Will likely not work on invite-only/knock rooms! May also mess with history visibility!</p>
+    <p>If the room is using mjolnir/draupnir, it's probably recommended to set the "via" to the server it's hosted on.</p>
     <span>Room ID: </span>
     <InputText @bind-Value="@RoomId"></InputText>
     <br/>
@@ -145,7 +146,7 @@
             var resp = await Homeserver.Admin.DeleteRoom(RoomId, new SynapseAdminRoomDeleteRequest {
                 Block = true,
                 Purge = true,
-                ForcePurge = true
+                // ForcePurge = true // This causes synapse to early return and not actually purge stuff...
             }, waitForCompletion: false);
 
             while (true) {

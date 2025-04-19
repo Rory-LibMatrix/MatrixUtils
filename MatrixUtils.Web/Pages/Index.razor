@@ -19,7 +19,7 @@ Small collection of tools to do not-so-everyday things.
     </span>
 }
 <hr/>
-<form>
+<form aria-busy="@Busy">
     <table>
         @foreach (var session in _sessions.OrderByDescending(x => x.UserInfo.RoomCount)) {
             var auth = session.Auth;
@@ -137,6 +137,8 @@ Small collection of tools to do not-so-everyday things.
     private const bool _debug = false;
 #endif
 
+    private bool Busy { get; set; } = true;
+
     private class HomepageSessionInfo : RmuSessionStore.SessionInfo {
         public UserInfo? UserInfo { get; set; }
         public ServerVersionResponse? ServerVersion { get; set; }
@@ -241,7 +243,8 @@ Small collection of tools to do not-so-everyday things.
         await Task.WhenAll(tasks);
         scannedSessions = totalSessions;
 
-        await base.OnInitializedAsync();
+        Busy = false;
+        StateHasChanged();
     }
 
     private class UserInfo {

@@ -1,6 +1,10 @@
 @page "/HSAdmin/Synapse/RoomQuery"
+@using System.Diagnostics.CodeAnalysis
 @using Microsoft.AspNetCore.WebUtilities
 @using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.Homeservers.Extensions.NamedCaches
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
 @using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components
@@ -47,46 +51,33 @@
     @*     </details> *@
 }
 
-@foreach (var res in Results) {
+@foreach (var room in Results) {
     <div class="room-list-item">
         @* <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem> *@
         <p>
-            @if (!string.IsNullOrWhiteSpace(res.CanonicalAlias)) {
-                <span>@res.CanonicalAlias - </span>
+            @if (!string.IsNullOrWhiteSpace(room.CanonicalAlias)) {
+                <span>@room.CanonicalAlias - </span>
             }
-            <span>@res.RoomId</span>
-            @if (!string.IsNullOrWhiteSpace(res.Name)) {
-                <span> (@res.Name)</span>
+            <span>@room.RoomId</span>
+            @if (!string.IsNullOrWhiteSpace(room.Name)) {
+                <span> (@room.Name)</span>
             }
             <br/>
 
-            @if (!string.IsNullOrWhiteSpace(res.Creator)) {
-                <span>Created by @res.Creator</span>
+            @if (!string.IsNullOrWhiteSpace(room.Creator)) {
+                <span>Created by @room.Creator</span>
                 <br/>
             }
         </p>
         <p>
-            <LinkButton OnClick="@(() => {
-                                     DeleteRequests.TryAdd(res.RoomId, new() {
-                                         RoomId = res.RoomId,
-                                         DeleteRequest = new() {
-                                             Block = true,
-                                             Purge = true,
-                                             ForcePurge = false
-                                         }
-                                     });
-                                     StateHasChanged();
-
-                                     return Task.CompletedTask;
-                                 })">Delete room
-            </LinkButton>
-            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={res.RoomId}&via={res.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
+            <LinkButton OnClick="@(() => DeleteRoom(room))">Delete room</LinkButton>
+            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
         </p>
 
         @{
             List<string?> flags = [];
-            if (res.JoinedLocalMembers > 0) {
-                flags.Add(res.JoinRules switch {
+            if (true || room.JoinedLocalMembers > 0) {
+                flags.Add(room.JoinRules switch {
                     "public" => "Public",
                     "invite" => "Invite only",
                     "knock" => "Knock",
@@ -95,12 +86,13 @@
                     // TODO: default?
                     null => null,
                     "" => null,
-                    _ => "unknown join rule: " + res.JoinRules
+                    _ => "unknown join rule: " + room.JoinRules
                 });
-                if (!string.IsNullOrWhiteSpace(res.Encryption)) flags.Add("encrypted");
-                if (!res.Federatable) flags.Add("unfederated");
+                
+                if (!string.IsNullOrWhiteSpace(room.Encryption)) flags.Add("encrypted");
+                if (!room.Federatable) flags.Add("unfederated");
 
-                flags.Add(res.HistoryVisibility switch {
+                flags.Add(room.HistoryVisibility switch {
                     "world_readable" => "world readable history",
                     "shared" => "shared history",
                     "invited" => "history since invite",
@@ -108,35 +100,43 @@
                     // TODO: default?
                     null => null,
                     "" => null,
-                    _ => "unknown history setting: " + res.HistoryVisibility
+                    _ => "unknown history setting: " + room.HistoryVisibility
                 });
 
-                flags.Add(res.GuestAccess switch {
+                flags.Add(room.GuestAccess switch {
                     "can_join" => "guests allowed",
                     "forbidden" => null,
                     // TODO: default?
                     null => null,
                     "" => null,
-                    _ => "unknown guest access: " + res.GuestAccess,
+                    _ => "unknown guest access: " + room.GuestAccess,
                 });
 
                 flags = flags.Where(x => x != null).ToList();
             }
         }
-        <span>@string.Join(", ", flags)</span><br/>
+        <span>@string.Join(", ", flags)</span>
+        @if (room.JoinedLocalMembers == 0 && flags.Count > 0) {
+            <span> at the time of leaving</span>
+        }
+        <br/>
 
-        <span>@res.StateEvents state events, room version @(res.Version ?? "1")</span><br/>
+        <span>@room.StateEvents state events, room version @(room.Version ?? "1")</span><br/>
+        @if (room.TombstoneEvent is not null) {
+            var tombstoneContent = room.TombstoneEvent.ContentAs<RoomTombstoneEventContent>()!;
+            <span>Room is tombstoned! Target room: @tombstoneContent.ReplacementRoom, message: @tombstoneContent.Body</span><br/>
+        }
 
         @{
-            var memberSummary = $"{res.JoinedMembers} members, of which {res.JoinedLocalMembers} are on this server";
-            if (res.LocalMembers is not null) {
-                memberSummary += $": {string.Join(", ", res.LocalMembers)}";
+            var memberSummary = room.MemberSummary;
+            if (room.LocalMembers is not null) {
+                memberSummary += $": {string.Join(", ", room.LocalMembers)}";
             }
         }
         <span>@memberSummary</span>
         <details>
             <summary>Full result data</summary>
-            <pre>@res.ToJson(ignoreNull: true)</pre>
+            <pre>@room.ToJson(ignoreNull: true)</pre>
         </details>
     </div>
 }
@@ -154,7 +154,10 @@
 @* } *@
 
 @foreach (var (roomId, deleteRequest) in DeleteRequests) {
-    <ModalWindow Title="@($"Delete room {roomId}")" OnCloseClicked="@(() => { DeleteRequests.Remove(roomId); StateHasChanged(); })">
+    <ModalWindow Title="@($"Delete room {roomId}")" OnCloseClicked="@(() => {
+                                                                        DeleteRequests.Remove(roomId);
+                                                                        StateHasChanged();
+                                                                    })">
         <SynapseRoomShutdownWindowContent Context="deleteRequest" Homeserver="Homeserver"/>
     </ModalWindow>
 }
@@ -171,7 +174,7 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "name_search")]
-    public string SearchTerm { get; set; }
+    public string? SearchTerm { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "ascending")]
@@ -181,13 +184,26 @@
 
     private AuthenticatedHomeserverSynapse Homeserver { get; set; } = null!;
 
-    private string Status { get; set; }
-
-    public SynapseAdminLocalRoomQueryFilter Filter { get; set; } = new();
+    private SynapseAdminLocalRoomQueryFilter Filter { get; set; } = new();
 
     private Dictionary<string, SynapseRoomShutdownWindowContent.RoomShutdownContext> DeleteRequests { get; set; } = [];
 
     // private Dictionary<string, SynapseAdminRoomDeleteStatus> DeleteStatuses { get; set; } = new();
+
+    private NamedCache<SynapseRoomShutdownWindowContent.RoomShutdownContext> TaskMap { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync() {
+        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
+        if (hs is not AuthenticatedHomeserverSynapse synapse) {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        Homeserver = synapse;
+        TaskMap = new NamedCache<SynapseRoomShutdownWindowContent.RoomShutdownContext>(Homeserver, "gay.rory.matrixutils.synapse_room_shutdown_tasks");
+        DeleteRequests = (await TaskMap.ReadCacheMapAsync()).Where(x => x.Value.DeleteId is not null).ToDictionary();
+        StateHasChanged();
+    }
 
     protected override Task OnParametersSetAsync() {
         OrderBy ??= "name";
@@ -266,54 +282,67 @@
 
     private async Task Search() {
         Results.Clear();
-        var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
-        if (hs is AuthenticatedHomeserverSynapse synapse) {
-            Homeserver = synapse;
-            var searchRooms = synapse.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
-            while (await searchRooms.MoveNextAsync()) {
-                var room = searchRooms.Current;
+        var searchRooms = Homeserver.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+        while (await searchRooms.MoveNextAsync()) {
+            var room = searchRooms.Current;
 
-                var roomInfo = new RoomInfo {
-                    RoomId = room.RoomId,
-                    Name = room.Name,
-                    CanonicalAlias = room.CanonicalAlias,
-                    Creator = room.Creator,
-                    Version = room.Version,
-                    Encryption = room.Encryption,
-                    Federatable = room.Federatable,
-                    Public = room.Public,
-                    JoinRules = room.JoinRules,
-                    GuestAccess = room.GuestAccess,
-                    HistoryVisibility = room.HistoryVisibility,
-                    StateEvents = room.StateEvents,
-                    JoinedMembers = room.JoinedMembers,
-                    JoinedLocalMembers = room.JoinedLocalMembers
-                };
+            var roomInfo = new RoomInfo {
+                RoomId = room.RoomId,
+                Name = room.Name,
+                CanonicalAlias = room.CanonicalAlias,
+                Creator = room.Creator,
+                Version = room.Version,
+                Encryption = room.Encryption,
+                Federatable = room.Federatable,
+                Public = room.Public,
+                JoinRules = room.JoinRules,
+                GuestAccess = room.GuestAccess,
+                HistoryVisibility = room.HistoryVisibility,
+                StateEvents = room.StateEvents,
+                JoinedMembers = room.JoinedMembers,
+                JoinedLocalMembers = room.JoinedLocalMembers
+            };
 
-                Results.Add(roomInfo);
+            Results.Add(roomInfo);
 
-                if ((Results.Count <= 200 && Results.Count % 10 == 0) || Results.Count % 1000 == 0) {
-                    StateHasChanged();
-                    await Task.Yield();
-                    await Task.Delay(1);
-                }
+            if ((Results.Count <= 200 && Results.Count % 10 == 0) || Results.Count % 1000 == 0) {
+                StateHasChanged();
+                await Task.Yield();
+                await Task.Delay(1);
             }
-
-            StateHasChanged();
-
-            var tasks = Results
-                .Where(x => x.JoinedLocalMembers is > 0 and < 100)
-                .Select(async r => {
-                        var members = (await synapse.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + synapse.ServerName)).ToList();
-                        r.LocalMembers = members;
-                    }
-                );
-            await Task.WhenAll(tasks);
-            //Logger.LogWarning($"Found {tasks.Count} rooms with >0, <100 local members");
         }
 
         StateHasChanged();
+
+        var getLocalMembersTasks = Results
+            .Where(x => x.JoinedLocalMembers is > 0 and < 100)
+            .Select(async r => {
+                    var members = (await Homeserver.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + Homeserver.ServerName)).ToList();
+                    r.LocalMembers = members;
+                }
+            );
+        await Task.WhenAll(getLocalMembersTasks);
+
+        var getTombstoneTasks = Results
+            .Select(async r => {
+                var state = await Homeserver.Admin.GetRoomStateAsync(r.RoomId, type: "m.room.tombstone");
+                var tombstone = state.Events.FirstOrDefault(x => x is { StateKey: "", Type: "m.room.tombstone" });
+                if (tombstone is { } tombstoneEvent) {
+                    r.TombstoneEvent = tombstoneEvent;
+                }
+            });
+        await Task.WhenAll(getTombstoneTasks);
+
+        StateHasChanged();
     }
+
+    Task DeleteRoom(RoomInfo room) {
+        DeleteRequests.TryAdd(room.RoomId, new() { RoomId = room.RoomId, RoomDetails = room, DeleteRequest = new() { Block = true, Purge = true, ForcePurge = false } });
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
     //
     // private async Task DeleteRoom() {
     //     if (DeleteRequest is { } deleteRequest) {
@@ -395,6 +424,10 @@
 
     private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
         public List<string>? LocalMembers { get; set; }
+        public StateEventResponse? TombstoneEvent { get; set; }
+
+        [field: AllowNull, MaybeNull]
+        public string MemberSummary => field ??= $"{JoinedMembers} members, of which {JoinedLocalMembers} are on this server";
     }
 
 }

@@ -1,5 +1,6 @@
 @using LibMatrix.Homeservers.Extensions.NamedCaches
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
 
 @if (string.IsNullOrWhiteSpace(Context.DeleteId)) {
     <span>Block room: </span>
@@ -76,6 +77,8 @@
             Purge = true,
             ForcePurge = false
         };
+
+        public SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom? RoomDetails { get; set; }
 
         public class ExtraDeleteOptions {
             // room options

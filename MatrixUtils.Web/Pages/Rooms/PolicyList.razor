@@ -25,8 +25,17 @@
 }
 <hr/>
 @* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
-<LinkButton OnClick="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
-<LinkButton OnClick="@(() => { MassCreatePolicies = true; return Task.CompletedTask; })">Create many new policies</LinkButton>
+<LinkButton OnClick="@(() => {
+                         CurrentlyEditingEvent = new() { Type = "", RawContent = new() };
+                         return Task.CompletedTask;
+                     })">Create new policy
+</LinkButton>
+<LinkButton OnClick="@(() => {
+                         MassCreatePolicies = true;
+                         return Task.CompletedTask;
+                     })">Create many new policies
+</LinkButton>
+<LinkButton OnClick="@LoadStatesAsync">Refresh</LinkButton>
 
 @if (Loading) {
     <p>Loading...</p>
@@ -40,15 +49,16 @@ else {
     @foreach (var (type, value) in PolicyEventsByType) {
         <p>
             @(GetValidPolicyEventsByType(type).Count) active,
-            @(GetInvalidPolicyEventsByType(type).Count) invalid
+            @(GetInvalidPolicyEventsByType(type).Count) invalid,
+            @(GetRemovedPolicyEventsByType(type).Count) removed
             (@value.Count total)
             @(GetPolicyTypeName(type).ToLower())
         </p>
     }
 
-    Console.WriteLine($"Rendered hearder in {renderSw.GetElapsedAndRestart()}");
+    Console.WriteLine($"Rendered header in {renderSw.GetElapsedAndRestart()}");
 
-    @foreach (var type in KnownPolicyTypes.OrderByDescending(t => GetPolicyEventsByType(t).Count)) {
+    @foreach (var type in KnownPolicyTypes.Where(t => GetPolicyEventsByType(t).Count > 0).OrderByDescending(t => GetPolicyEventsByType(t).Count)) {
         <details>
             <summary>
                 <span>
@@ -87,21 +97,35 @@ else {
                                 var typedContent = policy.TypedContent!;
                             }
                             @foreach (var prop in proxySafeProps ?? Enumerable.Empty<PropertyInfo>()) {
-                                <td>@prop.GetGetMethod()?.Invoke(typedContent, null)</td>
+                                if (prop.Name == "Entity") {
+                                    <td>@TruncateMxid((string)prop.GetGetMethod()?.Invoke(typedContent, null)!)</td>
+                                }
+                                else {
+                                    <td>@prop.GetGetMethod()?.Invoke(typedContent, null)</td>
+                                }
                             }
                             <td>
                                 <div style="display: ruby;">
                                     @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, policy.Type)) {
-                                        <LinkButton OnClick="@(() => { CurrentlyEditingEvent = policy; return Task.CompletedTask; })">Edit</LinkButton>
+                                        <LinkButton OnClick="@(() => {
+                                                                 CurrentlyEditingEvent = policy;
+                                                                 return Task.CompletedTask;
+                                                             })">Edit
+                                        </LinkButton>
                                         <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Remove</LinkButton>
                                         @if (policy.IsLegacyType) {
                                             <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
                                         }
 
                                         @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(policy.Type)) {
-                                            <LinkButton OnClick="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent</LinkButton>
+                                            <LinkButton OnClick="@(() => {
+                                                                     ServerPolicyToMakePermanent = policy;
+                                                                     return Task.CompletedTask;
+                                                                 })">Make permanent
+                                            </LinkButton>
                                             @if (CurrentUserIsDraupnir) {
-                                                <LinkButton Color="@(ActiveKicks.ContainsKey(policy) ? "#FF0000" : null)" OnClick="@(() => DraupnirKickMatching(policy))">Kick users @(ActiveKicks.ContainsKey(policy) ? $"({ActiveKicks[policy]})" : null)</LinkButton>
+                                                <LinkButton Color="@(ActiveKicks.ContainsKey(policy) ? "#FF0000" : null)" OnClick="@(() => DraupnirKickMatching(policy))">Kick
+                                                    users @(ActiveKicks.ContainsKey(policy) ? $"({ActiveKicks[policy]})" : null)</LinkButton>
                                             }
                                         }
                                     }
@@ -157,7 +181,10 @@ else {
 }
 
 @if (MassCreatePolicies) {
-    <MassPolicyEditorModal Room="@Room" OnClose="@(() => MassCreatePolicies = false)" OnSaved="@(() => { MassCreatePolicies = false; LoadStatesAsync(); })"></MassPolicyEditorModal>
+    <MassPolicyEditorModal Room="@Room" OnClose="@(() => MassCreatePolicies = false)" OnSaved="@(() => {
+                                                                                                   MassCreatePolicies = false;
+                                                                                                   _ = LoadStatesAsync();
+                                                                                               })"></MassPolicyEditorModal>
 }
 
 @code {
@@ -171,27 +198,22 @@ else {
     private bool Loading { get; set; } = true;
 
     [Parameter]
-    public string RoomId { get; set; }
-
-    private bool _enableAvatars;
-    private StateEventResponse? _currentlyEditingEvent;
-    private bool _massCreatePolicies;
-    private StateEventResponse? _serverPolicyToMakePermanent;
+    public required string RoomId { get; set; }
 
     private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
 
     private StateEventResponse? CurrentlyEditingEvent {
-        get => _currentlyEditingEvent;
+        get;
         set {
-            _currentlyEditingEvent = value;
+            field = value;
             StateHasChanged();
         }
     }
 
     public StateEventResponse? ServerPolicyToMakePermanent {
-        get => _serverPolicyToMakePermanent;
+        get;
         set {
-            _serverPolicyToMakePermanent = value;
+            field = value;
             StateHasChanged();
         }
     }
@@ -206,9 +228,9 @@ else {
     public Dictionary<StateEventResponse, int> ActiveKicks { get; set; } = [];
 
     public bool MassCreatePolicies {
-        get => _massCreatePolicies;
+        get;
         set {
-            _massCreatePolicies = value;
+            field = value;
             StateHasChanged();
         }
     }
@@ -219,31 +241,53 @@ else {
         Homeserver = (await sessionStore.GetCurrentHomeserver(navigateOnFailure: true))!;
         if (Homeserver is null) return;
         Room = Homeserver.GetRoom(RoomId!);
-        await Task.WhenAll([
+        await Task.WhenAll(
             Task.Run(async () => { PowerLevels = (await Room.GetPowerLevelsAsync())!; }),
             Task.Run(async () => { DraupnirShortcode = (await Room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId))?.Shortcode; }),
             Task.Run(async () => { RoomAlias = (await Room.GetCanonicalAliasAsync())?.Alias; }),
             Task.Run(async () => { RoomName = await Room.GetNameOrFallbackAsync(); }),
-            Task.Run(async () => { CurrentUserIsDraupnir = (await Homeserver.GetAccountDataOrNullAsync<object>("org.matrix.mjolnir.protected_rooms")) is not null; }),
-        ]);
+            Task.Run(async () => { CurrentUserIsDraupnir = (await Homeserver.GetAccountDataOrNullAsync<object>(DraupnirProtectedRoomsData.EventId)) is not null; })
+        );
+        StateHasChanged();
         await LoadStatesAsync();
         Console.WriteLine($"Policy list editor initialized in {sw.Elapsed}!");
     }
 
     private async Task LoadStatesAsync() {
+        var sw = Stopwatch.StartNew();
         Loading = true;
-        var states = Room.GetFullStateAsync();
-        PolicyEventsByType.Clear();
-        await foreach (var state in states) {
+        // var states = Room.GetFullStateAsync();
+        var states = await Room.GetFullStateAsListAsync();
+        // PolicyEventsByType.Clear();
+
+        Console.WriteLine($"LoadStatesAsync: Loaded state in {sw.Elapsed}");
+
+        foreach (var state in states) {
             if (state is null) continue;
             if (!state.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
+
             if (!PolicyEventsByType.ContainsKey(state.MappedType)) PolicyEventsByType.Add(state.MappedType, new());
-            PolicyEventsByType[state.MappedType].Add(state);
+
+            var targetPolicies = PolicyEventsByType[state.MappedType];
+
+            if (targetPolicies.FirstOrDefault(x => StateEvent.TypeKeyPairMatches(x, state)) is { } evt) {
+                if (StateEvent.Equals(evt, state)) continue;
+                targetPolicies.Remove(evt);
+                targetPolicies.Add(state);
+            }
+            else targetPolicies.Add(state);
         }
+
+        Console.WriteLine($"LoadStatesAsync: Processed state in {sw.Elapsed}");
 
         Loading = false;
         StateHasChanged();
+        await Task.Delay(10);
+        await Task.Yield();
+        Console.WriteLine($"LoadStatesAsync: yield finished in {sw.Elapsed}");
     }
+
+    // private List<StateEventResponse> AllPolicies { get; set; } = [];
 
     private List<StateEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
 
@@ -251,7 +295,10 @@ else {
         .Where(x => !string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
 
     private List<StateEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
-        .Where(x => string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
+        .Where(x => x.RawContent is { Count: > 0 } && string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
+
+    private List<StateEventResponse> GetRemovedPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+        .Where(x => x.RawContent is null or { Count: 0 }).ToList();
 
     private string? GetPolicyTypeNameOrNull(Type type) => type.GetFriendlyNamePluralOrNull()
                                                           ?? type.GetCustomAttributes<MatrixEventAttribute>()
@@ -272,7 +319,7 @@ else {
     }
 
     private async Task UpgradePolicyAsync(StateEventResponse policyEvent) {
-        policyEvent.RawContent["upgraded_from_type"] = policyEvent.Type;
+        policyEvent.RawContent["gay.rory.matrixutils.upgraded_from_type"] = policyEvent.Type;
         await LoadStatesAsync();
     }
 
@@ -284,6 +331,23 @@ else {
 
     private static Dictionary<Type, string[]> PolicyTypeIds = KnownPolicyTypes
         .ToDictionary(x => x, x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName).ToArray());
+
+    private static string TruncateMxid(string mxid) {
+        var parts = mxid.Split(':', 2);
+        if (parts[0].Length > 50)
+            parts[0] = parts[0][..50] + "[...]";
+
+        if (parts is [_, { Length: > 50 }])
+            parts[1] = parts[1][..50] + "[...]";
+
+        return parts.Length == 1 ? parts[0] : $"{parts[0]}:{parts[1]}";
+    }
+
+    private struct PolicyStats {
+        public int Active { get; set; }
+        public int Invalid { get; set; }
+        public int Removed { get; set; }
+    }
 
 #region Draupnir interop
 

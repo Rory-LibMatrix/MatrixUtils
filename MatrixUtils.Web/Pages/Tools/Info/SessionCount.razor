@@ -97,7 +97,7 @@
         rooms = new ObservableCollection<GenericRoom>(distinctRooms);
         rooms.CollectionChanged += (sender, args) => StateHasChanged();
 
-        var stateTasks = rooms.Select(async x => (x, await x.GetMembersListAsync(false))).ToAsyncEnumerable();
+        var stateTasks = rooms.Select(async x => (x, await x.GetMembersListAsync())).ToAsyncEnumerable();
 
         await foreach (var (room, state) in stateTasks) {
             roomMembers.Add(room, state);

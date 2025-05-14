@@ -188,7 +188,7 @@ else {
             }
             catch { }
 
-        var membersEnum = room.GetMembersEnumerableAsync(true);
+        var membersEnum = room.GetMembersEnumerableAsync("join");
         await foreach (var member in membersEnum)
             if (member.TypedContent is RoomMemberEventContent memberEvent)
                 roomMembers[roomInfo].Add(new() { DisplayName = memberEvent.DisplayName, AvatarUrl = memberEvent.AvatarUrl, Id = member.StateKey });

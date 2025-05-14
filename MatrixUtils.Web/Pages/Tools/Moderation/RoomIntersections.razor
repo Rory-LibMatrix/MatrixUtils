@@ -144,7 +144,7 @@
     public async Task GetMembers(List<GenericRoom> rooms, Dictionary<string, List<Match>> users) {
         foreach (var room in rooms) {
             Log.Add($"Getting members for {room.RoomId}");
-            var members = await room.GetMembersListAsync(false);
+            var members = await room.GetMembersListAsync();
             foreach (var member in members) {
                 if (member.RawContent?["membership"]?.ToString() == "ban") continue;
                 if (member.RawContent?["membership"]?.ToString() == "invite") continue;

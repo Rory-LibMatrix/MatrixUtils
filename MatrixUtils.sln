@@ -67,6 +67,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MxApiExtensions", "MxApiExt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{CEECE820-1BA9-4E29-8668-25967B3E712B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Web.Ssr", "MatrixUtils.Web.Ssr\MatrixUtils.Web.Ssr\MatrixUtils.Web.Ssr.csproj", "{35F510FD-98FC-4760-A53B-9176A53A33A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixUtils.Web.Ssr.Client", "MatrixUtils.Web.Ssr\MatrixUtils.Web.Ssr.Client\MatrixUtils.Web.Ssr.Client.csproj", "{335DB9D5-FEEE-45E3-B76A-057D8BB48412}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -185,6 +189,14 @@ Global
 		{CEECE820-1BA9-4E29-8668-25967B3E712B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEECE820-1BA9-4E29-8668-25967B3E712B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEECE820-1BA9-4E29-8668-25967B3E712B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35F510FD-98FC-4760-A53B-9176A53A33A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35F510FD-98FC-4760-A53B-9176A53A33A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35F510FD-98FC-4760-A53B-9176A53A33A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35F510FD-98FC-4760-A53B-9176A53A33A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{335DB9D5-FEEE-45E3-B76A-057D8BB48412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{335DB9D5-FEEE-45E3-B76A-057D8BB48412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{335DB9D5-FEEE-45E3-B76A-057D8BB48412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{335DB9D5-FEEE-45E3-B76A-057D8BB48412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{84BE90C4-2FDE-4A48-B154-58926EF24846} = {933DC8A6-8B1F-46BF-9046-4B636AA46469}

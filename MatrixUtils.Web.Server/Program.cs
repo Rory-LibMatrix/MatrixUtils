@@ -1,9 +1,15 @@
+using LibMatrix.Services;
+using MatrixUtils.Web.Classes;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+builder.Services.AddRoryLibMatrixServices();
+builder.Services.AddScoped<RmuSessionStore>();
 
 var app = builder.Build();
 

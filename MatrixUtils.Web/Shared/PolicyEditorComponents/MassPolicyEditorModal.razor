@@ -25,7 +25,7 @@
     <br/>
 
     <span>Entities:</span><br/>
-    <InputTextArea @bind-Value="@Users" style="width: 500px;"></InputTextArea>
+    <FancyTextBox Multiline="true" @bind-Value="@Entities"></FancyTextBox>
     <br/>
 
 
@@ -35,16 +35,43 @@
     @*             $1$ @PolicyEvent.ToJson(true, true) #1# *@
     @*     </pre> *@
     @* </details> *@
-    <LinkButton OnClick="@(() => {
-                             OnClose.Invoke();
-                             return Task.CompletedTask;
-                         })"> Cancel
-    </LinkButton>
-    <LinkButton OnClick="@(() => {
-                             _ = Save();
-                             return Task.CompletedTask;
-                         })"> Save
-    </LinkButton>
+    @if (!VerifyIntent) {
+        <LinkButton OnClick="@(() => {
+                                 OnClose.Invoke();
+                                 return Task.CompletedTask;
+                             })"> Cancel
+        </LinkButton>
+        <LinkButton OnClick="@(() => {
+                                 _ = Save();
+                                 return Task.CompletedTask;
+                             })"> Save
+        </LinkButton>
+        @if (!string.IsNullOrWhiteSpace(Response)) {
+            <pre style="color: red;">@Response</pre>
+        }
+    }
+    else {
+        <b class="blink">WARNING!!!</b>
+        <br/>
+
+        @if (!string.IsNullOrWhiteSpace(Response)) {
+            <pre style="color: red;">@Response</pre>
+        }
+
+        <span>Are you sure you want to do this?</span>
+        <LinkButton Color="#00FF00" OnClick="@(() => {
+                                                 VerifyIntent = false;
+                                                 Response = null;
+                                                 StateHasChanged();
+                                                 return Task.CompletedTask;
+                                             })">No
+        </LinkButton>
+        <LinkButton Color="#FF0000" OnClick="@(() => {
+                                                 _ = Save(force: true);
+                                                 return Task.CompletedTask;
+                                             })"> Yes
+        </LinkButton>
+    }
 
 </ModalWindow>
 
@@ -59,9 +86,20 @@
     [Parameter]
     public required GenericRoom Room { get; set; }
 
-    public string Recommendation { get; set; } = "m.ban";
-    public string Reason { get; set; } = "spam";
-    public string Users { get; set; } = "";
+    private string Recommendation { get; set; } = "m.ban";
+    private string Reason { get; set; } = "spam";
+
+    private string Entities { get; set; } = "";
+
+    private string? Response {
+        get;
+        set {
+            field = value;
+            StateHasChanged();
+        }
+    }
+
+    private bool VerifyIntent { get; set; }
 
     private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
 
@@ -74,47 +112,75 @@
 
     private string? MappedType { get; set; }
 
-    private async Task Save() {
+    private async Task Save(bool force = false) {
+        if (string.IsNullOrWhiteSpace(MappedType)) {
+            Response = "No type selected";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Entities)) {
+            Response = "No users selected";
+            return;
+        }
+
+        Console.WriteLine("Saving ---");
+
+        var entities = Entities.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.Trim())
+            .Distinct()
+            .ToList();
+
+        if (!force && !Validate(entities, PolicyTypes[MappedType])) {
+            List<string> distinctTypes = entities
+                .Select(GuessType)
+                .Where(x => x != null)
+                .Distinct()
+                .Select(x => x!.Name)
+                .ToList();
+
+            VerifyIntent = true;
+            Response = $"Invalid entities. Expected {PolicyTypes[MappedType].Name}, got:\n - " +
+                       string.Join("\n - ", distinctTypes);
+            return;
+        }
+
         try {
-            await DoActualSave();
+            await SaveAll(entities);
         }
         catch (Exception e) {
-            Console.WriteLine($"Failed to save: {e}");
+            Response = $"Failed to save: {e}";
         }
     }
 
-    private async Task DoActualSave() {
-        if (string.IsNullOrWhiteSpace(MappedType)) {
-            Console.WriteLine("No type selected");
-            return;
-        }
+    private bool Validate(List<string> entities, Type expectedType) {
+        return entities.All(x => GuessType(x) == expectedType);
+    }
 
-        if (string.IsNullOrWhiteSpace(Users)) {
-            Console.WriteLine("No users selected");
-            return;
-        }
+    private Type? GuessType(string entity) {
+        var sigil = entity[0];
+        return TypesBySigil.GetValueOrDefault(sigil.ToString(), typeof(ServerPolicyRuleEventContent));
+    }
 
-        Console.WriteLine($"Saving ---");
-        Console.WriteLine($"Users = {Users}");
+    private Dictionary<string, Type> TypesBySigil = new() {
+        { "@", typeof(UserPolicyRuleEventContent) },
+        { "!", typeof(RoomPolicyRuleEventContent) },
+        { "#", typeof(RoomPolicyRuleEventContent) }
+    };
 
-        var users = Users.Split("\n")
-            .Select(x => x.Trim())
-            .Where(x => x.StartsWith('@'))
-            .Distinct()
-            .ToList();
+    private async Task SaveAll(List<string> entities) {
         await foreach (var evt in Room.GetFullStateAsync()) {
             if (evt is null
                 || !AllKnownPolicyTypes.Contains(evt.Type)
                 || !evt.TypedContent!.GetType().IsAssignableTo(PolicyTypes[MappedType!])
                ) continue;
-            
+
             if (evt.TypedContent is PolicyRuleEventContent content && content.Recommendation == Recommendation && content.Reason == Reason) {
-                if (content.Entity != null && users.Contains(content.Entity))
-                    users.Remove(content.Entity);
+                if (content.Entity != null && entities.Contains(content.Entity))
+                    entities.Remove(content.Entity);
             }
         }
-        
-        var tasks = users.Select(x => ExecuteBan(Room, x)).ToList();
+
+        var tasks = entities.Select(x => ExecuteBan(Room, x)).ToList();
         await Task.WhenAll(tasks);
 
         OnSaved.Invoke();
@@ -124,7 +190,7 @@
         bool success = false;
         while (!success) {
             try {
-                var content = Activator.CreateInstance(PolicyTypes[MappedType!]) as PolicyRuleEventContent;
+                var content = Activator.CreateInstance(PolicyTypes[MappedType!]) as PolicyRuleEventContent ?? throw new InvalidOperationException("Failed to create event content");
                 content.Recommendation = Recommendation;
                 content.Reason = Reason;
                 content.Entity = entity;

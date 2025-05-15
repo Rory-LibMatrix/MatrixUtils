@@ -2,7 +2,6 @@
 <project version="4">
   <component name="UserContentModel">
     <attachedFolders>
-      <Path>LibMatrix/LibMatrix/Homeservers</Path>
       <Path>MatrixRoomUtils.Bot/bot_data</Path>
       <Path>MatrixRoomUtils.Desktop/bin/Debug/net7.0/mru-desktop</Path>
     </attachedFolders>

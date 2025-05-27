@@ -210,7 +210,7 @@
             Status = $"Got sync with {sync.Rooms?.Join?.Count ?? 0} room updates, next batch: {sync.NextBatch}!";
             if (sync.Rooms?.Join != null)
                 foreach (var joinedRoom in sync.Rooms.Join)
-                    if ( /*joinedRoom.Value.AccountData?.Events?.Count > 0 ||*/ joinedRoom.Value.State?.Events?.Count > 0) {
+                    if (joinedRoom.Value.StateAfter?.Events?.Count > 0) {
                         joinedRoom.Value.StateAfter?.Events?.RemoveAll(x => x.Type == "m.room.member" && x.StateKey != Homeserver.WhoAmI.UserId);
                         // We can't trust servers to give us what we ask for, and this ruins performance
                         // Thanks, Conduit.

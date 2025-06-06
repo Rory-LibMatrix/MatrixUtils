@@ -100,11 +100,11 @@ else {
                     @foreach (var policy in policies.OrderBy(x => x.RawContent?["entity"]?.GetValue<string>())) {
                         <tr>
                             @{
-                                var typedContent = policy.TypedContent!;
+                                var typedContent = policy.TypedContent! as PolicyRuleEventContent;
                             }
                             @foreach (var prop in proxySafeProps ?? Enumerable.Empty<PropertyInfo>()) {
                                 if (prop.Name == "Entity") {
-                                    <td>@TruncateMxid((string)prop.GetGetMethod()?.Invoke(typedContent, null)!)</td>
+                                    <td>@TruncateMxid(typedContent!.Entity)</td>
                                 }
                                 else {
                                     <td>@prop.GetGetMethod()?.Invoke(typedContent, null)</td>
@@ -339,7 +339,8 @@ else {
     private static Dictionary<Type, string[]> PolicyTypeIds = KnownPolicyTypes
         .ToDictionary(x => x, x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName).ToArray());
 
-    private static string TruncateMxid(string mxid) {
+    private static string TruncateMxid(string? mxid) {
+        if (string.IsNullOrWhiteSpace(mxid)) return mxid;
         var parts = mxid.Split(':', 2);
         if (parts[0].Length > 50)
             parts[0] = parts[0][..50] + "[...]";

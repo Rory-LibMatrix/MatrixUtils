@@ -1,0 +1,51 @@
+@page "/Tools/Room/DropPowerlevel"
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
+<h3>DropPowerlevel</h3>
+<hr/>
+
+<span>User ID: </span><FancyTextBox @bind-Value="@UserId"/><br/>
+<span>Room ID: </span><FancyTextBox @bind-Value="@RoomId"/><br/>
+<LinkButton OnClick="@Execute">Execute</LinkButton>
+
+<pre>@Result</pre>
+
+@code {
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; } = null!;
+
+    [Parameter, SupplyParameterFromQuery(Name = "RoomId")]
+    public string RoomId { get; set; } = "";
+
+    [Parameter, SupplyParameterFromQuery(Name = "UserId")]
+    public string UserId { get; set; } = "";
+
+    private string Result { get; set; } = "";
+
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await sessionStore.GetCurrentHomeserver();
+        Result = "I am: " + Homeserver.WhoAmI.ToJson() + "\n";
+        StateHasChanged();
+    }
+
+    private async Task Execute() {
+        try {
+            if (Homeserver is not AuthenticatedHomeserverGeneric hs) {
+                Result = "Not authenticated";
+                return;
+            }
+
+            var room = hs.GetRoom(RoomId);
+
+            var powerlevels = await room.GetPowerLevelsAsync();
+            powerlevels.Users.Remove(UserId);
+            Result = (await room.SendStateEventAsync(RoomPowerLevelEventContent.EventId, powerlevels)).ToJson();
+        }
+        catch (Exception e) {
+            Result = e.Message;
+        }
+        finally {
+            StateHasChanged();
+        }
+    }
+
+}

@@ -1,8 +1,6 @@
-@page "/HSAdmin/Synapse/RoomQuery"
-@using System.Diagnostics.CodeAnalysis
+@page "/HSAdmin/Synapse/UserQuery"
 @using Microsoft.AspNetCore.WebUtilities
 @using ArcaneLibs.Extensions
-@using LibMatrix
 @using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Homeservers.Extensions.NamedCaches
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
@@ -11,7 +9,7 @@
 @using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components.RoomQuery
 @inject ILogger<RoomQuery> Logger
 
-<h3>Homeserver Administration - Room Query</h3>
+<h3>Homeserver Administration - User Query</h3>
 
 <label>Search name: </label>
 <InputText @bind-Value="SearchTerm"/><br/>
@@ -27,7 +25,7 @@
     <summary>
         <span>Local filtering (slow)</span>
     </summary>
-    <SynapseRoomQueryFilter Filter="@Filter"/>
+    @* <SynapseRoomQueryFilter Filter="@Filter"/> *@
 </details>
 <button class="btn btn-primary" @onclick="Search">Search</button>
 <br/>
@@ -51,120 +49,45 @@
     @*     </details> *@
 }
 
-@foreach (var room in Results) {
+@foreach (var user in Results) {
     <div class="room-list-item">
-        @* <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem> *@
         <p>
-            @if (!string.IsNullOrWhiteSpace(room.CanonicalAlias)) {
-                <span>@room.CanonicalAlias - </span>
-            }
-            <span>@room.RoomId</span>
-            @if (!string.IsNullOrWhiteSpace(room.Name)) {
-                <span> (@room.Name)</span>
+            <span>@user.Name</span>
+            @if (!string.IsNullOrWhiteSpace(user.DisplayName)) {
+                <span> (@user.DisplayName)</span>
             }
             <br/>
-
-            @if (!string.IsNullOrWhiteSpace(room.Creator)) {
-                <span>Created by @room.Creator</span>
-                <br/>
-            }
         </p>
         <p>
-            <LinkButton OnClick="@(() => DeleteRoom(room))">Delete room</LinkButton>
-            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
+            <LinkButton OnClick="@(() => Login(user))">Log in</LinkButton>
+            @* <LinkButton OnClick="@(() => DeleteRoom(user))">Delete room</LinkButton> *@
+            @* <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={user.RoomId}&via={user.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton> *@
+            
         </p>
 
         @{
             List<string?> flags = [];
-            if (true || room.JoinedLocalMembers > 0) {
-                flags.Add(room.JoinRules switch {
-                    "public" => "Public",
-                    "invite" => "Invite only",
-                    "knock" => "Knock",
-                    "restricted" => "Restricted",
-                    "knock_restricted" => "Knock + restricted",
-                    // TODO: default?
-                    null => null,
-                    "" => null,
-                    _ => "unknown join rule: " + room.JoinRules
-                });
-                
-                if (!string.IsNullOrWhiteSpace(room.Encryption)) flags.Add("encrypted");
-                if (!room.Federatable) flags.Add("unfederated");
+            if (user.IsGuest == true) flags.Add("guest");
+            if (user.Admin == true) flags.Add("admin");
+            if (user.Deactivated == true) flags.Add("deactivated");
+            if (user.Erased == true) flags.Add("erased");
+            if (user.ShadowBanned == true) flags.Add("shadow banned");
+            if (user.Locked == true) flags.Add("locked");
+            if (user.Approved == true) flags.Add("approved");
 
-                flags.Add(room.HistoryVisibility switch {
-                    "world_readable" => "world readable history",
-                    "shared" => "shared history",
-                    "invited" => "history since invite",
-                    "joined" => "history since join",
-                    // TODO: default?
-                    null => null,
-                    "" => null,
-                    _ => "unknown history setting: " + room.HistoryVisibility
-                });
+            if (!string.IsNullOrWhiteSpace(user.UserType)) flags.Add($"type=\"{user.UserType}\"");
 
-                flags.Add(room.GuestAccess switch {
-                    "can_join" => "guests allowed",
-                    "forbidden" => null,
-                    // TODO: default?
-                    null => null,
-                    "" => null,
-                    _ => "unknown guest access: " + room.GuestAccess,
-                });
-
-                flags = flags.Where(x => x != null).ToList();
-            }
+            flags = flags.Where(x => x != null).ToList();
         }
         <span>@string.Join(", ", flags)</span>
-        @if (room.JoinedLocalMembers == 0 && flags.Count > 0) {
-            <span> at the time of leaving</span>
-        }
         <br/>
 
-        <span>@room.StateEvents state events, room version @(room.Version ?? "1")</span><br/>
-        @if (room.TombstoneEvent is not null) {
-            var tombstoneContent = room.TombstoneEvent.ContentAs<RoomTombstoneEventContent>()!;
-            <span>Room is tombstoned! Target room: @tombstoneContent.ReplacementRoom, message: @tombstoneContent.Body</span><br/>
-        }
-
-        @{
-            var memberSummary = room.MemberSummary;
-            if (room.LocalMembers is not null) {
-                memberSummary += $": {string.Join(", ", room.LocalMembers)}";
-            }
-        }
-        <span>@memberSummary</span>
         <details>
             <summary>Full result data</summary>
-            <pre>@room.ToJson(ignoreNull: true)</pre>
+            <pre>@user.ToJson(ignoreNull: true)</pre>
         </details>
     </div>
 }
-@* *@
-@* @if (DeleteRequest.HasValue) { *@
-@*     <ModalWindow MinWidth="600" Title="@("Delete " + DeleteRequest.Value.RoomId)" OnCloseClicked="@(() => { DeleteRequest = null; })"> *@
-@*          *@
-@*     </ModalWindow> *@
-@* } *@
-
-@* @foreach (var (roomId, status) in DeleteStatuses) { *@
-@*     <ModalWindow Title="@("Delete status for " + roomId)" MinWidth="600"> *@
-@*         <pre>@status.ToJson()</pre> *@
-@*     </ModalWindow> *@
-@* } *@
-
-@foreach (var (roomId, deleteRequest) in DeleteRequests) {
-    <ModalWindow Title="@($"Delete room {roomId}")" OnCloseClicked="@(() => {
-                                                                        DeleteRequests.Remove(roomId);
-                                                                        StateHasChanged();
-                                                                    })">
-        <SynapseRoomShutdownWindowContent Context="deleteRequest" Homeserver="Homeserver"/>
-    </ModalWindow>
-}
-
-<style>
-
-</style>
 
 @code {
 
@@ -180,17 +103,11 @@
     [SupplyParameterFromQuery(Name = "ascending")]
     public bool Ascending { get; set; } = true;
 
-    private List<RoomInfo> Results { get; set; } = new();
+    private List<SynapseAdminUserListResult.SynapseAdminUserListResultUser> Results { get; set; } = new();
 
     private AuthenticatedHomeserverSynapse Homeserver { get; set; } = null!;
 
-    private SynapseAdminLocalRoomQueryFilter Filter { get; set; } = new();
-
-    private Dictionary<string, SynapseRoomShutdownWindowContent.RoomShutdownContext> DeleteRequests { get; set; } = [];
-
-    // private Dictionary<string, SynapseAdminRoomDeleteStatus> DeleteStatuses { get; set; } = new();
-
-    private NamedCache<SynapseRoomShutdownWindowContent.RoomShutdownContext> TaskMap { get; set; } = null!;
+    private SynapseAdminLocalUserQueryFilter Filter { get; set; } = new();
 
     protected override async Task OnInitializedAsync() {
         var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
@@ -200,8 +117,6 @@
         }
 
         Homeserver = synapse;
-        TaskMap = new NamedCache<SynapseRoomShutdownWindowContent.RoomShutdownContext>(Homeserver, "gay.rory.matrixutils.synapse_room_shutdown_tasks");
-        DeleteRequests = (await TaskMap.ReadCacheMapAsync()).Where(x => x.Value.DeleteId is not null).ToDictionary();
         StateHasChanged();
     }
 
@@ -212,59 +127,59 @@
 
         foreach (var (key, value) in QueryHelpers.ParseQuery(new Uri(NavigationManager.Uri).Query)) {
             switch (key) {
-                case "RoomIdContains":
-                    Filter.RoomIdContains = value[0]!;
-                    break;
-                case "NameContains":
-                    Filter.NameContains = value[0]!;
-                    break;
-                case "CanonicalAliasContains":
-                    Filter.CanonicalAliasContains = value[0]!;
-                    break;
-                case "VersionContains":
-                    Filter.VersionContains = value[0]!;
-                    break;
-                case "CreatorContains":
-                    Filter.CreatorContains = value[0]!;
-                    break;
-                case "EncryptionContains":
-                    Filter.EncryptionContains = value[0]!;
-                    break;
-                case "JoinRulesContains":
-                    Filter.JoinRulesContains = value[0]!;
-                    break;
-                case "GuestAccessContains":
-                    Filter.GuestAccessContains = value[0]!;
-                    break;
-                case "HistoryVisibilityContains":
-                    Filter.HistoryVisibilityContains = value[0]!;
-                    break;
-                case "Federatable":
-                    Filter.Federatable = bool.Parse(value[0]!);
-                    Filter.CheckFederation = true;
-                    break;
-                case "Public":
-                    Filter.Public = value[0] == "true";
-                    Filter.CheckPublic = true;
-                    break;
-                case "JoinedMembersGreaterThan":
-                    Filter.JoinedMembersGreaterThan = int.Parse(value[0]!);
-                    break;
-                case "JoinedMembersLessThan":
-                    Filter.JoinedMembersLessThan = int.Parse(value[0]!);
-                    break;
-                case "JoinedLocalMembersGreaterThan":
-                    Filter.JoinedLocalMembersGreaterThan = int.Parse(value[0]!);
-                    break;
-                case "JoinedLocalMembersLessThan":
-                    Filter.JoinedLocalMembersLessThan = int.Parse(value[0]!);
-                    break;
-                case "StateEventsGreaterThan":
-                    Filter.StateEventsGreaterThan = int.Parse(value[0]!);
-                    break;
-                case "StateEventsLessThan":
-                    Filter.StateEventsLessThan = int.Parse(value[0]!);
-                    break;
+                // case "RoomIdContains":
+                //     Filter.RoomIdContains = value[0]!;
+                //     break;
+                // case "NameContains":
+                //     Filter.NameContains = value[0]!;
+                //     break;
+                // case "CanonicalAliasContains":
+                //     Filter.CanonicalAliasContains = value[0]!;
+                //     break;
+                // case "VersionContains":
+                //     Filter.VersionContains = value[0]!;
+                //     break;
+                // case "CreatorContains":
+                //     Filter.CreatorContains = value[0]!;
+                //     break;
+                // case "EncryptionContains":
+                //     Filter.EncryptionContains = value[0]!;
+                //     break;
+                // case "JoinRulesContains":
+                //     Filter.JoinRulesContains = value[0]!;
+                //     break;
+                // case "GuestAccessContains":
+                //     Filter.GuestAccessContains = value[0]!;
+                //     break;
+                // case "HistoryVisibilityContains":
+                //     Filter.HistoryVisibilityContains = value[0]!;
+                //     break;
+                // case "Federatable":
+                //     Filter.Federatable = bool.Parse(value[0]!);
+                //     Filter.CheckFederation = true;
+                //     break;
+                // case "Public":
+                //     Filter.Public = value[0] == "true";
+                //     Filter.CheckPublic = true;
+                //     break;
+                // case "JoinedMembersGreaterThan":
+                //     Filter.JoinedMembersGreaterThan = int.Parse(value[0]!);
+                //     break;
+                // case "JoinedMembersLessThan":
+                //     Filter.JoinedMembersLessThan = int.Parse(value[0]!);
+                //     break;
+                // case "JoinedLocalMembersGreaterThan":
+                //     Filter.JoinedLocalMembersGreaterThan = int.Parse(value[0]!);
+                //     break;
+                // case "JoinedLocalMembersLessThan":
+                //     Filter.JoinedLocalMembersLessThan = int.Parse(value[0]!);
+                //     break;
+                // case "StateEventsGreaterThan":
+                //     Filter.StateEventsGreaterThan = int.Parse(value[0]!);
+                //     break;
+                // case "StateEventsLessThan":
+                //     Filter.StateEventsLessThan = int.Parse(value[0]!);
+                //     break;
                 case "Execute":
                     execute = true;
                     break;
@@ -282,28 +197,11 @@
 
     private async Task Search() {
         Results.Clear();
-        var searchRooms = Homeserver.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+        var searchRooms = Homeserver.Admin.SearchUsersAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", localFilter: Filter).GetAsyncEnumerator();
         while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
 
-            var roomInfo = new RoomInfo {
-                RoomId = room.RoomId,
-                Name = room.Name,
-                CanonicalAlias = room.CanonicalAlias,
-                Creator = room.Creator,
-                Version = room.Version,
-                Encryption = room.Encryption,
-                Federatable = room.Federatable,
-                Public = room.Public,
-                JoinRules = room.JoinRules,
-                GuestAccess = room.GuestAccess,
-                HistoryVisibility = room.HistoryVisibility,
-                StateEvents = room.StateEvents,
-                JoinedMembers = room.JoinedMembers,
-                JoinedLocalMembers = room.JoinedLocalMembers
-            };
-
-            Results.Add(roomInfo);
+            Results.Add(room);
 
             if ((Results.Count <= 200 && Results.Count % 10 == 0) || Results.Count % 1000 == 0) {
                 StateHasChanged();
@@ -314,120 +212,32 @@
 
         StateHasChanged();
 
-        var getLocalMembersTasks = Results
-            .Where(x => x.JoinedLocalMembers is > 0 and < 100)
-            .Select(async r => {
-                    var members = (await Homeserver.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + Homeserver.ServerName)).ToList();
-                    r.LocalMembers = members;
-                }
-            );
-        await Task.WhenAll(getLocalMembersTasks);
-
-        var getTombstoneTasks = Results
-            .Select(async r => {
-                var state = await Homeserver.Admin.GetRoomStateAsync(r.RoomId, type: "m.room.tombstone");
-                var tombstone = state.Events.FirstOrDefault(x => x is { StateKey: "", Type: "m.room.tombstone" });
-                if (tombstone is { } tombstoneEvent) {
-                    r.TombstoneEvent = tombstoneEvent;
-                }
-            });
-        await Task.WhenAll(getTombstoneTasks);
-
         StateHasChanged();
     }
-
-    Task DeleteRoom(RoomInfo room) {
-        DeleteRequests.TryAdd(room.RoomId, new() { RoomId = room.RoomId, RoomDetails = room, DeleteRequest = new() { Block = true, Purge = true, ForcePurge = false } });
-        StateHasChanged();
-
-        return Task.CompletedTask;
-    }
-
-    //
-    // private async Task DeleteRoom() {
-    //     if (DeleteRequest is { } deleteRequest) {
-    //         var media = await Homeserver.Admin.GetRoomMediaAsync(deleteRequest.RoomId);
-    //         if (deleteRequest.DeleteRequest.QuarantineRemoteMedia) {
-    //             foreach (var remoteMedia in media.Remote) {
-    //                 await Homeserver.Admin.QuarantineMediaById(remoteMedia);
-    //             }
-    //         }
-    //
-    //         if (deleteRequest.DeleteRequest.DeleteRemoteMedia) {
-    //             foreach (var remoteMedia in media.Remote) {
-    //                 await Homeserver.Admin.DeleteMediaById(remoteMedia);
-    //             }
-    //         }
-    //         else if (deleteRequest.DeleteRequest.QuarantineLocalMedia) {
-    //             foreach (var localMedia in media.Local) {
-    //                 await Homeserver.Admin.QuarantineMediaById(localMedia);
-    //             }
-    //         }
-    //
-    //         var deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
-    //         DeleteRequest = null;
-    //         List<string> alreadyCleanedUsers = [];
-    //         while (true) {
-    //             var status = await Homeserver.Admin.GetRoomDeleteStatus(deleteId.DeleteId);
-    //             DeleteStatuses[deleteRequest.RoomId] = status;
-    //             StateHasChanged();
-    //             await Task.Delay(5000);
-    //             if (status.Status == "complete") {
-    //                 DeleteStatuses.Remove(deleteRequest.RoomId);
-    //                 StateHasChanged();
-    //                 break;
-    //             }
-    //
-    //             if (status.Status == "failed") {
-    //                 deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
-    //             }
-    //
-    //             var newCleanedUsers = status.ShutdownRoom?.KickedUsers?.Except(alreadyCleanedUsers).ToList();
-    //             if (newCleanedUsers is not null) {
-    //                 alreadyCleanedUsers.AddRange(newCleanedUsers);
-    //                 foreach (var user in newCleanedUsers) {
-    //                     if (deleteRequest.DeleteRequest.SuspendLocalUsers) {
-    //                         // await Homeserver.Admin.(user);
-    //                     }
-    //
-    //                     if (deleteRequest.DeleteRequest.QuarantineLocalUserMedia) {
-    //                         await Homeserver.Admin.QuarantineMediaByUserId(user);
-    //                     }
-    //
-    //                     if (deleteRequest.DeleteRequest.DeleteLocalUserMedia) {
-    //                         var userMedia = Homeserver.Admin.GetUserMediaEnumerableAsync(user);
-    //                         await foreach (var mediaEntry in userMedia) {
-    //                             await Homeserver.Admin.DeleteMediaById(mediaEntry.MediaId);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 
     private readonly Dictionary<string, string> validOrderBy = new() {
-        { "name", "Room name" },
-        { "canonical_alias", "Main alias address" },
-        { "joined_members", "Number of members (reversed)" },
-        { "joined_local_members", "Number of local members (reversed)" },
-        { "version", "Room version" },
-        { "creator", "Creator of the room" },
-        { "encryption", "End-to-end encryption algorithm" },
-        { "federatable", "Is room federated" },
-        { "public", "Visibility in room list" },
-        { "join_rules", "Join rules" },
-        { "guest_access", "Guest access" },
-        { "history_visibility", "Visibility of history" },
-        { "state_events", "Number of state events" }
+        { "name", "User name" },
+        { "is_guest", "Guest status" },
+        { "admin", "Admin status" },
+        { "user_type", "User type" },
+        { "deactivated", "Deactivation status" },
+        { "shadow_banned", "Shadow banned status" },
+        { "displayname", "Display name" },
+        { "avatar_url", "Avatar URL" },
+        { "creation_ts", "Creation time" },
+        { "last_seen_ts", "Last activity" },
     };
 
-    private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
-        public List<string>? LocalMembers { get; set; }
-        public StateEventResponse? TombstoneEvent { get; set; }
+    private async Task Login(SynapseAdminUserListResult.SynapseAdminUserListResultUser user) {
+        var loginResult = await Homeserver.Admin.LoginUserAsync(user.Name, TimeSpan.FromDays(1));
+        await sessionStore.AddSession(new() {
+            AccessToken = loginResult.AccessToken,
+            DeviceId = loginResult.DeviceId,
+            UserId = loginResult.UserId,
+            Homeserver = Homeserver.ServerName,
+            Proxy = Homeserver.Proxy
+        });
 
-        [field: AllowNull, MaybeNull]
-        public string MemberSummary => field ??= $"{JoinedMembers} members, of which {JoinedLocalMembers} are on this server";
     }
 
 }

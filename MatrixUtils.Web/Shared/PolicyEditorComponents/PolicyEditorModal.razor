@@ -6,7 +6,7 @@
 @using System.Collections.Frozen
 @using LibMatrix.EventTypes
 <ModalWindow Title="@((string.IsNullOrWhiteSpace(PolicyEvent.EventId) ? "Creating new " : "Editing ") + (PolicyEvent.MappedType.GetFriendlyNameOrNull()?.ToLower() ?? "event"))"
-             OnCloseClicked="@OnClose" X="60" Y="60" MinWidth="300">
+             OnCloseClickedAsync="@InvokeOnClose" X="60" Y="60" MinWidth="300">
     @if (string.IsNullOrWhiteSpace(PolicyEvent.EventId)) {
         <span>Policy type:</span>
         <select @bind="@MappedType">
@@ -52,7 +52,12 @@
                             else {
                                 switch (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) {
                                     case Type t when t == typeof(string):
-                                        <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@((string e) => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></FancyTextBox>
+                                        <FancyTextBox Value="@(getter?.Invoke(PolicyData, null) as string)" ValueChanged="@((string e) => {
+                                                                                                                              Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}");
+                                                                                                                              setter?.Invoke(PolicyData, [e]);
+                                                                                                                              PolicyEvent.TypedContent = PolicyData;
+                                                                                                                              StateHasChanged();
+                                                                                                                          })"></FancyTextBox>
                                         break;
                                     case Type t when t == typeof(DateTime):
                                         if (!isNullable) {
@@ -61,13 +66,22 @@
                                         else {
                                             var value = getter?.Invoke(PolicyData, null) as DateTime?;
                                             if (value is null) {
-                                                <button @onclick="() => { setter?.Invoke(PolicyData, [DateTime.Now]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">Add value</button>
+                                                <button @onclick="() => { setter?.Invoke(PolicyData, [DateTime.Now]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">
+                                                    Add value
+                                                </button>
                                             }
                                             else {
                                                 var notNullValue = Nullable.GetValueRefOrDefaultRef(ref value);
                                                 Console.WriteLine($"Value: {value?.ToString() ?? "null"}");
-                                                <InputDate TValue="DateTime" ValueExpression="@(() => notNullValue)" ValueChanged="@(e => { Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}"); setter?.Invoke(PolicyData, [e]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); })"></InputDate>
-                                                <button @onclick="() => { setter?.Invoke(PolicyData, [null]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">Remove value</button>
+                                                <InputDate TValue="DateTime" ValueExpression="@(() => notNullValue)" ValueChanged="@(e => {
+                                                                                                                                       Console.WriteLine($"{prop.Name} ({setter is not null}) -> {e}");
+                                                                                                                                       setter?.Invoke(PolicyData, [e]);
+                                                                                                                                       PolicyEvent.TypedContent = PolicyData;
+                                                                                                                                       StateHasChanged();
+                                                                                                                                   })"></InputDate>
+                                                <button @onclick="() => { setter?.Invoke(PolicyData, [null]); PolicyEvent.TypedContent = PolicyData; StateHasChanged(); }">Remove
+                                                    value
+                                                </button>
                                             }
                                         }
 
@@ -88,8 +102,8 @@
                 @PolicyEvent.ToJson(true, true)
             </pre>
         </details>
-        <LinkButton OnClick="@(() => { OnClose.Invoke(); return Task.CompletedTask; })"> Cancel </LinkButton>
-        <LinkButton OnClick="@(() => { OnSave.Invoke(PolicyEvent); return Task.CompletedTask; })"> Save </LinkButton>
+        <LinkButton OnClickAsync="@InvokeOnClose">Cancel</LinkButton>
+        <LinkButton OnClickAsync="@InvokeOnSave">Save</LinkButton>
     }
     else {
         <p>Policy data is null</p>
@@ -111,10 +125,32 @@
     }
 
     [Parameter]
-    public required Action OnClose { get; set; }
+    public Action? OnClose { get; set; }
 
     [Parameter]
-    public required Action<StateEventResponse> OnSave { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
+
+    private async Task InvokeOnClose() {
+        if (OnClose is not null)
+            OnClose.Invoke();
+
+        if (OnCloseAsync is not null)
+            await OnCloseAsync.Invoke();
+    }
+
+    [Parameter]
+    public Action<StateEventResponse>? OnSave { get; set; }
+
+    [Parameter]
+    public Func<StateEventResponse, Task>? OnSaveAsync { get; set; }
+
+    private async Task InvokeOnSave() {
+        if (OnSave is not null)
+            OnSave.Invoke(PolicyEvent);
+
+        if (OnSaveAsync is not null)
+            await OnSaveAsync.Invoke(PolicyEvent);
+    }
 
     public PolicyRuleEventContent? PolicyData { get; set; }
 

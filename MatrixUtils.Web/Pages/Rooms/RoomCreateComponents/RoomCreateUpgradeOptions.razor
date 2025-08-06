@@ -1,0 +1,33 @@
+@using LibMatrix.Helpers
+<tr>
+    <td>Room upgrade options</td>
+    <td>
+        <details>
+            <summary>Upgrading from @roomUpgrade.OldRoom.RoomId</summary>
+            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InviteMembers"></InputCheckbox>
+            <span>Invite members</span>
+            <br/>
+            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InvitePowerlevelUsers"></InputCheckbox>
+            <span>Invite users with powerlevels</span>
+            <br/>
+            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.MigrateBans"></InputCheckbox>
+            <span>Copy bans (do not use with moderation bots!)</span>
+            <br/>
+            <LinkButton OnClickAsync="@(async () => {
+                                          await roomUpgrade.ImportAsync();
+                                          PageStateHasChanged();
+                                      })">Apply
+            </LinkButton>
+        </details>
+    </td>
+</tr>
+
+@code {
+
+    [Parameter]
+    public required RoomUpgradeBuilder roomUpgrade { get; set; }
+    
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+}

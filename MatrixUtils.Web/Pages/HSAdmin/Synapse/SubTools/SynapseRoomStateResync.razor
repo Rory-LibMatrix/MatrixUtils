@@ -16,7 +16,7 @@
     <span>Via: </span>
     <InputText @bind-Value="@Via"></InputText>
     <br/>
-    <LinkButton OnClick="@Execute">Execute</LinkButton>
+    <LinkButton OnClickAsync="@Execute">Execute</LinkButton>
 }
 
 @if (Executing) {

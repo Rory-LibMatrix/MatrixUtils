@@ -16,7 +16,7 @@
 <br/>
 <span>Room ID: </span>
 <InputText @bind-Value="@RoomId"></InputText>
-<LinkButton OnClick="@Execute">Execute</LinkButton>
+<LinkButton OnClickAsync="@Execute">Execute</LinkButton>
 <p>
     <span><InputCheckbox @bind-Value="ChronologicalOrder"/>Chronological order</span>
     <span><InputCheckbox @bind-Value="DoDisambiguate"/>Enable extended filters</span>
@@ -30,17 +30,17 @@
     <span><InputCheckbox @bind-Value="ShowBans"/> bans</span>
 </p>
 <p>
-    <LinkButton OnClick="@(async () => {
+    <LinkButton OnClickAsync="@(async () => {
                              ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = false;
                              StateHasChanged();
                          })">Hide all
     </LinkButton>
-    <LinkButton OnClick="@(async () => {
+    <LinkButton OnClickAsync="@(async () => {
                              ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = true;
                              StateHasChanged();
                          })">Show all
     </LinkButton>
-    <LinkButton OnClick="@(async () => {
+    <LinkButton OnClickAsync="@(async () => {
                              ShowJoins ^= true;
                              ShowLeaves ^= true;
                              ShowKnocks ^= true;
@@ -129,17 +129,17 @@
     </p>
 
     <p>
-        <LinkButton OnClick="@(async () => {
+        <LinkButton OnClickAsync="@(async () => {
                                  DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = false;
                                  StateHasChanged();
                              })">Un-disambiguate all
         </LinkButton>
-        <LinkButton OnClick="@(async () => {
+        <LinkButton OnClickAsync="@(async () => {
                                  DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = true;
                                  StateHasChanged();
                              })">Disambiguate all
         </LinkButton>
-        <LinkButton OnClick="@(async () => {
+        <LinkButton OnClickAsync="@(async () => {
                                  DisambiguateProfileUpdates ^= true;
                                  DisambiguateKicks ^= true;
                                  DisambiguateUnbans ^= true;

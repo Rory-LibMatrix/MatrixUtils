@@ -3,7 +3,7 @@
 @using LibMatrix.Responses
 <h3>Manage external profiles</h3>
 
-<LinkButton OnClick="AddAllLocalProfiles">Add local sessions</LinkButton>
+<LinkButton OnClickAsync="AddAllLocalProfiles">Add local sessions</LinkButton>
 
 @foreach(var p in ExternalProfiles)
 {

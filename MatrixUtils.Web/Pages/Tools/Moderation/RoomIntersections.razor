@@ -8,13 +8,13 @@
 
 <p>Set A: </p>
 <InputText @bind-Value="@ImportSetASpaceId"></InputText>
-<LinkButton OnClick="@(() => AppendSet(ImportSetASpaceId, RoomsA))">Append Set A</LinkButton>
+<LinkButton OnClickAsync="@(() => AppendSet(ImportSetASpaceId, RoomsA))">Append Set A</LinkButton>
 
 <p>Set B: </p>
 <InputText @bind-Value="@ImportSetBSpaceId"></InputText>
-<LinkButton OnClick="@(() => AppendSet(ImportSetBSpaceId, RoomsB))">Append Set B</LinkButton>
+<LinkButton OnClickAsync="@(() => AppendSet(ImportSetBSpaceId, RoomsB))">Append Set B</LinkButton>
 <br/>
-<LinkButton OnClick="@Execute">Execute</LinkButton>
+<LinkButton OnClickAsync="@Execute">Execute</LinkButton>
 <br/>
 
 <details>

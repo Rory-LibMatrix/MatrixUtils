@@ -11,7 +11,7 @@
 <InputTextArea @bind-Value="@UserIdString"></InputTextArea>
 <br/>
 <InputText @bind-Value="@ImportFromRoomId"></InputText>
-<LinkButton OnClick="@DoImportFromRoomId">Import from room (ID)</LinkButton>
+<LinkButton OnClickAsync="@DoImportFromRoomId">Import from room (ID)</LinkButton>
 
 <details>
     <summary>Rooms to be searched (@rooms.Count)</summary>
@@ -21,7 +21,7 @@
     }
 </details>
 <br/>
-<LinkButton OnClick="Execute">Execute</LinkButton>
+<LinkButton OnClickAsync="Execute">Execute</LinkButton>
 <br/>
 
 <details>

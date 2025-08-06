@@ -1,0 +1,92 @@
+@using Blazored.LocalStorage
+@using LibMatrix.Helpers
+@inject ILocalStorageService LocalStorage
+<tr>
+    <td>Room type:</td>
+    <td>
+        @if (RoomTypes.ContainsKey(roomBuilder.Type ?? "")) {
+            <InputSelect @bind-Value="@roomBuilder.Type">
+                @foreach (var type in RoomTypes) {
+                    <option value="@type.Key">@type.Value</option>
+                }
+                <option value="custom">Custom ...</option>
+            </InputSelect>
+        }
+        else {
+            <FancyTextBox @bind-Value="@roomBuilder.Type"></FancyTextBox>
+        }
+
+        <span> version </span>
+        @if (Capabilities is null) {
+            <span style="color: #888;">Loading...</span>
+        }
+        else {
+            <InputSelect @bind-Value="@roomBuilder.Version">
+                @foreach (var version in Capabilities.Capabilities.RoomVersions!.Available!) {
+                    <option value="@version.Key">@version.Key (@version.Value)</option>
+                }
+            </InputSelect>
+        }
+    </td>
+</tr>
+<tr>
+    <td style="vertical-align: top;">Allow attribution:</td>
+    <td>
+        <InputCheckbox @bind-Value="@AllowAttribution"/>
+        <span>Allow attribution to Rory&::MatrixUtils</span>
+        <LinkButton InlineText="true" OnClick="@(() => ShowAttributionInfo = true)">?</LinkButton>
+    </td>
+</tr>
+
+@if (ShowAttributionInfo) {
+    <ModalWindow Title="Allow attribution to Rory&::MatrixUtils"
+                 OnCloseClicked="@(() => ShowAttributionInfo = false)">
+        <span>This will add the following to the room creation content:</span>
+        <br/>
+        <pre>{ "gay.rory.created_using": "Rory&::MatrixUtils (https://mru.rory.gay)" }</pre>
+        <span>This is not visible to users unless they manually inspect the room's create event source.</span>
+    </ModalWindow>
+}
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+    private AuthenticatedHomeserverGeneric.CapabilitiesResponse? Capabilities { get; set; }
+
+    private bool ShowAttributionInfo {
+        get;
+        set {
+            field = value;
+            StateHasChanged();
+        }
+    }
+
+    private bool AllowAttribution {
+        get;
+        set {
+            field = value;
+            _ = LocalStorage.SetItemAsync("rmu.room_create.allow_attribution", value);
+        }
+    } = true;
+
+    protected override async Task OnInitializedAsync() {
+        Capabilities = await Homeserver.GetCapabilitiesAsync();
+        roomBuilder.Version = Capabilities.Capabilities.RoomVersions!.Default;
+        AllowAttribution = await LocalStorage.GetItemAsync<bool?>("rmu.room_create.allow_attribution") ?? true;
+    }
+
+    private static Dictionary<string, string> RoomTypes { get; } = new() {
+        { "", "Room" },
+        { "m.space", "Space" },
+        { "support.feline.policy.lists.msc.v1", "Policy list" }
+    };
+
+}

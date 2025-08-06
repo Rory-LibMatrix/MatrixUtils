@@ -59,8 +59,8 @@
             <br/>
         </p>
         <p>
-            <LinkButton OnClick="@(() => Login(user))">Log in</LinkButton>
-            @* <LinkButton OnClick="@(() => DeleteRoom(user))">Delete room</LinkButton> *@
+            <LinkButton OnClickAsync="@(() => Login(user))">Log in</LinkButton>
+            @* <LinkButton OnClickAsync="@(() => DeleteRoom(user))">Delete room</LinkButton> *@
             @* <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={user.RoomId}&via={user.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton> *@
             
         </p>

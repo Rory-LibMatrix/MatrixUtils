@@ -1,0 +1,55 @@
+@using ArcaneLibs.Extensions
+@using LibMatrix.Helpers
+<tr>
+    <td>Invited members:</td>
+    <td>
+        <details>
+            <summary>@roomBuilder.Invites.Count members</summary>
+            <LinkButton OnClickAsync="@InviteAllSessions" InlineText="true">Invite all logged in accounts</LinkButton>
+            @foreach (var member in roomBuilder.Invites) {
+                <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem>
+                <span>: </span>
+                <FancyTextBox Value="@member.Value" ValueChanged="@(val => roomBuilder.Invites[member.Key] = val)"/>
+            }
+        </details>
+    </td>
+</tr>
+<tr>
+    <td>Banned members:</td>
+    <td>
+        <details>
+            <summary>@roomBuilder.Bans.Count members</summary>
+            @foreach (var member in roomBuilder.Bans) {
+                <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem>
+                <span>: </span>
+                <FancyTextBox Value="@member.Value" ValueChanged="@(val => roomBuilder.Bans[member.Key] = val)"/>
+            }
+        </details>
+    </td>
+</tr>
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+    
+    private async Task InviteAllSessions() {
+        var sessions = await sessionStore.GetAllSessions();
+        foreach (var session in sessions) {
+            if (roomBuilder.Invites.ContainsKey(session.Value.Auth.UserId) || session.Value.Auth.UserId == Homeserver!.WhoAmI.UserId) continue;
+            Console.WriteLine("Inviting " + session.Value.Auth.UserId);
+            roomBuilder.Invites.Add(session.Value.Auth.UserId, null);
+            Console.WriteLine("--");
+        }
+
+        Console.WriteLine("Got all sessions, invited: " + string.Join(", ", roomBuilder.Invites.Keys));
+        StateHasChanged();
+    }
+
+}

@@ -5,10 +5,13 @@
 <span>Room ID: </span>
 <InputText @bind-Value="@RoomId"></InputText>
 <br/>
-<span>Via server: </span>
-<InputText @bind-Value="@Server"></InputText>
+<span>Via server(s), comma separated: </span>
+<InputText @bind-Value="@Servers"></InputText>
 <br/>
-<LinkButton OnClick="@Join">Join</LinkButton>
+<span>Unblock room (Synapse): </span>
+<InputCheckbox @bind-Value="@Unblock"></InputCheckbox>
+<br/>
+<LinkButton OnClickAsync="@Join">Join</LinkButton>
 <br/><br/>
 @foreach (var line in Log) {
     <pre>@line</pre>
@@ -21,9 +24,12 @@
 
     [Parameter, SupplyParameterFromQuery(Name = "roomId")]
     public string? RoomId { get; set; }
-    
+
     [Parameter, SupplyParameterFromQuery(Name = "via")]
-    public string? Server { get; set; }
+    public string? Servers { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "unblock")]
+    public bool Unblock { get; set; } = false;
 
     protected override async Task OnInitializedAsync() {
         hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
@@ -39,14 +45,19 @@
         if (string.IsNullOrWhiteSpace(RoomId)) return;
         var room = hs.GetRoom(RoomId);
         Log.Add("Got room object...");
-        
-        if (hs is AuthenticatedHomeserverSynapse synapse) {
-            await synapse.Admin.BlockRoom(RoomId, false);
-            Log.Add($"Synapse: unblocked room");
+
+        if (Unblock && hs is AuthenticatedHomeserverSynapse synapse) {
+            try {
+                await synapse.Admin.BlockRoom(RoomId, false);
+                Log.Add($"Synapse: unblocked room");
+            }
+            catch (Exception e) {
+                Log.Add($"Synapse: failed to unblock room: {e}");
+            }
         }
-        
+
         try {
-            await room.JoinAsync([Server], checkIfAlreadyMember: false);
+            await room.JoinAsync(Servers?.Split(','), checkIfAlreadyMember: false);
             Log.Add("Joined room!");
         }
         catch (Exception e) {

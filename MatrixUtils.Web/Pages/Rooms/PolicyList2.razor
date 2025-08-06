@@ -15,7 +15,7 @@
 <h3>Policy list editor - Editing @RoomId</h3>
 <hr/>
 @* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
-<LinkButton OnClick="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
+<LinkButton OnClickAsync="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
 
 @if (Loading) {
     <p>Loading...</p>
@@ -71,16 +71,16 @@ else {
                         }
                         <div style="display: ruby;">
                             @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, policy.Type)) {
-                                <LinkButton OnClick="@(() => { CurrentlyEditingEvent = policy; return Task.CompletedTask; })">Edit</LinkButton>
-                                <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Remove</LinkButton>
+                                <LinkButton OnClickAsync="@(() => { CurrentlyEditingEvent = policy; return Task.CompletedTask; })">Edit</LinkButton>
+                                <LinkButton OnClickAsync="@(() => RemovePolicyAsync(policy))">Remove</LinkButton>
                                 @if (policy.IsLegacyType) {
-                                    <LinkButton OnClick="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
+                                    <LinkButton OnClickAsync="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
                                 }
 
                                 @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(policy.EventId)) {
-                                    <LinkButton OnClick="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent (wildcard)</LinkButton>
+                                    <LinkButton OnClickAsync="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent (wildcard)</LinkButton>
                                     @if (CurrentUserIsDraupnir) {
-                                        <LinkButton OnClick="@(() => UpgradePolicyAsync(policy))">Kick matching users</LinkButton>
+                                        <LinkButton OnClickAsync="@(() => UpgradePolicyAsync(policy))">Kick matching users</LinkButton>
                                     }
                                 }
                                 else {

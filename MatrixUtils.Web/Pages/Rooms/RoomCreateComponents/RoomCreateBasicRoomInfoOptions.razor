@@ -1,0 +1,52 @@
+@using ArcaneLibs
+@using LibMatrix.Helpers
+<tr>
+    <td>Room name:</td>
+    <td>
+        <FancyTextBox @bind-Value="@roomBuilder.Name.Name"></FancyTextBox>
+    </td>
+</tr>
+<tr>
+    <td>Room alias:</td>
+    <td>
+        <InputLocalPart Sigil="#" ServerName="@Homeserver.ServerName" @bind-LocalPart="@roomBuilder.AliasLocalPart"></InputLocalPart>
+    </td>
+</tr>
+<tr>
+    <td>Room icon:</td>
+    <td>
+        @if (!string.IsNullOrWhiteSpace(roomBuilder.Avatar.Url)) {
+            <MxcAvatar Homeserver="Homeserver" MxcUri="@roomBuilder.Avatar.Url" Size="3" SizeUnit="em" Circular="true"/>
+        }
+        else {
+            <img class="avatar" style="height: 3em; width: 3em; border-radius: 50%;" src="@IdenticonGenerator.GenerateAsDataUri(Homeserver.WhoAmI.UserId)"/>
+        }
+        <div style="display: inline-block; vertical-align: middle;">
+            <FancyTextBox @bind-Value="@roomBuilder.Avatar.Url"></FancyTextBox>
+            <br/>
+            <SimpleFilePicker OnFilePicked="@RoomIconFilePicked"></SimpleFilePicker>
+        </div>
+    </td>
+</tr>
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+    
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+    
+    private static readonly SvgIdenticonGenerator IdenticonGenerator = new();
+    
+    private async Task RoomIconFilePicked(InputFileChangeEventArgs obj) {
+        var res = await Homeserver.UploadFile(obj.File.Name, obj.File.OpenReadStream(), obj.File.ContentType);
+        Console.WriteLine(res);
+        roomBuilder.Avatar.Url = res;
+        PageStateHasChanged();
+    }
+
+}

@@ -8,7 +8,7 @@
 <h3>Known Homeserver List</h3>
 <hr/>
 
-<span>Room ID: <FancyTextBox @bind-Value="@RoomId"/><LinkButton OnClick="@Execute">Execute</LinkButton></span>
+<span>Room ID: <FancyTextBox @bind-Value="@RoomId"/><LinkButton OnClickAsync="@Execute">Execute</LinkButton></span>
 
 <span>Stats:</span><br/>
 <span>Server count: @entries.Count</span><br/>

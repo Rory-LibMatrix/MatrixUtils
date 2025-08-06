@@ -1,0 +1,159 @@
+@page "/Rooms/Create2"
+@using System.Text.Json
+@using System.Reflection
+@using ArcaneLibs
+@using ArcaneLibs.Extensions
+@using Blazored.LocalStorage
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.Helpers
+@using LibMatrix.Responses
+@using MatrixUtils.Web.Classes.RoomCreationTemplates
+@using MatrixUtils.Web.Pages.Rooms.RoomCreateComponents
+@inject ILogger<Create2> logger
+@* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
+
+<h3>Room Manager - Create Room</h3>
+
+@if (Ready) {
+    <style>
+        table.table-top-first-tr tr td:first-child {
+            vertical-align: top;
+        }
+    </style>
+    <table class="table-top-first-tr">
+        @if (roomBuilder is RoomUpgradeBuilder roomUpgrade) {
+            <RoomCreateUpgradeOptions roomUpgrade="@roomUpgrade" PageStateHasChanged="@StateHasChanged"/>
+        }
+        else {
+            @* <tr style="padding-bottom: 16px;"> *@
+            @*     <td>Preset:</td> *@
+            @*     <td> *@
+            @*         @if (Presets is null) { *@
+            @*             <p style="color: red;">Presets is null!</p> *@
+            @*         } *@
+            @*         else { *@
+            @*             <p style="color: red;">Support for presets is currently disabled!</p> *@
+            @*             $1$ <InputSelect @bind-Value="@RoomPreset"> #1# *@
+            @*             $1$     @foreach (var createRoomRequest in Presets) { #1# *@
+            @*             $1$         <option value="@createRoomRequest.Key">@createRoomRequest.Key</option> #1# *@
+            @*             $1$     } #1# *@
+            @*             $1$ </InputSelect> #1# *@
+            @*         } *@
+            @*     </td> *@
+            @* </tr> *@
+        }
+        <RoomCreateBasicRoomInfoOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+        <RoomCreateCreateOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+        <RoomCreatePrivacyOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+        <RoomCreatePermissionsOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+        <RoomCreateMembershipOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+        @* Initial states, should remain at bottom *@
+            </table>
+    <LinkButton OnClickAsync="@CreateRoom">Create room</LinkButton>
+    <br/>
+    <div
+        style="position: fixed; top: 56px; right: 0; width: fit-content; max-width: 25%; height: calc(100vh - 56px); overflow: auto; background-color: #2c3054; padding-right: 32px; border-left: 1px solid #ccc;">
+        <details open>
+            <summary>RoomBuilder state</summary>
+            <InputCheckbox @bind-Value="@ShowNullInState"/>
+            <span>Show null values</span><br/>
+            <pre>
+                @roomBuilder.ToJson(ignoreNull: !ShowNullInState)
+            </pre>
+        </details>
+    </div>
+}
+@if (_matrixException is not null) {
+    <ModalWindow Title="@("Matrix exception: " + _matrixException.ErrorCode)">
+        <pre>
+            @_matrixException.Message
+        </pre>
+    </ModalWindow>
+}
+
+@code {
+    
+#region State
+
+    [Parameter, SupplyParameterFromQuery(Name = "previousRoomId")]
+    public string? PreviousRoomId { get; set; }
+
+    private bool ShowNullInState { get; set; }
+
+    private bool Ready { get; set; }
+
+    private RoomBuilder roomBuilder { get; set; } = new();
+
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+
+    private MatrixException? _matrixException { get; set; }
+
+#endregion
+
+#region Presets
+
+    private Dictionary<string, CreateRoomRequest>? Presets { get; set; } = new();
+    // private string RoomPreset {
+    //     get => Presets.ContainsValue(roomBuilder) ? Presets.First(x => x.Value == roomBuilder).Key : "Not a preset";
+    //     set {
+    //         roomBuilder = Presets[value];
+    //         JsonChanged();
+    //         StateHasChanged();
+    //     }
+    // }
+
+#endregion
+
+    protected override async Task OnInitializedAsync() {
+        Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
+        if (Homeserver is null) return;
+        if (!string.IsNullOrWhiteSpace(PreviousRoomId)) {
+            roomBuilder = new RoomUpgradeBuilder(Homeserver.GetRoom(PreviousRoomId));
+        }
+
+        roomBuilder.ServerAcls.Allow = ["*"];
+        roomBuilder.ServerAcls.Deny = [];
+
+        // foreach (var x in Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IRoomCreationTemplate))).ToList()) {
+        //     Console.WriteLine($"Found room creation template in class: {x.FullName}");
+        //     var instance = (IRoomCreationTemplate)Activator.CreateInstance(x);
+        //     Presets[instance.Name] = instance.CreateRoomRequest;
+        // }
+        //
+        // Presets = Presets.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+
+        // if (!Presets.ContainsKey("Default")) {
+            // Console.WriteLine($"No default room found in {Presets.Count} presets: {string.Join(", ", Presets.Keys)}");
+        // }
+        // else RoomPreset = "Default";
+
+        Ready = true;
+        StateHasChanged();
+        if (roomBuilder is RoomUpgradeBuilder roomUpgrade) {
+            await roomUpgrade.ImportAsync().ConfigureAwait(false);
+            StateHasChanged();
+        }
+    }
+
+    protected override bool ShouldRender() {
+        if (roomBuilder.Type == "")
+            roomBuilder.Type = null; // Reset to null if empty, so it doesn't get sent as an empty string
+        var result = base.ShouldRender();
+        logger.LogInformation("ShouldRender: " + result);
+        return result;
+    }
+
+    private async Task CreateRoom() {
+        Console.WriteLine("Create room");
+        Console.WriteLine(roomBuilder.ToJson());
+        roomBuilder.AdditionalCreationContent["gay.rory.created_using"] = "Rory&::MatrixUtils (https://mru.rory.gay)";
+        try {
+            var newRoom = await roomBuilder.Create(Homeserver);
+        }
+        catch (MatrixException e) {
+            _matrixException = e;
+        }
+    }
+
+}

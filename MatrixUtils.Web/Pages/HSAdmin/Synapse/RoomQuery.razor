@@ -70,7 +70,7 @@
             }
         </p>
         <p>
-            <LinkButton OnClick="@(() => DeleteRoom(room))">Delete room</LinkButton>
+            <LinkButton OnClickAsync="@(() => DeleteRoom(room))">Delete room</LinkButton>
             <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
         </p>
 

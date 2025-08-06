@@ -1,0 +1,167 @@
+@using System.Reflection
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.Policy
+@using LibMatrix.RoomTypes
+@using MatrixUtils.Web.Shared.PolicyEditorComponents
+
+@if (_isInitialized && IsVisible) {
+    <tr id="@PolicyInfo.Policy.EventId">
+        @foreach (var prop in PolicyCollection.PropertiesToDisplay.Values) {
+            if (prop.Name == "Entity") {
+                <td>
+                    <span>@TruncateMxid(TypedContent.Entity)</span>
+                    @foreach (var dup in PolicyInfo.MadeRedundantBy) {
+                        <br/>
+                        <span>Also matched by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId)">@TruncateMxid(dup.RawContent["entity"].GetValue<string>())</a></span>
+                    }
+                </td>
+            }
+            else {
+                <td>@prop.GetGetMethod()?.Invoke(TypedContent, null)</td>
+            }
+        }
+        <td>
+            <div style="display: flex; flex-direction: row; gap: 0.5em;">
+                @* @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, Policy.Type)) { *@
+                @if (true) {
+                    <LinkButton OnClickAsync="@(() => {
+                                             IsEditing = true;
+                                             return Task.CompletedTask;
+                                         })">Edit
+                    </LinkButton>
+                    <LinkButton OnClickAsync="@RemovePolicyAsync">Remove</LinkButton>
+                    @if (Policy.IsLegacyType) {
+                        <LinkButton OnClickAsync="@RemovePolicyAsync">Update policy type</LinkButton>
+                    }
+
+                    @if (TypedContent.Entity?.StartsWith("@*:", StringComparison.Ordinal) == true) {
+                        <LinkButton OnClickAsync="@ConvertToAclAsync">Convert to ACL</LinkButton>
+                    }
+
+                    @* @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(Policy.Type)) { *@
+                    @*     <LinkButton OnClickAsync="@(() => { *@
+                    @*                              ServerPolicyToMakePermanent = Policy; *@
+                    @*                              return Task.CompletedTask; *@
+                    @*                          })">Make permanent *@
+                    @*     </LinkButton> *@
+                    @* @if (CurrentUserIsDraupnir) { *@
+                    @*     <LinkButton Color="@(ActiveKicks.ContainsKey(Policy) ? "#FF0000" : null)" OnClick="@(() => DraupnirKickMatching(Policy))">Kick *@
+                    @*         users @(ActiveKicks.TryGetValue(Policy, out var kick) ? $"({kick})" : null) *@
+                    @*     </LinkButton> *@
+                    @* } *@
+                    // }
+                }
+                else {
+                    <p>No permission to modify</p>
+                }
+            </div>
+        </td>
+    </tr>
+
+    @if (IsEditing) {
+        <PolicyEditorModal PolicyEvent="@Policy" OnClose="@(() => IsEditing = false)" OnSaveAsync="@UpdatePolicyAsync"></PolicyEditorModal>
+    }
+    @* TODO: Implement ability to turn ACLs into wildcards *@
+    @*@if (ServerPolicyToMakePermanent is not null) {
+        <ModalWindow Title="Make policy permanent">
+
+        </ModalWindow>
+    }*@
+}
+
+
+
+@code {
+
+    [Parameter]
+    public PolicyList.PolicyCollection.PolicyInfo PolicyInfo { get; set; }
+
+    [Parameter]
+    public GenericRoom Room { get; set; } = null!;
+
+    [Parameter]
+    public required PolicyList.PolicyCollection PolicyCollection { get; set; }
+
+    private StateEventResponse Policy => PolicyInfo.Policy;
+
+    private bool IsEditing {
+        get;
+        set {
+            field = value;
+            _isDirty = true;
+            StateHasChanged();
+        }
+    }
+
+    public bool IsVisible {
+        get;
+        set {
+            field = value;
+            _isDirty = true;
+        }
+    } = true;
+
+    private PolicyRuleEventContent TypedContent { get; set; }
+
+    private bool _isDirty = true;
+    private bool _isInitialized;
+
+    protected override bool ShouldRender() => _isDirty;
+
+    protected override void OnParametersSet() {
+        TypedContent = Policy.TypedContent as PolicyRuleEventContent ?? throw new InvalidOperationException("Policy must have a typed content of type PolicyRuleEventContent.");
+        _isDirty = true;
+        _isInitialized = true;
+        // Console.WriteLine($"ParametersSet {Policy.StateKey}");
+    }
+
+    private static string TruncateMxid(string? mxid) {
+        if (string.IsNullOrWhiteSpace(mxid)) return mxid;
+        var parts = mxid.Split(':', 2);
+        if (parts[0].Length > 50)
+            parts[0] = parts[0][..50] + "[...]";
+
+        if (parts is [_, { Length: > 50 }])
+            parts[1] = parts[1][..50] + "[...]";
+
+        return parts.Length == 1 ? parts[0] : $"{parts[0]}:{parts[1]}";
+    }
+
+    private async Task RemovePolicyAsync() {
+        await Room.SendStateEventAsync(Policy.Type, Policy.StateKey, new { });
+        IsVisible = false;
+        StateHasChanged();
+        // PolicyEventsByType[policyEvent.MappedType].Remove(policyEvent);
+        // await LoadStatesAsync();
+    }
+
+    private async Task UpdatePolicyAsync(StateEventResponse evt) {
+        await Room.SendStateEventAsync(Policy.Type, Policy.StateKey, Policy.RawContent);
+        // CurrentlyEditingEvent = null;
+        // await LoadStatesAsync();
+    }
+
+    private async Task UpgradePolicyAsync() {
+        Policy.RawContent["gay.rory.matrixutils.upgraded_from_type"] = Policy.Type;
+        // await LoadStatesAsync();
+    }
+
+    private async Task ConvertToAclAsync() {
+        if (Policy.RawContent.ContainsKey("entity")) {
+            var newContent = Policy.ContentAs<ServerPolicyRuleEventContent>();
+            newContent!.Entity = newContent.Entity!.Replace("@*:", "");
+            await Room.SendStateEventAsync(ServerPolicyRuleEventContent.EventId, newContent.GetDraupnir2StateKey(), newContent);
+            await Room.SendStateEventAsync(Policy.Type, Policy.StateKey!, new { });
+            IsVisible = false;
+            StateHasChanged();
+        }
+        else {
+            throw new InvalidOperationException("Policy event must contain an 'entity' field to convert to ACL.");
+        }
+    }
+
+    private string Anchor(string anchor) {
+        return $"{NavigationManager.Uri.Split('#')[0]}#{anchor}";
+    }
+
+}

@@ -1,7 +1,12 @@
 @using LibMatrix.Responses
 @using ArcaneLibs
 <div style="background-color: #ffffff11; border-radius: 25px; margin: 8px; width: fit-Content;">
-    <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@(string.IsNullOrWhiteSpace(User?.AvatarUrl) ? _identiconGenerator.GenerateAsDataUri(UserId) : User.AvatarUrl)"/>
+    @if (!string.IsNullOrWhiteSpace(User?.AvatarUrl)) {
+        <MxcAvatar Homeserver="@_homeserver" Size="32" Circular="true" MxcUri="@User.AvatarUrl"/>
+    }
+    else {
+        <img style="@(ChildContent is not null ? "vertical-align: baseline;" : "") width: 32px; height:  32px; border-radius: 50%;" src="@_identiconGenerator.GenerateAsDataUri(UserId)"/>
+    }
     <span style="vertical-align: middle; margin-right: 8px; border-radius: 75px;">@User?.DisplayName</span>
 
     <div style="display: inline-block;">
@@ -26,7 +31,7 @@
     [Parameter]
     public AuthenticatedHomeserverGeneric _homeserver { get; set; }
 
-    private SvgIdenticonGenerator _identiconGenerator = new();
+    private static SvgIdenticonGenerator _identiconGenerator = new();
 
     protected override async Task OnInitializedAsync() {
         // _homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
@@ -37,7 +42,14 @@
                 throw new ArgumentNullException(nameof(UserId));
             }
 
-            User = await _homeserver.GetProfileAsync(UserId);
+            try {
+                User = await _homeserver.GetProfileAsync(UserId);
+            }
+            catch (Exception) {
+                User = new() {
+                    DisplayName = UserId
+                };
+            }
         }
 
         await base.OnInitializedAsync();

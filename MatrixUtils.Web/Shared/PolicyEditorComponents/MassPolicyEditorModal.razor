@@ -36,15 +36,15 @@
     @*     </pre> *@
     @* </details> *@
     @if (!VerifyIntent) {
-        <LinkButton OnClick="@(() => {
-                                 OnClose.Invoke();
-                                 return Task.CompletedTask;
-                             })"> Cancel
+        <LinkButton OnClickAsync="@(() => {
+                                      OnClose.Invoke();
+                                      return Task.CompletedTask;
+                                  })"> Cancel
         </LinkButton>
-        <LinkButton OnClick="@(() => {
-                                 _ = Save();
-                                 return Task.CompletedTask;
-                             })"> Save
+        <LinkButton OnClickAsync="@(() => {
+                                      _ = Save();
+                                      return Task.CompletedTask;
+                                  })"> Save
         </LinkButton>
         @if (!string.IsNullOrWhiteSpace(Response)) {
             <pre style="color: red;">@Response</pre>
@@ -63,14 +63,9 @@
                                                  VerifyIntent = false;
                                                  Response = null;
                                                  StateHasChanged();
-                                                 return Task.CompletedTask;
                                              })">No
         </LinkButton>
-        <LinkButton Color="#FF0000" OnClick="@(() => {
-                                                 _ = Save(force: true);
-                                                 return Task.CompletedTask;
-                                             })"> Yes
-        </LinkButton>
+        <LinkButton Color="#FF0000" OnClick="@(() => { _ = Save(force: true); })">Yes</LinkButton>
     }
 
 </ModalWindow>

@@ -22,8 +22,8 @@
     <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
 </span>
 <br/>
-<LinkButton OnClick="@AddRecord">Add account to queue</LinkButton>
-<LinkButton OnClick="@(() => Login(newRecordInput))">Log in</LinkButton>
+<LinkButton OnClickAsync="@AddRecord">Add account to queue</LinkButton>
+<LinkButton OnClickAsync="@(() => Login(newRecordInput))">Log in</LinkButton>
 <br/>
 <br/>
 
@@ -44,7 +44,7 @@
     <FancyTextBox @bind-Value="@newRecordInput.Proxy"></FancyTextBox>
 </span>
 <br/>
-<LinkButton OnClick="@(() => AddWithAccessToken(newRecordInput))">Add session</LinkButton>
+<LinkButton OnClickAsync="@(() => AddWithAccessToken(newRecordInput))">Add session</LinkButton>
 <br/>
 <br/>
 
@@ -101,7 +101,7 @@
     }
 </table>
 <br/>
-<LinkButton OnClick="@LoginAll">Log in</LinkButton>
+<LinkButton OnClickAsync="@LoginAll">Log in</LinkButton>
 
 
 @code {

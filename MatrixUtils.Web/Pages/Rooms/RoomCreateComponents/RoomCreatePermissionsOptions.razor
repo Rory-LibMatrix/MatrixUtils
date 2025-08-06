@@ -1,0 +1,123 @@
+@using ArcaneLibs.Extensions
+@using LibMatrix.Helpers
+<tr>
+    <td>Permissions:</td>
+    <details>
+        <summary>
+            @if (roomBuilder.Version is "org.matrix.hydra.11" or "12") {
+                <span>@(roomBuilder.AdditionalCreators.Count + 1) creators, </span>
+            }
+            <span>@roomBuilder.PowerLevels.Users.Count members, @roomBuilder.PowerLevels.Events.Count events</span>
+        </summary>
+
+        @if (roomBuilder.Version is "org.matrix.hydra.11" or "12") {
+            <span style="border-bottom: #444;">Creators:</span>
+            <br/>
+            <span>@Homeserver.WhoAmI.UserId (you - to change, visit <a href="/">the homepage</a>.)</span>
+            <br/>
+
+            <StringListEditor @bind-Items="@roomBuilder.AdditionalCreators"></StringListEditor>
+            <br/>
+        }
+
+        <span style="border-bottom: #444;">Events:</span><br/>
+        @foreach (var eventType in roomBuilder.PowerLevels.Events.Keys) {
+            var _event = eventType;
+            <tr>
+                <td>
+                    <LinkButton InlineText="true" OnClick="@(() => {
+                                                               roomBuilder.PowerLevels.Events.Remove(_event);
+                                                               StateHasChanged();
+                                                           })">-
+                    </LinkButton>
+                    <div style="display: inline-flex;">
+                        <FancyTextBox Formatter="@GetPermissionFriendlyName"
+                                      Value="@_event"
+                                      ValueChanged="val => { roomBuilder.PowerLevels.Events.ChangeKey(_event, val); }">
+                        </FancyTextBox>
+                        <span>:</span>
+                    </div>
+                </td>
+                <td>
+                    <input type="number" value="@roomBuilder.PowerLevels.Events[_event]"
+                           @oninput="val => { roomBuilder.PowerLevels.Events[_event] = int.Parse(val.Value.ToString()); }"
+                           @onfocusout="@(() => { roomBuilder.PowerLevels.Events = roomBuilder.PowerLevels.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); })"/>
+                </td>
+            </tr>
+        }
+        <tr>
+            <td>
+                <LinkButton InlineText="true" OnClick="@(() => {
+                                                           roomBuilder.PowerLevels.Events[""] = 0;
+                                                           StateHasChanged();
+                                                       })">+
+                </LinkButton>
+            </td>
+        </tr>
+
+        <span style="border-bottom: #444;">Users:</span><br/>
+        @foreach (var user in roomBuilder.PowerLevels.Users.Keys) {
+            var _user = user;
+            <tr>
+                <td>
+                    <LinkButton InlineText="true" OnClick="@(() => {
+                                                               roomBuilder.PowerLevels.Users.Remove(_user);
+                                                               StateHasChanged();
+                                                           })">-
+                    </LinkButton>
+                    <div style="display: inline-flex;">
+                        <FancyTextBox Value="@_user"
+                                      ValueChanged="val => { roomBuilder.PowerLevels.Users.ChangeKey(_user, val); }">
+                        </FancyTextBox>
+                        <span>:</span>
+                    </div>
+                </td>
+                <td>
+                    <input type="number" value="@roomBuilder.PowerLevels.Users[_user]"
+                           @oninput="val => { roomBuilder.PowerLevels.Users[_user] = int.Parse(val.Value.ToString()); }"
+                           @onfocusout="@(() => { roomBuilder.PowerLevels.Users = roomBuilder.PowerLevels.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); })"/>
+                </td>
+            </tr>
+        }
+        <tr>
+            <td>
+                <LinkButton InlineText="true" OnClick="@(() => {
+                                                           roomBuilder.PowerLevels.Users[""] = 0;
+                                                           StateHasChanged();
+                                                       })">+
+                </LinkButton>
+            </td>
+        </tr>
+    </details>
+</tr>
+
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+    private string GetPermissionFriendlyName(string key) => key switch {
+        "m.reaction" => "Send reaction",
+        "m.room.avatar" => "Change room icon",
+        "m.room.canonical_alias" => "Change room alias",
+        "m.room.encryption" => "Enable encryption",
+        "m.room.history_visibility" => "Change history visibility",
+        "m.room.name" => "Change room name",
+        "m.room.power_levels" => "Change power levels",
+        "m.room.tombstone" => "Upgrade room",
+        "m.room.topic" => "Change room topic",
+        "m.room.pinned_events" => "Pin events",
+        "m.room.server_acl" => "Change server ACLs",
+        "org.matrix.msc4284.policy" => "Change policy server",
+        "m.room.guest_access" => "Change guest access",
+        _ => key
+    };
+
+}

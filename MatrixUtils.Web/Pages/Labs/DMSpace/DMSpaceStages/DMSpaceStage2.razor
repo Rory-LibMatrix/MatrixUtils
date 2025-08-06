@@ -31,7 +31,7 @@ else {
 }
 
 <br/>
-<LinkButton OnClick="@Execute">Next</LinkButton>
+<LinkButton OnClickAsync="@Execute">Next</LinkButton>
 
 @{
     var _offset = 0;
@@ -41,7 +41,7 @@ else {
         <p>Found room assigned to multiple users: <RoomListItem RoomInfo="@room"></RoomListItem></p>
         <p>Users:</p>
         @foreach (var userProfileResponse in usersList) {
-            <LinkButton OnClick="@(() => SetRoomAssignment(room.Room.RoomId, userProfileResponse.Id))">
+            <LinkButton OnClickAsync="@(() => SetRoomAssignment(room.Room.RoomId, userProfileResponse.Id))">
                 <span>Assign to </span>
                 <InlineUserItem User="userProfileResponse"></InlineUserItem>
             </LinkButton>
@@ -54,7 +54,7 @@ else {
     <ModalWindow Title="Re-assign DM" OnCloseClicked="@(() => DmToReassign = null)">
         <RoomListItem RoomInfo="@DmToReassign"></RoomListItem>
         @foreach (var userProfileResponse in roomMembers[DmToReassign]) {
-            <LinkButton OnClick="@(() => SetRoomAssignment(DmToReassign.Room.RoomId, userProfileResponse.Id))">
+            <LinkButton OnClickAsync="@(() => SetRoomAssignment(DmToReassign.Room.RoomId, userProfileResponse.Id))">
                 <span>Assign to </span>
                 <InlineUserItem User="userProfileResponse"></InlineUserItem>
             </LinkButton>

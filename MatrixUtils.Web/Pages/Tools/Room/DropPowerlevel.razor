@@ -6,7 +6,7 @@
 
 <span>User ID: </span><FancyTextBox @bind-Value="@UserId"/><br/>
 <span>Room ID: </span><FancyTextBox @bind-Value="@RoomId"/><br/>
-<LinkButton OnClick="@Execute">Execute</LinkButton>
+<LinkButton OnClickAsync="@Execute">Execute</LinkButton>
 
 <pre>@Result</pre>
 

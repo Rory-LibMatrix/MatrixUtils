@@ -24,13 +24,13 @@
     <pre>@MxcUri?.ToJson(ignoreNull: true)</pre>
 
     @if (Event is not null) {
-        <LinkButton OnClick="@RedactAllEvents">Redact all messages</LinkButton>
+        <LinkButton OnClickAsync="@RedactAllEvents">Redact all messages</LinkButton>
     }
 
     @if (Event?.Sender?.Split(':', 2)[1] == Homeserver?.ServerName) {
         <p>User is a local user!</p>
-        <LinkButton OnClick="@DeactivateUser">Deactivate User</LinkButton>
-        <LinkButton OnClick="@QuarantineMediaByUser">Quarantine all media</LinkButton>
+        <LinkButton OnClickAsync="@DeactivateUser">Deactivate User</LinkButton>
+        <LinkButton OnClickAsync="@QuarantineMediaByUser">Quarantine all media</LinkButton>
     }
 }
 

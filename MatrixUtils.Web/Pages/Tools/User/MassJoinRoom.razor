@@ -13,7 +13,7 @@
 }
 
 <br/>
-<LinkButton OnClick="Execute">Execute</LinkButton>
+<LinkButton OnClickAsync="Execute">Execute</LinkButton>
 <br/>
 @foreach (var line in Enumerable.Reverse(log)) {
     <p>@line</p>

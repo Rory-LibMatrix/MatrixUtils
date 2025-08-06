@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using LibMatrix;
 using LibMatrix.Homeservers;
 using LibMatrix.Services;

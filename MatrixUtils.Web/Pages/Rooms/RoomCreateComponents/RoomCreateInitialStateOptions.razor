@@ -1,0 +1,52 @@
+@using System.Text.Json
+@using LibMatrix
+@using LibMatrix.Helpers
+<tr>
+    <td style="vertical-align: top;">Initial room state:</td>
+    <td>
+        @foreach (var (displayName, events) in new Dictionary<string, List<StateEvent>>() {
+                          { "Important room state (before final access rules)", roomBuilder.ImportantState },
+                          { "Additional room state (after final access rules)", roomBuilder.InitialState },
+                      }) {
+            <details>
+
+                @code
+                {
+                    // private static readonly string[] ImplementedStates = { "m.room.avatar", "m.room.history_visibility", "m.room.guest_access", "m.room.server_acl" };
+                }
+
+                @* <summary>@displayName: @events.Count(x => !ImplementedStates.Contains(x.Type)) events</summary> *@
+                <summary>@displayName: @events.Count events</summary>
+                <table>
+                    @* @foreach (var initialState in events.Where(x => !ImplementedStates.Contains(x.Type))) { *@
+                    @foreach (var initialState in events) {
+                        <tr>
+                            <td style="vertical-align: top;">
+                                @(initialState.Type):
+                                @if (!string.IsNullOrEmpty(initialState.StateKey)) {
+                                    <br/>
+                                    <span>(@initialState.StateKey)</span>
+                                }
+
+                            </td>
+                            <td>
+                                <pre>@JsonSerializer.Serialize(initialState.RawContent, new JsonSerializerOptions { WriteIndented = true })</pre>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            </details>
+        }
+    </td>
+</tr>
+
+@code {
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+}

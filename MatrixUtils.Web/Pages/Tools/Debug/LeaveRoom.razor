@@ -5,7 +5,7 @@
 <span>Room ID: </span>
 <InputText @bind-Value="@RoomId"></InputText>
 <br/>
-<LinkButton OnClick="@Leave">Leave</LinkButton>
+<LinkButton OnClickAsync="@Leave">Leave</LinkButton>
 <br/><br/>
 @foreach (var line in Log) {
     <p>@line</p>

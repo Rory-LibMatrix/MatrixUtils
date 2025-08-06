@@ -82,10 +82,8 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
                     //TODO: re-implement this
                 }
             },
-            CreationContent = new JsonObject {
-                {
-                    "type", null
-                }
+            CreationContent = new() {
+                { "type", null }
             }
         };
 }

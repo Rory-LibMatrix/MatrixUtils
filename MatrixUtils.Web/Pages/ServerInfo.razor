@@ -1,6 +1,7 @@
 @page "/ServerInfo/{Homeserver}"
 @using LibMatrix.Responses
 @using ArcaneLibs.Extensions
+@using LibMatrix.Responses.Federation
 <h3>Server info for @Homeserver</h3>
 <hr/>
 @if (ServerVersionResponse is not null) {

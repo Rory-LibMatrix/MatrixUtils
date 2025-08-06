@@ -4,6 +4,7 @@
 @using LibMatrix
 @using ArcaneLibs
 @using System.Diagnostics
+@using LibMatrix.Responses.Federation
 
 <PageTitle>Index</PageTitle>
 
@@ -58,9 +59,9 @@ Small collection of tools to do not-so-everyday things.
                 </td>
                 <td>
                     <p>
-                        <LinkButton OnClick="@(() => ManageUser(session.SessionId))">Manage</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
-                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId, true))">Log out</LinkButton>
+                        <LinkButton OnClickAsync="@(() => ManageUser(session.SessionId))">Manage</LinkButton>
+                        <LinkButton OnClickAsync="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
+                        <LinkButton OnClickAsync="@(() => RemoveUser(session.SessionId, true))">Log out</LinkButton>
                     </p>
                 </td>
             </tr>
@@ -89,7 +90,7 @@ Small collection of tools to do not-so-everyday things.
                         </p>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
+                        <LinkButton OnClickAsync="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
                     </td>
                 </tr>
             }
@@ -118,10 +119,10 @@ Small collection of tools to do not-so-everyday things.
                         </p>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => Task.Run(() => NavigationManager.NavigateTo($"/InvalidSession?ctx={session.SessionId}")))">Re-login</LinkButton>
+                        <LinkButton OnClickAsync="@(() => Task.Run(() => NavigationManager.NavigateTo($"/InvalidSession?ctx={session.SessionId}")))">Re-login</LinkButton>
                     </td>
                     <td>
-                        <LinkButton OnClick="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
+                        <LinkButton OnClickAsync="@(() => RemoveUser(session.SessionId))">Remove</LinkButton>
                     </td>
                 </tr>
             }

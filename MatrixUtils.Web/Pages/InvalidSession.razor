@@ -8,14 +8,14 @@
 
 @if (_auth is not null) {
     <p>It appears that the affected user is @_auth.UserId (@_auth.DeviceId) on @_auth.Homeserver!</p>
-    <LinkButton OnClick="@(OpenRefreshDialog)">Refresh token</LinkButton>
-    <LinkButton OnClick="@(RemoveUser)">Remove</LinkButton>
+    <LinkButton OnClickAsync="@(OpenRefreshDialog)">Refresh token</LinkButton>
+    <LinkButton OnClickAsync="@(RemoveUser)">Remove</LinkButton>
 
     @if (_showRefreshDialog) {
         <ModalWindow MinWidth="300" X="275" Y="300" Title="@($"Password for {_auth.UserId}")">
             <FancyTextBox IsPassword="true" @bind-Value="@_password"></FancyTextBox>
             <br/>
-            <LinkButton OnClick="TryLogin">Log in</LinkButton>
+            <LinkButton OnClickAsync="TryLogin">Log in</LinkButton>
             @if (_loginException is not null) {
                 <pre style="color: red;">@_loginException.RawContent</pre>
             }

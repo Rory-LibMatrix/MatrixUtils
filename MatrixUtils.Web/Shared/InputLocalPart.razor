@@ -1,0 +1,50 @@
+<div style="display: inline-flex;">
+    @if (!string.IsNullOrWhiteSpace(Label)) {
+        <label>@Label</label>
+    }
+    <span>@Sigil</span>
+    <FancyTextBox @bind-Value="@LocalPart"></FancyTextBox>
+    <span>:</span>
+    @if (ServerNameChanged is not null) {
+        <FancyTextBox @bind-Value="@ServerName"></FancyTextBox>
+    }
+    else {
+        <span>@ServerName</span>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public required string Sigil { get; set; }
+
+    [Parameter]
+    public string? LocalPart {
+        get;
+        set {
+            if (field == value) return;
+            field = value;
+            LocalPartChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> LocalPartChanged { get; set; }
+
+    [Parameter]
+    public string? ServerName {
+        get;
+        set {
+            if (field == value) return;
+            field = value;
+            ServerNameChanged?.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string>? ServerNameChanged { get; set; }
+
+}

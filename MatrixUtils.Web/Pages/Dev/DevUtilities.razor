@@ -1,5 +1,8 @@
 @page "/Dev/Utilities"
 @using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.Ephemeral
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.Helpers
 @using MatrixUtils.Abstractions
 
 <h3>Debug Tools</h3>
@@ -14,7 +17,7 @@ else {
         <summary>Room List</summary>
         @foreach (var roomId in Rooms) {
             <a style="color: unset; text-decoration: unset;" href="/RoomStateViewer/@roomId.Replace('.', '~')">
-                <RoomListItem RoomInfo="@(new RoomInfo(hs.GetRoom(roomId)))" LoadData="true"></RoomListItem>
+                <RoomListItem Homeserver="hs" RoomInfo="@(new RoomInfo(hs.GetRoom(roomId)))" LoadData="true"></RoomListItem>
             </a>
         }
     </details>
@@ -61,6 +64,7 @@ else {
                 StateHasChanged();
                 return;
             }
+
             if (res.Content.Headers.ContentType.MediaType == "application/json")
                 GetRequestResult = $"Error: {res.StatusCode}\n" + (await res.Content.ReadFromJsonAsync<object>()).ToJson();
             else
@@ -69,7 +73,32 @@ else {
         catch (Exception e) {
             GetRequestResult = $"Error: {e}";
         }
+
         StateHasChanged();
+    }
+
+    private async Task TestRoomBuilder() {
+        var rb = new RoomBuilder() {
+            HistoryVisibility = new RoomHistoryVisibilityEventContent() { HistoryVisibility = RoomHistoryVisibilityEventContent.HistoryVisibilityTypes.Shared },
+            ImportantState = [
+                new() {
+                    RawContent = new() {
+                        ["type"] = "m.room.name",
+                        ["name"] = "Test Room"
+                    }
+                },
+                new() {
+                    Type = "test",
+                    TypedContent = new PresenceEventContent() {
+                        Presence = "online",
+                        LastActiveAgo = 0,
+                    }
+                },
+
+            ]
+        };
+
+        await rb.Create(hs);
     }
 
 }

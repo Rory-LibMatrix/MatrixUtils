@@ -1,0 +1,66 @@
+@using ArcaneLibs.Extensions
+@using LibMatrix.RoomTypes
+<details>
+    <summary>
+        <span>
+            @($"{PolicyCollection.Name}: {PolicyCollection.TotalCount} policies")
+        </span>
+        <hr style="margin: revert;"/>
+    </summary>
+    <table class="table table-striped table-hover table-bordered align-middle">
+        <thead>
+            <tr>
+                @foreach (var name in PolicyCollection.PropertiesToDisplay!.Keys) {
+                    <th>@name</th>
+                }
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var policy in PolicyCollection.ActivePolicies.Values.OrderBy(x => x.Policy.RawContent?["entity"]?.GetValue<string>())) {
+                <PolicyListRowComponent PolicyInfo="@policy" PolicyCollection="@PolicyCollection" Room="@Room"></PolicyListRowComponent>
+            }
+        </tbody>
+    </table>
+    <details>
+        <summary>
+            <u>
+                @("Invalid " + PolicyCollection.Name.ToLower())
+            </u>
+        </summary>
+        <table class="table table-striped table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>State key</th>
+                    <th>Json contents</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var policy in PolicyCollection.RemovedPolicies.Values) {
+                    <tr>
+                        <td>@policy.Policy.StateKey</td>
+                        <td>
+                            <pre>@policy.Policy.RawContent.ToJson(true, false)</pre>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </details>
+</details>
+
+@code {
+
+    [Parameter]
+    public required PolicyList.PolicyCollection PolicyCollection { get; set; }
+
+    [Parameter]
+    public required GenericRoom Room { get; set; }
+
+    protected override bool ShouldRender() {
+        // if (PolicyCollection is null) return false;
+
+        return true;
+    }
+
+}

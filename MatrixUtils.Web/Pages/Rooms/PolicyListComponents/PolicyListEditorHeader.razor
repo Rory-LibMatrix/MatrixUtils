@@ -1,0 +1,65 @@
+@using LibMatrix
+@using LibMatrix.EventTypes.Common
+@using LibMatrix.RoomTypes
+@using MatrixUtils.Web.Shared.PolicyEditorComponents
+<h3>Policy list editor - Editing @(RoomName ?? Room.RoomId)</h3>
+@if (!string.IsNullOrWhiteSpace(DraupnirShortcode)) {
+    <span style="margin-right: 2em;">Shortcode: @DraupnirShortcode</span>
+}
+@if (!string.IsNullOrWhiteSpace(RoomAlias)) {
+    <span>Alias: @RoomAlias</span>
+}
+<hr/>
+@* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
+<LinkButton OnClickAsync="@(() => {
+                         CurrentlyEditingEvent = new() { Type = "", RawContent = new() };
+                         return Task.CompletedTask;
+                     })">Create new policy
+</LinkButton>
+<LinkButton OnClickAsync="@(() => {
+                         MassCreatePolicies = true;
+                         return Task.CompletedTask;
+                     })">Create many new policies
+</LinkButton>
+<LinkButton OnClickAsync="@(() => ReloadStateAsync())">Refresh</LinkButton>
+
+@if (CurrentlyEditingEvent is not null) {
+    <PolicyEditorModal PolicyEvent="@CurrentlyEditingEvent" OnClose="@(() => CurrentlyEditingEvent = null)" OnSaveAsync="@UpdatePolicyAsync"></PolicyEditorModal>
+}
+
+@if (MassCreatePolicies) {
+    <MassPolicyEditorModal Room="@Room" OnClose="@(() => MassCreatePolicies = false)" OnSaved="@(() => {
+                                                                                                   MassCreatePolicies = false;
+                                                                                                   // _ = LoadStatesAsync();
+                                                                                               })"></MassPolicyEditorModal>
+}
+
+@code {
+    [Parameter]
+    public required GenericRoom Room { get; set; }
+    
+    [Parameter]
+    public required Func<Task> ReloadStateAsync { get; set; }
+
+    private string? RoomName { get; set; }
+    private string? RoomAlias { get; set; }
+    private string? DraupnirShortcode { get; set; }
+    
+    private StateEventResponse? CurrentlyEditingEvent { get; set { field = value; StateHasChanged(); } }
+    private bool MassCreatePolicies { get; set { field = value; StateHasChanged(); } }
+
+    protected override async Task OnInitializedAsync() {
+        await Task.WhenAll(
+            Task.Run(async () => { DraupnirShortcode = (await Room.GetStateOrNullAsync<MjolnirShortcodeEventContent>(MjolnirShortcodeEventContent.EventId))?.Shortcode; }),
+            Task.Run(async () => { RoomAlias = (await Room.GetCanonicalAliasAsync())?.Alias; }),
+            Task.Run(async () => { RoomName = await Room.GetNameOrFallbackAsync(); })
+        );
+        
+        StateHasChanged();
+    }
+
+    private async Task UpdatePolicyAsync(StateEventResponse evt) {
+        Console.WriteLine("UpdatePolicyAsync in PolicyListEditorHeader not yet implementeD!");
+    }
+
+}

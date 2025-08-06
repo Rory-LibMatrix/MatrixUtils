@@ -1,0 +1,70 @@
+@using LibMatrix.Helpers
+<tr>
+    <td style="padding-top: 16px;">Join rules:</td>
+    <td style="padding-top: 16px;">
+        <InputSelect @bind-Value="@roomBuilder.JoinRules.JoinRuleValue">
+            <option value="public">Anyone can join</option>
+            <option value="invite">Invite only</option>
+            <option value="knock">Ask to join</option>
+            <option value="restricted">Invite only (or mutual room)</option>
+            <option value="knock_restricted">Ask to join (or mutual room)</option>
+        </InputSelect>
+    </td>
+</tr>
+<tr>
+    <td>History visibility:</td>
+    <td>
+        <InputSelect @bind-Value="@roomBuilder.HistoryVisibility.HistoryVisibility">
+            <option value="invited">Since invite</option>
+            <option value="joined">Since join</option>
+            <option value="shared">Since room creation (members only)</option>
+            <option value="world_readable">World readable (everyone)</option>
+        </InputSelect>
+    </td>
+</tr>
+<tr>
+    <td>Guest access:</td>
+    <td>
+        <InputCheckbox @bind-Value="roomBuilder.GuestAccess.IsGuestAccessEnabled"/>
+        <span>Allow guests to join</span>
+        <LinkButton InlineText="true" href="https://spec.matrix.org/v1.15/client-server-api/#guest-access" target="_blank">?</LinkButton>
+    </td>
+</tr>
+<tr>
+    <td>Server ACLs:</td>
+    <td>
+        @if (roomBuilder.ServerAcls?.Allow is null) {
+            <p>No allow rules exist!</p>
+            <LinkButton OnClick="@(() => { roomBuilder.ServerAcls!.Allow = ["*"]; })">Create sane defaults</LinkButton>
+        }
+        else {
+            <details>
+                <summary>@(roomBuilder.ServerAcls.Allow?.Count) allow rules</summary>
+                <StringListEditor @bind-Items="@roomBuilder.ServerAcls.Allow"></StringListEditor>
+            </details>
+        }
+        @if (roomBuilder.ServerAcls?.Deny is null) {
+            <p>No deny rules exist!</p>
+            <LinkButton OnClick="@(() => { roomBuilder.ServerAcls!.Deny = []; })">Create sane defaults</LinkButton>
+        }
+        else {
+            <details>
+                <summary>@(roomBuilder.ServerAcls.Deny?.Count) deny rules</summary>
+                <StringListEditor @bind-Items="@roomBuilder.ServerAcls.Deny"></StringListEditor>
+            </details>
+        }
+    </td>
+</tr>
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder roomBuilder { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    [Parameter]
+    public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+}

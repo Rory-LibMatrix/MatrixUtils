@@ -1,14 +1,9 @@
 @page "/Rooms/Create2"
-@using System.Text.Json
-@using System.Reflection
-@using ArcaneLibs
 @using ArcaneLibs.Extensions
-@using Blazored.LocalStorage
 @using LibMatrix
-@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Helpers
 @using LibMatrix.Responses
-@using MatrixUtils.Web.Classes.RoomCreationTemplates
+@using LibMatrix.RoomTypes
 @using MatrixUtils.Web.Pages.Rooms.RoomCreateComponents
 @inject ILogger<Create2> logger
 @* @* ReSharper disable once RedundantUsingDirective - Must not remove this, Rider marks this as "unused" when it's not */ *@
@@ -23,7 +18,7 @@
     </style>
     <table class="table-top-first-tr">
         @if (roomBuilder is RoomUpgradeBuilder roomUpgrade) {
-            <RoomCreateUpgradeOptions roomUpgrade="@roomUpgrade" PageStateHasChanged="@StateHasChanged"/>
+            <RoomCreateUpgradeOptions roomUpgrade="@roomUpgrade" PageStateHasChanged="@StateHasChanged" OldRoom="@PreviousRoom" />
         }
         else {
             @* <tr style="padding-bottom: 16px;"> *@
@@ -49,21 +44,13 @@
         <RoomCreatePermissionsOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
         <RoomCreateMembershipOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
         @* Initial states, should remain at bottom *@
-            </table>
+        <RoomCreateInitialStateOptions roomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged" Homeserver="@Homeserver"/>
+    </table>
     <LinkButton OnClickAsync="@CreateRoom">Create room</LinkButton>
-    <br/>
-    <div
-        style="position: fixed; top: 56px; right: 0; width: fit-content; max-width: 25%; height: calc(100vh - 56px); overflow: auto; background-color: #2c3054; padding-right: 32px; border-left: 1px solid #ccc;">
-        <details open>
-            <summary>RoomBuilder state</summary>
-            <InputCheckbox @bind-Value="@ShowNullInState"/>
-            <span>Show null values</span><br/>
-            <pre>
-                @roomBuilder.ToJson(ignoreNull: !ShowNullInState)
-            </pre>
-        </details>
-    </div>
 }
+
+<RoomCreateStateDisplay @bind-RoomBuilder="@roomBuilder" PageStateHasChanged="@StateHasChanged"/>
+
 @if (_matrixException is not null) {
     <ModalWindow Title="@("Matrix exception: " + _matrixException.ErrorCode)">
         <pre>
@@ -73,13 +60,13 @@
 }
 
 @code {
-    
+
 #region State
 
     [Parameter, SupplyParameterFromQuery(Name = "previousRoomId")]
     public string? PreviousRoomId { get; set; }
-
-    private bool ShowNullInState { get; set; }
+    
+    public GenericRoom? PreviousRoom { get; set; }
 
     private bool Ready { get; set; }
 
@@ -109,7 +96,8 @@
         Homeserver = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
         if (Homeserver is null) return;
         if (!string.IsNullOrWhiteSpace(PreviousRoomId)) {
-            roomBuilder = new RoomUpgradeBuilder(Homeserver.GetRoom(PreviousRoomId));
+            roomBuilder = new RoomUpgradeBuilder();
+            PreviousRoom = Homeserver.GetRoom(PreviousRoomId);
         }
 
         roomBuilder.ServerAcls.Allow = ["*"];
@@ -124,14 +112,14 @@
         // Presets = Presets.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
         // if (!Presets.ContainsKey("Default")) {
-            // Console.WriteLine($"No default room found in {Presets.Count} presets: {string.Join(", ", Presets.Keys)}");
+        // Console.WriteLine($"No default room found in {Presets.Count} presets: {string.Join(", ", Presets.Keys)}");
         // }
         // else RoomPreset = "Default";
 
         Ready = true;
         StateHasChanged();
         if (roomBuilder is RoomUpgradeBuilder roomUpgrade) {
-            await roomUpgrade.ImportAsync().ConfigureAwait(false);
+            // await roomUpgrade.ImportAsync().ConfigureAwait(false);
             StateHasChanged();
         }
     }

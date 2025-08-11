@@ -6,10 +6,13 @@
         <details>
             <summary>@roomBuilder.Invites.Count members</summary>
             <LinkButton OnClickAsync="@InviteAllSessions" InlineText="true">Invite all logged in accounts</LinkButton>
+            <br/>
             @foreach (var member in roomBuilder.Invites) {
-                <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem>
+                <FancyTextBox Value="@member.Key" ValueChanged="@(val => roomBuilder.Invites.ChangeKey(member.Key, val))"/>
+                @* <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem> *@
                 <span>: </span>
                 <FancyTextBox Value="@member.Value" ValueChanged="@(val => roomBuilder.Invites[member.Key] = val)"/>
+                <br/>
             }
         </details>
     </td>
@@ -19,8 +22,10 @@
     <td>
         <details>
             <summary>@roomBuilder.Bans.Count members</summary>
+            <br/>
             @foreach (var member in roomBuilder.Bans) {
-                <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem>
+                @* <UserListItem _homeserver="Homeserver" UserId="@member.Key"></UserListItem> *@
+                <FancyTextBox Value="@member.Value" ValueChanged="@(val => roomBuilder.Bans.ChangeKey(member.Key, val))"/>
                 <span>: </span>
                 <FancyTextBox Value="@member.Value" ValueChanged="@(val => roomBuilder.Bans[member.Key] = val)"/>
             }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ArcaneLibs.Blazor.Components.Services;
 using Blazored.LocalStorage;
 using Blazored.SessionStorage;
 using LibMatrix.Extensions;
@@ -20,8 +21,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddBlazorJSRuntime();
-builder.Services.AddWebWorkerService(webWorkerService =>
-{
+builder.Services.AddWebWorkerService(webWorkerService => {
     // Optionally configure the WebWorkerService service before it is used
     // Default WebWorkerService.TaskPool settings: PoolSize = 0, MaxPoolSize = 1, AutoGrow = true
     // Below sets TaskPool max size to 2. By default the TaskPool size will grow as needed up to the max pool size.
@@ -48,8 +48,7 @@ catch (Exception e) {
     Console.WriteLine("Could not load appsettings: " + e);
 }
 
-builder.Logging.AddConfiguration(
-    builder.Configuration.GetSection("Logging"));
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
 builder.Services.AddBlazoredLocalStorage(config => {
     config.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
@@ -82,5 +81,6 @@ MatrixHttpClient.LogRequests = false;
 
 builder.Services.AddRoryLibMatrixServices();
 builder.Services.AddScoped<RmuSessionStore>();
+builder.Services.AddSingleton<BlazorSaveFileService>();
 // await builder.Build().RunAsync();
 await builder.Build().BlazorJSRunAsync();

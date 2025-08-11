@@ -1,0 +1,19 @@
+@using LibMatrix.Helpers
+<div style="border-left: solid 1px white; padding-left: 8px; margin-left: 8px;">
+    <span>Policy list upgrade type:</span>
+    <InputSelect @bind-Value="@roomUpgrade.UpgradeOptions.Msc4321PolicyListUpgradeOptions.UpgradeType">
+        <option value="@RoomUpgradeBuilder.Msc4321PolicyListUpgradeOptions.Msc4321PolicyListUpgradeType.Move">Move policy list (copy policies)</option>
+        <option value="@RoomUpgradeBuilder.Msc4321PolicyListUpgradeOptions.Msc4321PolicyListUpgradeType.Transition">Transition policy list (new list)</option>
+    </InputSelect>
+    <br/>
+</div>
+
+@code {
+
+    [Parameter]
+    public required RoomUpgradeBuilder roomUpgrade { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+}

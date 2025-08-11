@@ -1,0 +1,65 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using ArcaneLibs.Blazor.Components.Services
+@using ArcaneLibs.Extensions
+@using LibMatrix.Helpers
+@inject BlazorSaveFileService SaveFileService
+<div
+    style="position: fixed; top: 56px; right: 0; width: fit-content; max-width: 25%; height: calc(100vh - 56px); overflow: auto; background-color: #2c3054; padding-right: 32px; border-left: 1px solid #ccc;">
+    <details open>
+        <summary>RoomBuilder state</summary>
+        <InputCheckbox @bind-Value="@ShowNullInState"/>
+        <span>Show null values</span><br/>
+        <LinkButton OnClickAsync="@SaveFile">Save</LinkButton>
+        <SimpleFilePicker OnFilePicked="@LoadFile"/>
+        <br/>
+        <pre>
+                @RoomBuilder.ToJson(ignoreNull: !ShowNullInState)
+            </pre>
+    </details>
+</div>
+
+@code {
+
+    [Parameter]
+    public required RoomBuilder RoomBuilder { get; set; }
+
+    [Parameter]
+    public required EventCallback<RoomBuilder> RoomBuilderChanged { get; set; }
+
+    [Parameter]
+    public required Action PageStateHasChanged { get; set; }
+
+    private bool ShowNullInState { get; set; }
+
+    private async Task SaveFile() {
+        Console.WriteLine("Saving room builder state to file...");
+        await SaveFileService.SaveFileAsync("room-builder.json", RoomBuilder.ToJson(), "application/json");
+    }
+
+    private async Task LoadFile(InputFileChangeEventArgs e) {
+        if (!RoomBuilderChanged.HasDelegate) throw new InvalidOperationException("RoomBuilderChanged must have a delegate.");
+        if (e.FileCount == 0) return;
+        Console.WriteLine("Loading room builder state from file...");
+        var stream = e.File.OpenReadStream(4 * 1024 * 1024 * 1024L);
+        var json = await JsonSerializer.DeserializeAsync<JsonObject>(stream);
+        if (json is null) {
+            Console.WriteLine("Failed to deserialize JSON from file.");
+            return;
+        }
+
+        if (json.ContainsKey(nameof(RoomUpgradeBuilder.UpgradeOptions))) {
+            Console.WriteLine("Got room upgrade builder state.");
+            RoomBuilder = json.Deserialize<RoomUpgradeBuilder>();
+        }
+        else {
+            Console.WriteLine("Got room builder state.");
+            RoomBuilder = json.Deserialize<RoomBuilder>();
+        }
+
+        await RoomBuilderChanged.InvokeAsync(RoomBuilder);
+        PageStateHasChanged();
+        Console.WriteLine("Room builder state loaded from file.");
+    }
+
+}

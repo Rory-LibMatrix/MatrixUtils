@@ -1,4 +1,5 @@
 @using System.Text.Json
+@using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.Helpers
 <tr>
@@ -8,7 +9,7 @@
                           { "Important room state (before final access rules)", roomBuilder.ImportantState },
                           { "Additional room state (after final access rules)", roomBuilder.InitialState },
                       }) {
-            <details>
+            <details open>
 
                 @code
                 {
@@ -17,30 +18,50 @@
 
                 @* <summary>@displayName: @events.Count(x => !ImplementedStates.Contains(x.Type)) events</summary> *@
                 <summary>@displayName: @events.Count events</summary>
-                <table>
-                    @* @foreach (var initialState in events.Where(x => !ImplementedStates.Contains(x.Type))) { *@
+                <LinkButton OnClick="@(() => {
+                                         events.Clear();
+                                         StateHasChanged();
+                                     })">Remove all
+                </LinkButton>
+                <LinkButton OnClick="@(() => {
+                                         events.Insert(0, new() {
+                                             Type = "",
+                                             StateKey = "",
+                                             RawContent = new(),
+                                         });
+                                         StateHasChanged();
+                                     })">Add new event
+                </LinkButton>
+                <br/>
+                @if (events.Count > 1000) {
+                    <span style="color: red;">Warning: Too many initial state events! (more than 1000) - Please use the save/load feature in the state panel instead.</span>
+                }
+                else {
+                    int i = 0;
                     @foreach (var initialState in events) {
-                        <tr>
-                            <td style="vertical-align: top;">
-                                @(initialState.Type):
-                                @if (!string.IsNullOrEmpty(initialState.StateKey)) {
-                                    <br/>
-                                    <span>(@initialState.StateKey)</span>
-                                }
-
-                            </td>
-                            <td>
-                                <pre>@JsonSerializer.Serialize(initialState.RawContent, new JsonSerializerOptions { WriteIndented = true })</pre>
-                            </td>
-                        </tr>
+                        <div id="@(initialState.Type + "/" + initialState.StateKey)">
+                            <span>Event @(++i) (@GetRemoveButton(events, initialState))</span>
+                            <br/>
+                            @* <FancyTextBox Multiline="true" Value="@initialState.ToJson(ignoreNull: true)" *@
+                            @*               ValueChanged="@(json => { *@
+                            @*                                 if (string.IsNullOrWhiteSpace(json)) *@
+                            @*                                     events.Remove(initialState); *@
+                            @*                                 else *@
+                            @*                                     events.Replace(initialState, JsonSerializer.Deserialize<StateEvent>(json)); *@
+                            @*                                 StateHasChanged(); *@
+                            @*                             })"></FancyTextBox> *@
+                            <FancyTextBoxLazyJson T="StateEvent" Value="@initialState" ValueChanged="@(evt => { events.Replace(initialState, evt); })"></FancyTextBoxLazyJson>
+                            <br/>
+                        </div>
                     }
-                </table>
+                }
             </details>
         }
     </td>
 </tr>
 
 @code {
+
     [Parameter]
     public required RoomBuilder roomBuilder { get; set; }
 
@@ -49,4 +70,14 @@
 
     [Parameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; }
+
+    private RenderFragment GetRemoveButton(List<StateEvent> events, StateEvent initialState) {
+        return @<span>
+            <LinkButton InlineText="true" OnClick="@(() => {
+                                                       events.Remove(initialState);
+                                                       PageStateHasChanged();
+                                                   })">Remove</LinkButton>
+        </span>;
+    }
+
 }

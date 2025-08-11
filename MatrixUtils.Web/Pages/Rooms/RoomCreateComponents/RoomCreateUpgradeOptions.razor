@@ -1,32 +1,50 @@
 @using LibMatrix.Helpers
+@using LibMatrix.RoomTypes
 <tr>
     <td>Room upgrade options</td>
     <td>
-        <details>
-            <summary>Upgrading from @roomUpgrade.OldRoom.RoomId</summary>
-            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InviteMembers"></InputCheckbox>
-            <span>Invite members</span>
+        @* <details> *@
+        @* <summary>Upgrading from @roomUpgrade.OldRoom.RoomId</summary> *@
+        <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InviteMembers"></InputCheckbox>
+        <span>Invite members</span>
+        <br/>
+        <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InvitePowerlevelUsers"></InputCheckbox>
+        <span>Invite users with powerlevels</span>
+        <br/>
+        <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.MigrateBans"></InputCheckbox>
+        <span>Copy bans (do not use with moderation bots!)</span>
+        <br/>
+        <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.MigrateEmptyStateEvents"></InputCheckbox>
+        <span>Include empty state events</span>
+        <br/>
+        <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.UpgradeUnstableValues"></InputCheckbox>
+        <span>Update unstable namespaced values to spec versions (experimental)</span>
+        <br/>
+        @if (roomUpgrade.Type == "support.feline.policy.lists.msc.v1") {
+            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.Msc4321PolicyListUpgradeOptions.Enable"></InputCheckbox>
+            <span>Enable MSC4321 support</span>
             <br/>
-            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.InvitePowerlevelUsers"></InputCheckbox>
-            <span>Invite users with powerlevels</span>
-            <br/>
-            <InputCheckbox @bind-Value="@roomUpgrade.UpgradeOptions.MigrateBans"></InputCheckbox>
-            <span>Copy bans (do not use with moderation bots!)</span>
-            <br/>
-            <LinkButton OnClickAsync="@(async () => {
-                                          await roomUpgrade.ImportAsync();
-                                          PageStateHasChanged();
-                                      })">Apply
-            </LinkButton>
-        </details>
+            @if (roomUpgrade.UpgradeOptions.Msc4321PolicyListUpgradeOptions.Enable) {
+                <RoomCreateMsc4321UpgradeOptions roomUpgrade="@roomUpgrade" PageStateHasChanged="@PageStateHasChanged"/>
+            }
+        }
+        <LinkButton OnClickAsync="@(async () => {
+                                      await roomUpgrade.ImportAsync(OldRoom);
+                                      PageStateHasChanged();
+                                  })">Apply
+        </LinkButton>
+        @* </details> *@
     </td>
 </tr>
 
 @code {
 
     [Parameter]
-    public required RoomUpgradeBuilder roomUpgrade { get; set; }
+    public required GenericRoom OldRoom { get; set; }
     
+    [Parameter]
+    public required RoomUpgradeBuilder roomUpgrade { get; set; }
+
     [Parameter]
     public required Action PageStateHasChanged { get; set; }
 

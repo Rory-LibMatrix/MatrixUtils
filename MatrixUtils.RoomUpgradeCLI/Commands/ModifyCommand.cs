@@ -1,24 +1,28 @@
+using System.Text.Json;
 using ArcaneLibs.Extensions;
-using LibMatrix.EventTypes.Spec.State.RoomInfo;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 using MatrixUtils.RoomUpgradeCLI.Extensions;
 
 namespace MatrixUtils.RoomUpgradeCLI.Commands;
 
-public class NewFileCommand(ILogger<NewFileCommand> logger, IHost host, RuntimeContext ctx, AuthenticatedHomeserverGeneric hs) : IHostedService {
+public class ModifyCommand(ILogger<ModifyCommand> logger, IHost host, RuntimeContext ctx, AuthenticatedHomeserverGeneric hs) : IHostedService {
     public async Task StartAsync(CancellationToken cancellationToken) {
-        var rb = ctx.Args.Contains("--upgrade") ? new RoomUpgradeBuilder() : new RoomBuilder();
-        if (ctx.Args.Length <= 1) {
+        if (ctx.Args.Length <= 2 || ctx.Args.Contains("--help")) {
             await PrintHelp();
             return;
         }
+
         var filename = ctx.Args[1];
         if (filename.StartsWith("--")) {
             Console.WriteLine("Filename cannot start with --, please provide a valid filename.");
             await PrintHelp();
         }
-        await rb.ApplyRoomUpgradeCLIArgs(hs, ctx.Args[2..], isNewState: true);
+
+        var rb = ctx.Args.Contains("--upgrade")
+            ? await JsonSerializer.DeserializeAsync<RoomUpgradeBuilder>(File.OpenRead(filename), cancellationToken: cancellationToken)
+            : await JsonSerializer.DeserializeAsync<RoomBuilder>(File.OpenRead(filename), cancellationToken: cancellationToken);
+        await rb!.ApplyRoomUpgradeCLIArgs(hs, ctx.Args[2..], isNewState: false);
         await File.WriteAllTextAsync(filename, rb.ToJson(), cancellationToken);
 
         await host.StopAsync(cancellationToken);
@@ -52,14 +56,17 @@ public class NewFileCommand(ILogger<NewFileCommand> logger, IHost host, RuntimeC
         Console.WriteLine("  --type <type>                                      Set the room type (e.g. m.space, m.room, support.feline.policy.list.msc.v1 etc.)");
         // upgrade opts
         Console.WriteLine("-- Upgrade options --");
-        Console.WriteLine("  --upgrade <roomId>                                 Create a room upgrade file instead of a new room file - WARNING: incompatible with non-upgrade options");
+        Console.WriteLine(
+            "  --upgrade <roomId>                                 Create a room upgrade file instead of a new room file - WARNING: incompatible with non-upgrade options");
         Console.WriteLine("  --invite-members                                   Invite members during room upgrade");
         Console.WriteLine("  --invite-powerlevel-users                          Invite users with power levels during room upgrade");
         Console.WriteLine("  --migrate-bans                                     Migrate bans during room upgrade");
         Console.WriteLine("  --migrate-empty-state-events                       Migrate empty state events during room upgrade");
         Console.WriteLine("  --upgrade-unstable-values                          Upgrade unstable values during room upgrade");
         Console.WriteLine("  --msc4321-policy-list-upgrade <move|transition>    Upgrade MSC4321 policy list");
-        Console.WriteLine("WARNING: The --upgrade option is incompatible with options listed under \"New room\", please use the equivalent options in the `modify` command instead.");
+        Console.WriteLine("  --force-upgrade                                    Force upgrade even if you don't have the required permissions");
+        Console.WriteLine(
+            "WARNING: The --upgrade option is incompatible with options listed under \"New room\", please use the equivalent options in the `modify` command instead.");
         await host.StopAsync();
     }
 }

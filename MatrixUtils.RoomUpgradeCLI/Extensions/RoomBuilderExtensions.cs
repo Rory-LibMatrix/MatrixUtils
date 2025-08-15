@@ -7,7 +7,7 @@ namespace MatrixUtils.RoomUpgradeCLI.Extensions;
 public static class RoomBuilderExtensions {
     public static async Task ApplyRoomUpgradeCLIArgs(this RoomBuilder rb, AuthenticatedHomeserverGeneric hs, string[] args, bool isNewState = false) {
         for (int i = 0; i < args.Length; i++) {
-            Console.WriteLine($"Parsing arg {i}: {args[i]}");
+            // Console.WriteLine($"Parsing arg {i}: {args[i]}");
             switch (args[i]) {
                 case "--alias":
                     rb.AliasLocalPart = args[++i];
@@ -128,6 +128,7 @@ public static class RoomBuilderExtensions {
                     upgradeBuilder.UpgradeOptions.InviteMembers = true;
                     break;
                 case "--invite-powerlevel-users":
+                case "--invite-power-level-users":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderInvite) {
                         throw new InvalidOperationException("Invite powerlevel users can only be used with room upgrades");
                     }

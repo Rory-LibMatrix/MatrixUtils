@@ -23,9 +23,13 @@ foreach (var group in args.Split(";")) {
     });
 
     if (argGroup[0] == "new") builder.Services.AddHostedService<NewFileCommand>();
+    else if (argGroup[0] == "new-from-room-dir") builder.Services.AddHostedService<NewFromRoomDirCommand>();
     else if (argGroup[0] == "modify") builder.Services.AddHostedService<ModifyCommand>();
     else if (argGroup[0] == "import-upgrade-state") builder.Services.AddHostedService<ImportUpgradeStateCommand>();
     else if (argGroup[0] == "execute") builder.Services.AddHostedService<ExecuteCommand>();
+    // dev cmds
+    else if (argGroup[0] == "dev-delete-room") builder.Services.AddHostedService<DevDeleteRoomCommand>();
+    else if (argGroup[0] == "dev-get-room-dir-state") builder.Services.AddHostedService<DevGetRoomDirStateCommand>();
     else {
         Console.WriteLine("Unknown command. Use 'new', 'modify', 'import-upgrade-state' or 'execute'.");
         return;

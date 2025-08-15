@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ArcaneLibs.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 
@@ -18,14 +17,39 @@ public class ExecuteCommand(ILogger<ExecuteCommand> logger, IHost host, RuntimeC
             await PrintHelp();
         }
 
+        if (Directory.Exists(filename)) {
+            await ExecuteDirectory(filename);
+        }
+        else if (File.Exists(filename)) {
+            await ExecuteFile(filename);
+        }
+        else {
+            Console.WriteLine($"File or directory {filename} does not exist.");
+            await PrintHelp();
+        }
+
+        await host.StopAsync(cancellationToken);
+    }
+
+    public async Task ExecuteFile(string filename) {
         var rbj = await JsonSerializer.DeserializeAsync<JsonObject>(File.OpenRead(filename));
         var rb = rbj.ContainsKey(nameof(RoomUpgradeBuilder.OldRoomId))
             ? rbj.Deserialize<RoomUpgradeBuilder>()
             : rbj.Deserialize<RoomBuilder>();
         Console.WriteLine($"Executing room builder file of type {rb.GetType().Name}...");
         await rb!.Create(hs);
-
-        await host.StopAsync(cancellationToken);
+    }
+    
+    public async Task ExecuteDirectory(string dirName) {
+        if (!Directory.Exists(dirName)) {
+            Console.WriteLine($"Directory {dirName} does not exist.");
+            return;
+        }
+        var files = Directory.GetFiles(dirName, "*.json");
+        foreach (var file in files) {
+            Console.WriteLine($"Executing file: {file}");
+            await ExecuteFile(file);
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken) { }

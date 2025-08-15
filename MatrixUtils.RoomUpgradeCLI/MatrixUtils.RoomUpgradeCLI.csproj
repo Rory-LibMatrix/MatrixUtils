@@ -15,4 +15,8 @@
       <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
       <ProjectReference Include="..\LibMatrix\Utilities\LibMatrix.Utilities.Bot\LibMatrix.Utilities.Bot.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="tmp\" />
+    </ItemGroup>
 </Project>

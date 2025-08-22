@@ -56,7 +56,7 @@ public static class RoomBuilderExtensions {
 
                     break;
                 case "--federate":
-                    rb.IsFederatable = bool.Parse(args[++i]);
+                    rb.IsFederatable = GetBoolArg(args, ref i, true);
                     break;
                 case "--public":
                 case "--invite-only":
@@ -118,6 +118,7 @@ public static class RoomBuilderExtensions {
                         if (rb.Encryption.Algorithm == "null")
                             rb.Encryption.Algorithm = null; // disable encryption
                     }
+
                     break;
                 // upgrade options
                 case "--invite-members":
@@ -125,7 +126,7 @@ public static class RoomBuilderExtensions {
                         throw new InvalidOperationException("Invite members can only be used with room upgrades");
                     }
 
-                    upgradeBuilder.UpgradeOptions.InviteMembers = true;
+                    upgradeBuilder.UpgradeOptions.InviteMembers = GetBoolArg(args, ref i, true);
                     break;
                 case "--invite-powerlevel-users":
                 case "--invite-power-level-users":
@@ -133,28 +134,31 @@ public static class RoomBuilderExtensions {
                         throw new InvalidOperationException("Invite powerlevel users can only be used with room upgrades");
                     }
 
-                    upgradeBuilderInvite.UpgradeOptions.InvitePowerlevelUsers = true;
+                    upgradeBuilderInvite.UpgradeOptions.InvitePowerlevelUsers = GetBoolArg(args, ref i, true);
+                    break;
+                case "--synapse-admin-join-local-users":
+                    rb.SynapseAdminAutoAcceptLocalInvites = GetBoolArg(args, ref i, true);
                     break;
                 case "--migrate-bans":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderBan) {
                         throw new InvalidOperationException("Migrate bans can only be used with room upgrades");
                     }
 
-                    upgradeBuilderBan.UpgradeOptions.MigrateBans = true;
+                    upgradeBuilderBan.UpgradeOptions.MigrateBans = GetBoolArg(args, ref i, true);
                     break;
                 case "--migrate-empty-state-events":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderEmpty) {
                         throw new InvalidOperationException("Migrate empty state events can only be used with room upgrades");
                     }
 
-                    upgradeBuilderEmpty.UpgradeOptions.MigrateEmptyStateEvents = true;
+                    upgradeBuilderEmpty.UpgradeOptions.MigrateEmptyStateEvents = GetBoolArg(args, ref i, true);
                     break;
                 case "--upgrade-unstable-values":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderUnstable) {
                         throw new InvalidOperationException("Update unstable values can only be used with room upgrades");
                     }
 
-                    upgradeBuilderUnstable.UpgradeOptions.UpgradeUnstableValues = true;
+                    upgradeBuilderUnstable.UpgradeOptions.UpgradeUnstableValues = GetBoolArg(args, ref i, true);
                     break;
                 case "--msc4321-policy-list-upgrade":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderPolicy) {
@@ -173,9 +177,15 @@ public static class RoomBuilderExtensions {
                         throw new InvalidOperationException("Force upgrade can only be used with room upgrades");
                     }
 
-                    upgradeBuilderForce.UpgradeOptions.ForceUpgrade = true;
+                    upgradeBuilderForce.UpgradeOptions.ForceUpgrade = GetBoolArg(args, ref i, true);
                     break;
+                case "--noop-upgrade":
+                    if (rb is not RoomUpgradeBuilder upgradeBuilderNoop) {
+                        throw new InvalidOperationException("No-op upgrade can only be used with room upgrades");
+                    }
 
+                    upgradeBuilderNoop.UpgradeOptions.NoopUpgrade = GetBoolArg(args, ref i, true);
+                    break;
                 case "--upgrade":
                     if (rb is not RoomUpgradeBuilder upgradeBuilderUpgrade) {
                         throw new InvalidOperationException("Upgrade can only be used with room upgrades");
@@ -188,11 +198,55 @@ public static class RoomBuilderExtensions {
 
                     break;
                 case "--help":
-                    // await PrintHelp();
+                    PrintHelpAndExit();
                     return;
                 default:
                     throw new ArgumentException("Unknown argument: " + args[i]);
             }
         }
+    }
+
+    private static bool GetBoolArg(string[] args, ref int i, bool defaultValue) {
+        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out var result)) {
+            i++;
+            return result;
+        }
+
+        return defaultValue;
+    }
+
+    private static void PrintHelpAndExit() {
+        Console.WriteLine("""
+                            --help                                             Show this help message
+                            --version <version>                                Set the room version (e.g. 9, 10, 11, 12)
+                          -- New room options --
+                            --federate [True|false]                            Set whether the room is federatable [WARNING: Cannot be updated later!]
+                            --type <type>                                      Set the room type (e.g. m.space, m.room, support.feline.policy.list.msc.v1 etc.) [WARNING: Cannot be updated later!]
+                            --alias <alias>                                    Set the room alias (local part)
+                            --avatar-url <url>                                 Set the room avatar URL
+                            --copy-avatar <roomId>                             Copy the avatar from an existing room
+                            --copy-powerlevels <roomId>                        Copy power levels from an existing room
+                            --invite <userId>                                  Invite a user (userId must start with '@')
+                            --invite-admin <userId>                            Invite a user as an admin (userId must start with '@')
+                            --synapse-admin-join-local-users [True|false]      Automatically accept local user invites during room creation (Synapse only, requires synapse admin access)
+                            --name <name>                                      Set the room name (can be multiple words)
+                            --topic <topic>                                    Set the room topic (can be multiple words)
+                            --join-rule <rule>                                 Set the room join rule (public, invite, knock, restricted, knock_restricted, private)
+                                                                               Aliases: --public, --invite, --knock, --restricted, --knock_restricted, --private
+                            --history-visibility <visibility>                  Set the room history visibility (shared, invited, joined, world_readable)
+                          -- Upgrade options --
+                            --upgrade <roomId>                                 Create a room upgrade file instead of a new room file - WARNING: incompatible with non-upgrade options
+                            --invite-members [True|false]                      Invite members during room upgrade
+                            --invite-local-users [True|false]                  Invite local users during room upgrade (also see --synapse-admin-join-local-users)
+                            --invite-powerlevel-users [True|false]             Invite users with power levels during room upgrade
+                            --migrate-bans [True|false]                        Migrate bans during room upgrade
+                            --migrate-empty-state-events [True|false]          Migrate empty state events during room upgrade
+                            --upgrade-unstable-values [True|false]             Upgrade unstable values during room upgrade
+                            --msc4321-policy-list-upgrade <move|transition>    Upgrade MSC4321 policy list
+                            --force-upgrade [True|false]                       Force upgrade even if you don't have the required permissions
+                            --noop-upgrade [True|false]                        Perform the upgrade, but do not tombstone the old room
+                          WARNING: The --upgrade option is incompatible with options listed under "New room", please use the equivalent options in the `modify` command instead.
+                          """);
+        Environment.Exit(0);
     }
 }

@@ -175,8 +175,23 @@
             }
         }
 
-        var tasks = entities.Select(x => ExecuteBan(Room, x)).ToList();
-        await Task.WhenAll(tasks);
+        // var tasks = entities.Select(x => ExecuteBan(Room, x)).ToList();
+        // await Task.WhenAll(tasks);
+        
+        var events = entities.Select(entity => {
+            var content = Activator.CreateInstance(PolicyTypes[MappedType!]) as PolicyRuleEventContent ?? throw new InvalidOperationException("Failed to create event content");
+            content.Recommendation = Recommendation;
+            content.Reason = Reason;
+            content.Entity = entity;
+            return new StateEvent() {
+                Type = MappedType,
+                TypedContent = content,
+                StateKey = content.GetDraupnir2StateKey()
+            };
+        });
+        
+        foreach(var chunk in events.Chunk(50))
+            await Room.BulkSendEventsAsync(chunk);
 
         OnSaved.Invoke();
     }

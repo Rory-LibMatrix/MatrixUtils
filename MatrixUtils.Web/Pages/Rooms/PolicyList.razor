@@ -6,6 +6,7 @@
 @using LibMatrix.RoomTypes
 @using System.Collections.Frozen
 @using System.Reflection
+@using System.Text.Json
 @using ArcaneLibs.Attributes
 @using LibMatrix.EventTypes
 @using LibMatrix.EventTypes.Interop.Draupnir
@@ -136,6 +137,9 @@ else {
     [Parameter]
     public required string RoomId { get; set; }
 
+    [Parameter, SupplyParameterFromQuery]
+    public bool RenderEventInfo { get; set; }
+
     private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
 
     public StateEventResponse? ServerPolicyToMakePermanent {
@@ -172,12 +176,13 @@ else {
     }
 
     private async Task LoadStateAsync(bool firstLoad = false) {
+        // preload workers in task pool
+        // await Task.WhenAll(Enumerable.Range(0, WebWorkerService.MaxWorkerCount).Select(async _ => (await WebWorkerService.TaskPool.GetWorkerAsync()).WhenReady).ToList());
         var sw = Stopwatch.StartNew();
         // Loading = true;
         // var states = Room.GetFullStateAsync();
         var states = await Room.GetFullStateAsListAsync();
         // PolicyEventsByType.Clear();
-
         logger.LogInformation($"LoadStatesAsync: Loaded state in {sw.Elapsed}");
 
         foreach (var type in KnownPolicyTypes) {
@@ -215,7 +220,8 @@ else {
             var key = (evt.Type, evt.StateKey!);
             var policyInfo = new PolicyCollection.PolicyInfo {
                 Policy = evt,
-                MadeRedundantBy = []
+                MadeRedundantBy = [],
+                DuplicatedBy = []
             };
             if (evt.RawContent is null or { Count: 0 } || string.IsNullOrWhiteSpace(evt.RawContent?["recommendation"]?.GetValue<string>())) {
                 collection.ActivePolicies.Remove(key);
@@ -238,76 +244,187 @@ else {
             logger.LogInformation($"Policy collection {collection.Key.FullName} has {collection.Value.ActivePolicies.Count} active and {collection.Value.RemovedPolicies.Count} removed policies.");
         }
 
+        Loading = false;
+        StateHasChanged();
+        await Task.Delay(100);
+
         logger.LogInformation("LoadStatesAsync: Scanning for redundant policies...");
 
-        Loading = false;
-        var allPolicies = PolicyCollections.Values
+        var scanSw = Stopwatch.StartNew();
+        var allPolicyInfos = PolicyCollections.Values
             .SelectMany(x => x.ActivePolicies.Values)
-            .Select(x => (x, x.Policy.TypedContent as PolicyRuleEventContent))
             .ToList();
-        var wildcardPolicies = allPolicies
-            .Where(x => x.Item2!.IsGlobRule() || x.Item2 is ServerPolicyRuleEventContent)
-            .ToList();
-        Console.WriteLine($"Got {allPolicies.Count} total policies, {wildcardPolicies.Count} wildcard policies.");
-        int i = 0;
-        int hits = 0;
-        int redundant = 0;
-        int duplicates = 0;
-        foreach (var policy in allPolicies) {
-            if (policy.Item2 is null) continue;
-            var matchingPolicies = wildcardPolicies
-                .Where(x =>
-                    !StateEvent.TypeKeyPairMatches(policy.x.Policy, x.x.Policy)
-                    && x.Item2!.EntityMatches(policy.Item2.Entity!)
-                )
-                .ToList();
+        // var allPolicies = allPolicyInfos
+        //     .Select<PolicyCollection.PolicyInfo, (PolicyCollection.PolicyInfo PolicyInfo, PolicyRuleEventContent TypedContent)>(x => (x, (x.Policy.TypedContent as PolicyRuleEventContent)!))
+        //     .ToList();
+        // var hashPolicies = allPolicies
+        //     .Where(x => x.TypedContent.IsHashedRule())
+        //     .ToList();
+        // var wildcardPolicies = allPolicies
+        //     .Except(hashPolicies) // hashed policies cannot be wildcards
+        //     .Where(x => x.TypedContent.IsGlobRule() || x.TypedContent is ServerPolicyRuleEventContent)
+        //     .ToList();
+        // var nonWildcardPolicies = allPolicies
+        //     // .Except(wildcardPolicies)
+        //     .Where(x => !x.TypedContent!.IsGlobRule() || x.TypedContent is ServerPolicyRuleEventContent)
+        //     .ToList();
+        // Console.WriteLine($"Got {allPolicies.Count} total policies, {wildcardPolicies.Count} wildcard policies. Time spent: {scanSw.Elapsed}");
+        // int i = 0;
+        // int hits = 0;
+        // int redundant = 0;
+        // int duplicates = 0;
 
-            if (matchingPolicies.Count > 0) {
-                logger.LogInformation($"{i} Got {matchingPolicies.Count} hits for {policy.x.Policy.RawContent.ToJson()}: {matchingPolicies.Select(x => x.x.Policy.RawContent).ToJson()}");
-                foreach (var match in matchingPolicies) {
-                    policy.x.MadeRedundantBy.Add(match.x.Policy);
-                }
+        // foreach (var (policyInfo, policyContent) in allPolicies) {
+        //     foreach (var (otherPolicyInfo, otherPolicyContent) in allPolicies) {
+        //         if (policyInfo.Policy == otherPolicyInfo.Policy) continue; // same event
+        //         if (StateEvent.TypeKeyPairMatches(policyInfo.Policy, otherPolicyInfo.Policy)) {
+        //             logger.LogWarning("Sanity check failed: Found same type and state key for two different policies: {Policy1} and {Policy2}", policyInfo.Policy.RawContent.ToJson(), otherPolicyInfo.Policy.RawContent.ToJson());
+        //             continue; // same type and state key
+        //         }
+        //         // if(!policyContent.IsHashedRule())
+        //     }
+        //
+        //     if (++i % 100 == 0) {
+        //         Console.WriteLine($"Processed {i} policies in {scanSw.Elapsed}");
+        //         await Task.Delay(1);
+        //     }
+        // }
 
-                hits++;
-                redundant += matchingPolicies.Count;
+        Console.WriteLine($"Scanning for redundant policies in {allPolicyInfos.Count} total policies... ({scanSw.Elapsed})");
+        List<Task<List<PolicyCollection.PolicyInfo>>> tasks = [];
+        // try to save some load...
+        var policiesJson = JsonSerializer.Serialize(allPolicyInfos.Select(x => x.Policy));
+        var ranges = Enumerable.Range(0, allPolicyInfos.Count).DistributeSequentially(WebWorkerService.MaxWorkerCount);
+        foreach (var range in ranges)
+            tasks.Add(WebWorkerService.TaskPool.Invoke(CheckDuplicatePoliciesAsync, policiesJson, range.First(), range.Last()));
+        
+        // tasks.Add(CheckDuplicatePoliciesAsync(allPolicyInfos, range.First() .. range.Last()));
 
-                if (hits % 5 == 0)
-                    StateHasChanged();
+        await foreach (var modifiedPolicyInfos in tasks.ToAsyncEnumerable()) {
+            Console.WriteLine($"Main: got {modifiedPolicyInfos.Count} modified policies from worker, time: {scanSw.Elapsed}");
+            foreach (var modifiedPolicyInfo in modifiedPolicyInfos) {
+                var original = allPolicyInfos.First(p => p.Policy.EventId == modifiedPolicyInfo.Policy.EventId);
+                original.DuplicatedBy = modifiedPolicyInfo.DuplicatedBy;
+                original.MadeRedundantBy = modifiedPolicyInfo.MadeRedundantBy;
             }
-            else logger.LogInformation("Sleeping...");
-            await Task.Delay(1);
-            i++;
+
+            Console.WriteLine($"Processed {modifiedPolicyInfos.Count} modified policies in {scanSw.Elapsed}");
         }
 
-        i = 0;
-        foreach (var policy in allPolicies) {
-            if (policy.Item2 is null) continue;
-            var matchingPolicies = allPolicies
-                .Where(x =>
-                    !StateEvent.TypeKeyPairMatches(policy.x.Policy, x.x.Policy)
-                    && x.Item2!.Entity == policy.Item2.Entity!
-                )
-                .ToList();
+        Console.WriteLine($"Processed {allPolicyInfos.Count} policies in {scanSw.Elapsed}");
 
-            if (matchingPolicies.Count > 0) {
-                logger.LogInformation($"{i} Got {matchingPolicies.Count} duplicates for {policy.x.Policy.RawContent.ToJson()}: {matchingPolicies.Select(x => x.x.Policy.RawContent).ToJson()}");
-                foreach (var match in matchingPolicies) {
-                    policy.x.MadeRedundantBy.Add(match.x.Policy);
+        // // scan for wildcard matches
+        // foreach (var policy in allPolicies) {
+        //     var matchingPolicies = wildcardPolicies
+        //         .Where(x =>
+        //             !StateEvent.TypeKeyPairMatches(policy.PolicyInfo.Policy, x.PolicyInfo.Policy)
+        //             && x.Item2.EntityMatches(policy.TypedContent.Entity!)
+        //         )
+        //         .ToList();
+        //
+        //     if (matchingPolicies.Count > 0) {
+        //         logger.LogInformation($"{i} Got {matchingPolicies.Count} hits for {policy.PolicyInfo.Policy.RawContent.ToJson()}: {matchingPolicies.Select(x => x.PolicyInfo.Policy.RawContent).ToJson()}");
+        //         foreach (var match in matchingPolicies) {
+        //             policy.PolicyInfo.MadeRedundantBy.Add(match.PolicyInfo.Policy);
+        //         }
+        //
+        //         hits++;
+        //         redundant += matchingPolicies.Count;
+        //
+        //         if (hits % 5 == 0)
+        //             StateHasChanged();
+        //     }
+        //     else {
+        //         //logger.LogInformation("Sleeping...");
+        //         await Task.Delay(1);
+        //     }
+        //
+        //     i++;
+        // }
+        //
+        // i = 0;
+        // // scan for exact duplicates
+        // foreach (var policy in allPolicies) {
+        //     var matchingPolicies = allPolicies
+        //         .Where(x =>
+        //             !StateEvent.TypeKeyPairMatches(policy.PolicyInfo.Policy, x.PolicyInfo.Policy)
+        //             && (
+        //                 x.Item2.IsHashedRule()
+        //                     ? x.Item2.EntityMatches(policy.Item2.Entity)
+        //                     : x.Item2!.Entity == policy.Item2.Entity!
+        //             )
+        //         )
+        //         .ToList();
+        //
+        //     if (matchingPolicies.Count > 0) {
+        //         logger.LogInformation($"{i} Got {matchingPolicies.Count} duplicates for {policy.PolicyInfo.Policy.RawContent.ToJson()}: {matchingPolicies.Select(x => x.PolicyInfo.Policy.RawContent).ToJson()}");
+        //         foreach (var match in matchingPolicies) {
+        //             policy.PolicyInfo.MadeRedundantBy.Add(match.PolicyInfo.Policy);
+        //         }
+        //
+        //         hits++;
+        //         duplicates += matchingPolicies.Count;
+        //
+        //         if (hits % 5 == 0)
+        //             StateHasChanged();
+        //     }
+        //     else {
+        //         //logger.LogInformation("Sleeping...");
+        //         await Task.Delay(1);
+        //     }
+        //
+        //     i++;
+        // }
+        //
+        // logger.LogInformation($"LoadStatesAsync: Found {hits} ({redundant} redundant, {duplicates} duplicates) redundant policies in {sw.Elapsed}");
+        // StateHasChanged();
+    }
+
+    [return: WorkerTransfer]
+    private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(string policiesJson, int start, int end) {
+        Console.WriteLine($"Got request to check duplicate policies in range {start} to {end} (length: {end - start}), {policiesJson.Length} bytes of JSON");
+        return await CheckDuplicatePoliciesAsync(JsonSerializer.Deserialize<List<StateEventResponse>>(policiesJson), start .. end);
+    }
+
+    [return: WorkerTransfer]
+    private static Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<StateEventResponse> policies, int start, int end)
+        => CheckDuplicatePoliciesAsync(policies, start .. end);
+
+    [return: WorkerTransfer]
+    private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<StateEventResponse> policies, Range range) {
+        Console.WriteLine($"Processing policies in range {range} ({range.GetOffsetAndLength(policies.Count).Length}) with {policies.Count} total policies");
+        var allPolicies = policies
+            .Select(x => (Event: x, TypedContent: (x.TypedContent as PolicyRuleEventContent)!))
+            .ToList();
+        var toCheck = allPolicies[range];
+        var modifiedPolicies = new List<PolicyCollection.PolicyInfo>();
+
+        foreach (var (policyEvent, policyContent) in toCheck) {
+            List<StateEventResponse> duplicatedBy = [];
+            List<StateEventResponse> madeRedundantBy = [];
+
+            foreach (var (otherPolicyEvent, otherPolicyContent) in allPolicies) {
+                if (policyEvent == otherPolicyEvent) continue; // same event
+                if (StateEvent.TypeKeyPairMatches(policyEvent, otherPolicyEvent)) {
+                    // logger.LogWarning("Sanity check failed: Found same type and state key for two different policies: {Policy1} and {Policy2}", policyInfo.Policy.RawContent.ToJson(), otherPolicyInfo.Policy.RawContent.ToJson());
+                    Console.WriteLine($"Sanity check failed: Found same type and state key for two different policies: {policyEvent.RawContent.ToJson()} and {otherPolicyEvent.RawContent.ToJson()}");
+                    continue; // same type and state key
                 }
-
-                hits++;
-                redundant += matchingPolicies.Count;
-
-                if (hits % 5 == 0)
-                    StateHasChanged();
+                // if(!policyContent.IsHashedRule())
             }
-            else logger.LogInformation("Sleeping...");
-            await Task.Delay(1);
-            i++;
+
+            if (duplicatedBy.Count > 0 || madeRedundantBy.Count > 0) {
+                modifiedPolicies.Add(new() {
+                    Policy = policyEvent,
+                    DuplicatedBy = duplicatedBy,
+                    MadeRedundantBy = madeRedundantBy
+                });
+            }
+
+            // await Task.Delay(1);
         }
 
-        logger.LogInformation($"LoadStatesAsync: Found {hits} ({redundant} redundant, {duplicates} duplicates) redundant policies in {sw.Elapsed}");
-        StateHasChanged();
+        return modifiedPolicies;
     }
 
     // the old one:
@@ -415,9 +532,10 @@ else {
         public required Dictionary<(string Type, string StateKey), PolicyInfo> RemovedPolicies { get; set; }
         public required FrozenDictionary<string, PropertyInfo> PropertiesToDisplay { get; set; }
 
-        public struct PolicyInfo {
+        public class PolicyInfo {
             public required StateEventResponse Policy { get; init; }
             public required List<StateEventResponse> MadeRedundantBy { get; set; }
+            public required List<StateEventResponse> DuplicatedBy { get; set; }
         }
     }
 

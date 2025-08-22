@@ -10,9 +10,19 @@
             if (prop.Name == "Entity") {
                 <td>
                     <span>@TruncateMxid(TypedContent.Entity)</span>
+                    @foreach (var dup in PolicyInfo.DuplicatedBy) {
+                        <br/>
+                        <span>Duplicated by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
+                    }
                     @foreach (var dup in PolicyInfo.MadeRedundantBy) {
                         <br/>
-                        <span>Also matched by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId)">@TruncateMxid(dup.RawContent["entity"].GetValue<string>())</a></span>
+                        <span>Also matched by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
+                    }
+                    @if (RenderEventInfo) {
+                        <br/>
+                        <pre>
+                            @PolicyInfo.Policy.Type/@PolicyInfo.Policy.StateKey by @PolicyInfo.Policy.Sender at @PolicyInfo.Policy.OriginServerTs 
+                        </pre>
                     }
                 </td>
             }
@@ -25,9 +35,9 @@
                 @* @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, Policy.Type)) { *@
                 @if (true) {
                     <LinkButton OnClickAsync="@(() => {
-                                             IsEditing = true;
-                                             return Task.CompletedTask;
-                                         })">Edit
+                                                  IsEditing = true;
+                                                  return Task.CompletedTask;
+                                              })">Edit
                     </LinkButton>
                     <LinkButton OnClickAsync="@RemovePolicyAsync">Remove</LinkButton>
                     @if (Policy.IsLegacyType) {
@@ -81,6 +91,9 @@
 
     [Parameter]
     public required PolicyList.PolicyCollection PolicyCollection { get; set; }
+
+    [Parameter]
+    public bool RenderEventInfo { get; set; }
 
     private StateEventResponse Policy => PolicyInfo.Policy;
 

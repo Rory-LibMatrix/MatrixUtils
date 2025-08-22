@@ -18,7 +18,7 @@
         </thead>
         <tbody>
             @foreach (var policy in PolicyCollection.ActivePolicies.Values.OrderBy(x => x.Policy.RawContent?["entity"]?.GetValue<string>())) {
-                <PolicyListRowComponent PolicyInfo="@policy" PolicyCollection="@PolicyCollection" Room="@Room"></PolicyListRowComponent>
+                <PolicyListRowComponent RenderEventInfo="RenderEventInfo" PolicyInfo="@policy" PolicyCollection="@PolicyCollection" Room="@Room"></PolicyListRowComponent>
             }
         </tbody>
     </table>
@@ -56,6 +56,9 @@
 
     [Parameter]
     public required GenericRoom Room { get; set; }
+    
+    [Parameter]
+    public bool RenderEventInfo { get; set; }
 
     protected override bool ShouldRender() {
         // if (PolicyCollection is null) return false;

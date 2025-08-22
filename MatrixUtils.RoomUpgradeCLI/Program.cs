@@ -29,6 +29,7 @@ foreach (var group in args.Split(";")) {
     else if (argGroup[0] == "execute") builder.Services.AddHostedService<ExecuteCommand>();
     // dev cmds
     else if (argGroup[0] == "dev-delete-room") builder.Services.AddHostedService<DevDeleteRoomCommand>();
+    else if (argGroup[0] == "dev-delete-all-rooms") builder.Services.AddHostedService<DevDeleteAllRoomsCommand>();
     else if (argGroup[0] == "dev-get-room-dir-state") builder.Services.AddHostedService<DevGetRoomDirStateCommand>();
     else {
         Console.WriteLine("Unknown command. Use 'new', 'modify', 'import-upgrade-state' or 'execute'.");

@@ -36,7 +36,6 @@
     }
 
     //debounce StateHasChanged, we dont want to reredner on every key stroke
-
     private CancellationTokenSource _debounceCts = new CancellationTokenSource();
 
     private async Task DebouncedStateHasChanged() {

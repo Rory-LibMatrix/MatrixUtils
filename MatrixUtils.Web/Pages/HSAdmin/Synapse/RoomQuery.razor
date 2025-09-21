@@ -34,21 +34,6 @@
 
 @if (Results.Count > 0) {
     <p>Found @Results.Count rooms</p>
-    @*     <details> *@
-    @*         <summary>TSV data (copy/paste)</summary> *@
-    @*         <pre style="font-size: 0.6em;"> *@
-    @*             <table> *@
-    @*                 @foreach (var res in Results) { *@
-    @*                     <tr> *@
-    @*                         <td style="padding: 8px;">@res.RoomId@("\t")</td> *@
-    @*                         <td style="padding: 8px;">@res.CanonicalAlias@("\t")</td> *@
-    @*                         <td style="padding: 8px;">@res.Creator@("\t")</td> *@
-    @*                         <td style="padding: 8px;">@res.Name</td> *@
-    @*                     </tr> *@
-    @*                 } *@
-    @*             </table> *@
-    @*         </pre> *@
-    @*     </details> *@
 }
 
 @foreach (var room in Results) {
@@ -71,12 +56,12 @@
         </p>
         <p>
             <LinkButton OnClickAsync="@(() => DeleteRoom(room))">Delete room</LinkButton>
-            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.RoomId.Split(':', 2)[1]}")">Resync state</LinkButton>
+            <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.OriginHomeserver}")">Resync state</LinkButton>
         </p>
 
         @{
             List<string?> flags = [];
-            if (true || room.JoinedLocalMembers > 0) {
+            if (room.JoinedLocalMembers > 0) {
                 flags.Add(room.JoinRules switch {
                     "public" => "Public",
                     "invite" => "Invite only",
@@ -88,7 +73,7 @@
                     "" => null,
                     _ => "unknown join rule: " + room.JoinRules
                 });
-                
+
                 if (!string.IsNullOrWhiteSpace(room.Encryption)) flags.Add("encrypted");
                 if (!room.Federatable) flags.Add("unfederated");
 
@@ -124,7 +109,8 @@
         <span>@room.StateEvents state events, room version @(room.Version ?? "1")</span><br/>
         @if (room.TombstoneEvent is not null) {
             var tombstoneContent = room.TombstoneEvent.ContentAs<RoomTombstoneEventContent>()!;
-            <span>Room is tombstoned! Target room: @tombstoneContent.ReplacementRoom, message: @tombstoneContent.Body</span><br/>
+            <span>Room is tombstoned! Target room: @tombstoneContent.ReplacementRoom, message: @tombstoneContent.Body</span>
+            <br/>
         }
 
         @{
@@ -283,6 +269,7 @@
     private async Task Search() {
         Results.Clear();
         var searchRooms = Homeserver.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+        var joinedRooms = await Homeserver.GetJoinedRooms();
         while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
 
@@ -300,7 +287,11 @@
                 HistoryVisibility = room.HistoryVisibility,
                 StateEvents = room.StateEvents,
                 JoinedMembers = room.JoinedMembers,
-                JoinedLocalMembers = room.JoinedLocalMembers
+                JoinedLocalMembers = room.JoinedLocalMembers,
+                OriginHomeserver = joinedRooms.Any(x => x.RoomId == room.RoomId)
+                    ? await Homeserver.GetRoom(room.RoomId).GetOriginHomeserverAsync()
+                    : (await Homeserver.Admin.GetRoomStateAsync(room.RoomId, RoomCreateEventContent.EventId)).Events.FirstOrDefault()?.Sender?.Split(':', 2)[1] 
+                      ?? string.Empty
             };
 
             Results.Add(roomInfo);
@@ -425,6 +416,7 @@
     private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
         public List<string>? LocalMembers { get; set; }
         public StateEventResponse? TombstoneEvent { get; set; }
+        public required string OriginHomeserver { get; set; }
 
         [field: AllowNull, MaybeNull]
         public string MemberSummary => field ??= $"{JoinedMembers} members, of which {JoinedLocalMembers} are on this server";

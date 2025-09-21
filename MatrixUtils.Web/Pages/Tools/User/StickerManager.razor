@@ -1,0 +1,80 @@
+@page "/Tools/User/StickerManager"
+@using System.Diagnostics
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Common
+@using LibMatrix.EventTypes.Spec
+@inject ILogger<StickerManager> Logger
+<h3>Sticker/emoji manager</h3>
+
+@if (TotalStepsProgress is not null) {
+    <SimpleProgressIndicator ObservableProgress="@TotalStepsProgress"/>
+    <br/>
+}
+@if (_observableProgressState is not null) {
+    <SimpleProgressIndicator ObservableProgress="@_observableProgressState"/>
+    <br/>
+}
+
+@code {
+
+    private AuthenticatedHomeserverGeneric Homeserver { get; set; } = null!;
+    private Msc2545EmoteRoomsAccountDataEventContent? EnabledEmoteRooms { get; set; }
+    private Dictionary<string, StickerRoom> StickerRooms { get; set; } = [];
+
+    private SimpleProgressIndicator.ObservableProgressState? _observableProgressState;
+
+    private SimpleProgressIndicator.ObservableProgressState? TotalStepsProgress { get; set; } = new() {
+        Label = "Authenticating with Matrix...",
+        Max = 2,
+        Value = 0
+    };
+
+    protected override async Task OnInitializedAsync() {
+        if (await sessionStore.GetCurrentHomeserver(navigateOnFailure: true) is not { } hs)
+            return;
+        Homeserver = hs;
+        TotalStepsProgress?.Next("Fetching enabled emote packs...");
+        _ = hs.GetAccountDataOrNullAsync<Msc2545EmoteRoomsAccountDataEventContent>(Msc2545EmoteRoomsAccountDataEventContent.EventId)
+            .ContinueWith(r => {
+                EnabledEmoteRooms = r.Result;
+                StateHasChanged();
+            });
+
+        TotalStepsProgress?.Next("Getting joined rooms...");
+        _observableProgressState = new() {
+            Label = "Loading rooms...",
+            Max = 1,
+            Value = 0
+        };
+        var rooms = await hs.GetJoinedRooms();
+        _observableProgressState.Max.Value = rooms.Count;
+        StateHasChanged();
+
+        var ss = new SemaphoreSlim(32, 32);
+        var ss1 = new SemaphoreSlim(1, 1);
+        var roomScanTasks = rooms.Select(async room => {
+                // await Task.Delay(Random.Shared.Next(100, 1000 + (rooms.Count * 100)));
+                // await ss.WaitAsync();
+                var state = await room.GetFullStateAsListAsync();
+                StickerRoom sr = new();
+                foreach (var evt in state) {
+                    if (evt.Type == RoomEmotesEventContent.EventId) { }
+                }
+
+                // ss.Release();
+                // await ss1.WaitAsync();
+                Console.WriteLine("Got state for room " + room.RoomId);
+                // _observableProgressState.Next($"Got state for room {room.RoomId}");
+                // await Task.Delay(1);
+                // ss1.Release();
+                return room.RoomId;
+            })
+            .ToList();
+        await foreach (var roomScanResult in roomScanTasks.ToAsyncEnumerable()) {
+            _observableProgressState.Label.Value = roomScanResult;
+        }
+    }
+
+    private class StickerRoom { }
+
+}

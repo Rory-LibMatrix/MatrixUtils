@@ -82,5 +82,8 @@ MatrixHttpClient.LogRequests = false;
 builder.Services.AddRoryLibMatrixServices();
 builder.Services.AddScoped<RmuSessionStore>();
 builder.Services.AddSingleton<BlazorSaveFileService>();
+builder.Services.AddSingleton<JsConsoleService>();
+
 // await builder.Build().RunAsync();
-await builder.Build().BlazorJSRunAsync();
+var host = App.Host = builder.Build();
+await host.BlazorJSRunAsync();

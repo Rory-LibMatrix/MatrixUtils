@@ -1,4 +1,5 @@
 @using System.Reflection
+@using ArcaneLibs.Extensions
 @using LibMatrix
 @using LibMatrix.EventTypes.Spec.State.Policy
 @using LibMatrix.RoomTypes
@@ -6,30 +7,6 @@
 
 @if (_isInitialized && IsVisible) {
     <tr id="@PolicyInfo.Policy.EventId">
-        @foreach (var prop in PolicyCollection.PropertiesToDisplay.Values) {
-            if (prop.Name == "Entity") {
-                <td>
-                    <span>@TruncateMxid(TypedContent.Entity)</span>
-                    @foreach (var dup in PolicyInfo.DuplicatedBy) {
-                        <br/>
-                        <span>Duplicated by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
-                    }
-                    @foreach (var dup in PolicyInfo.MadeRedundantBy) {
-                        <br/>
-                        <span>Also matched by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
-                    }
-                    @if (RenderEventInfo) {
-                        <br/>
-                        <pre>
-                            @PolicyInfo.Policy.Type/@PolicyInfo.Policy.StateKey by @PolicyInfo.Policy.Sender at @PolicyInfo.Policy.OriginServerTs 
-                        </pre>
-                    }
-                </td>
-            }
-            else {
-                <td>@prop.GetGetMethod()?.Invoke(TypedContent, null)</td>
-            }
-        }
         <td>
             <div style="display: flex; flex-direction: row; gap: 0.5em;">
                 @* @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, Policy.Type)) { *@
@@ -41,7 +18,7 @@
                     </LinkButton>
                     <LinkButton OnClickAsync="@RemovePolicyAsync">Remove</LinkButton>
                     @if (Policy.IsLegacyType) {
-                        <LinkButton OnClickAsync="@RemovePolicyAsync">Update policy type</LinkButton>
+                        <LinkButton OnClickAsync="@RemovePolicyAsync">Update type</LinkButton>
                     }
 
                     @if (TypedContent.Entity?.StartsWith("@*:", StringComparison.Ordinal) == true) {
@@ -66,6 +43,30 @@
                 }
             </div>
         </td>
+        @foreach (var prop in PolicyCollection.PropertiesToDisplay.Values) {
+            if (prop.Name == "Entity") {
+                <td>
+                    <span>@TruncateMxid(TypedContent.Entity)</span>
+                    @foreach (var dup in PolicyInfo.DuplicatedBy) {
+                        <br/>
+                        <span>Duplicated by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
+                    }
+                    @foreach (var dup in PolicyInfo.MadeRedundantBy) {
+                        <br/>
+                        <span>Also matched by @dup.FriendlyTypeName.ToLower() <a href="@Anchor(dup.EventId!)">@TruncateMxid(dup.RawContent["entity"]?.GetValue<string>())</a></span>
+                    }
+                    @if (RenderEventInfo) {
+                        <br/>
+                        <pre style="margin-bottom: unset;">
+                            @PolicyInfo.Policy.Type/@PolicyInfo.Policy.StateKey by @PolicyInfo.Policy.Sender at @PolicyInfo.Policy.OriginServerTimestamp
+                        </pre>
+                    }
+                </td>
+            }
+            else {
+                <td>@prop.GetGetMethod()?.Invoke(TypedContent, null)</td>
+            }
+        }
     </tr>
 
     @if (IsEditing) {
@@ -94,6 +95,9 @@
 
     [Parameter]
     public bool RenderEventInfo { get; set; }
+
+    [Parameter]
+    public required Action PolicyCollectionStateHasChanged { get; set; }
 
     private StateEventResponse Policy => PolicyInfo.Policy;
 
@@ -142,8 +146,42 @@
 
     private async Task RemovePolicyAsync() {
         await Room.SendStateEventAsync(Policy.Type, Policy.StateKey, new { });
-        IsVisible = false;
-        StateHasChanged();
+        bool shouldUpdateVisibility = true;
+        PolicyCollection.ActivePolicies.Remove((Policy.Type, Policy.StateKey));
+        PolicyCollection.RemovedPolicies.Add((Policy.Type, Policy.StateKey), PolicyInfo);
+        if (PolicyInfo.DuplicatedBy.Count > 0) {
+            foreach (var evt in PolicyInfo.DuplicatedBy) {
+                var matchingEntry = PolicyCollection.ActivePolicies
+                    .FirstOrDefault(x => StateEvent.Equals(x.Value.Policy, evt)).Value;
+                var removals = matchingEntry.DuplicatedBy.RemoveAll(x => StateEvent.Equals(x, Policy));
+                Console.WriteLine($"Removed {removals} duplicates from {evt.EventId}, matching entry: {matchingEntry.ToJson()}");
+                if (PolicyCollection.ViewType == PolicyList.PolicyCollection.SpecialViewType.Duplicates && matchingEntry.DuplicatedBy.Count == 0) {
+                    PolicyCollection.ActivePolicies.Remove((matchingEntry.Policy.Type, matchingEntry.Policy.StateKey));
+                    PolicyCollection.RemovedPolicies.Add((matchingEntry.Policy.Type, matchingEntry.Policy.StateKey), matchingEntry);
+                    Console.WriteLine($"Also removed {matchingEntry.Policy.EventId} as it is now redundant");
+                }
+            }
+
+            PolicyCollectionStateHasChanged();
+            shouldUpdateVisibility = false;
+        }
+
+        if (PolicyInfo.MadeRedundantBy.Count > 0) {
+            foreach (var evt in PolicyInfo.MadeRedundantBy) {
+                var matchingEntry = PolicyCollection.ActivePolicies
+                    .FirstOrDefault(x => StateEvent.Equals(x.Value.Policy, evt)).Value;
+                var removals = matchingEntry.MadeRedundantBy.RemoveAll(x => StateEvent.Equals(x, Policy));
+                Console.WriteLine($"Removed {removals} redundants from {evt.EventId}, matching entry: {matchingEntry.ToJson()}");
+            }
+
+            PolicyCollectionStateHasChanged();
+            shouldUpdateVisibility = false;
+        }
+
+        if (shouldUpdateVisibility) {
+            IsVisible = false;
+            StateHasChanged();
+        }
         // PolicyEventsByType[policyEvent.MappedType].Remove(policyEvent);
         // await LoadStatesAsync();
     }

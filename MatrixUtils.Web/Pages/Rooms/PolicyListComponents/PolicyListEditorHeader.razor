@@ -12,14 +12,14 @@
 <hr/>
 @* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
 <LinkButton OnClickAsync="@(() => {
-                         CurrentlyEditingEvent = new() { Type = "", RawContent = new() };
-                         return Task.CompletedTask;
-                     })">Create new policy
+                              CurrentlyEditingEvent = new() { Type = "", RawContent = new() };
+                              return Task.CompletedTask;
+                          })">Create new policy
 </LinkButton>
 <LinkButton OnClickAsync="@(() => {
-                         MassCreatePolicies = true;
-                         return Task.CompletedTask;
-                     })">Create many new policies
+                              MassCreatePolicies = true;
+                              return Task.CompletedTask;
+                          })">Create many new policies
 </LinkButton>
 <LinkButton OnClickAsync="@(() => ReloadStateAsync())">Refresh</LinkButton>
 
@@ -33,20 +33,43 @@
                                                                                                    // _ = LoadStatesAsync();
                                                                                                })"></MassPolicyEditorModal>
 }
+<br/>
+<InputCheckbox Value="@RenderEventInfo" ValueChanged="@RenderEventInfoChanged" ValueExpression="@(() => RenderEventInfo)"/>
+<span> Render event info</span>
 
 @code {
+
     [Parameter]
     public required GenericRoom Room { get; set; }
-    
+
     [Parameter]
     public required Func<Task> ReloadStateAsync { get; set; }
+
+    [Parameter]
+    public required bool RenderEventInfo { get; set; }
+
+    [Parameter]
+    public required EventCallback<bool> RenderEventInfoChanged { get; set; }
 
     private string? RoomName { get; set; }
     private string? RoomAlias { get; set; }
     private string? DraupnirShortcode { get; set; }
-    
-    private StateEventResponse? CurrentlyEditingEvent { get; set { field = value; StateHasChanged(); } }
-    private bool MassCreatePolicies { get; set { field = value; StateHasChanged(); } }
+
+    private StateEventResponse? CurrentlyEditingEvent {
+        get;
+        set {
+            field = value;
+            StateHasChanged();
+        }
+    }
+
+    private bool MassCreatePolicies {
+        get;
+        set {
+            field = value;
+            StateHasChanged();
+        }
+    }
 
     protected override async Task OnInitializedAsync() {
         await Task.WhenAll(
@@ -54,12 +77,12 @@
             Task.Run(async () => { RoomAlias = (await Room.GetCanonicalAliasAsync())?.Alias; }),
             Task.Run(async () => { RoomName = await Room.GetNameOrFallbackAsync(); })
         );
-        
+
         StateHasChanged();
     }
 
     private async Task UpdatePolicyAsync(StateEventResponse evt) {
-        Console.WriteLine("UpdatePolicyAsync in PolicyListEditorHeader not yet implementeD!");
+        Console.WriteLine("UpdatePolicyAsync in PolicyListEditorHeader not yet implemented!");
     }
 
 }

@@ -120,7 +120,7 @@
         var room = Room!.Homeserver.GetRoom(roomId);
         if (room is null) return;
         try {
-            await room.JoinAsync(ServersInSpace.ToArray());
+            await room.JoinAsync(ServersInSpace.Take(10).ToArray());
             var joined = false;
             while (!joined) {
                 var ce = await room.GetCreateEventAsync();
@@ -132,6 +132,7 @@
                      }
                 }
                 joined = true;
+                await Task.Delay(1000);
             }
         }
         catch (Exception e) {

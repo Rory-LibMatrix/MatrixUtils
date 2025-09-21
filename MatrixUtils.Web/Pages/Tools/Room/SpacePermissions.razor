@@ -1,0 +1,204 @@
+@page "/Tools/Room/SpacePermissions"
+@using ArcaneLibs.Extensions
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
+@using LibMatrix.RoomTypes
+@using MatrixUtils.Web.Pages.Rooms
+<h3>Space Permissions</h3>
+<hr/>
+<span>Space ID: </span>
+<FancyTextBox @bind-Value="@SpaceId"/>
+<LinkButton OnClickAsync="@Execute">Execute</LinkButton>
+<br/>
+<InputCheckbox @bind-Value="@AutoRecurseSpaces"/>
+<span> Auto-recurse into child spaces</span>
+<br/>
+
+@if (RoomPowerLevels.Count == 0) {
+    <p>No data loaded.</p>
+}
+else {
+    <span>Loaded @LoadedSpaceRooms.Count spaces.</span>
+    <br/>
+    @if (SpaceRooms.Count > 0) {
+        <h3>Load more spaces:</h3>
+        @foreach (var room in SpaceRooms) {
+            <LinkButton OnClickAsync="@(() => LoadSpaceAsync(room.Key))">@room.Value</LinkButton>
+        }
+    }
+
+    <h3>By event type:</h3>
+    <table class="table-striped table-hover table-bordered align-middle">
+        <thead>
+            <td>Room</td>
+            @foreach (var key in OrderedEventTypes) {
+                <td>@key.Key
+                    <br/>
+                    ~ @Math.Round(key.Value, 2)
+                </td>
+            }
+        </thead>
+        <tbody>
+            @foreach (var (roomName, powerLevels) in RoomPowerLevels.OrderByDescending(x => x.Value.Events!.Values.Average())) {
+                <tr>
+                    <td>@roomName</td>
+                    @foreach (var eventType in OrderedEventTypes) {
+                        if (!powerLevels.Events!.ContainsKey(eventType.Key)) {
+                            <td style="background-color: #ff000044;">-</td>
+                            continue;
+                        }
+
+                        <td>@(powerLevels.Events![eventType.Key])</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br/>
+    <h3>By user:</h3>
+    <table class="table-striped table-hover table-bordered align-middle">
+        <thead>
+            <td>Room</td>
+            @foreach (var key in OrderedUsers) {
+                <td>@key.Key
+                    <br/>
+                    ~ @Math.Round(key.Value, 2)
+                </td>
+            }
+        </thead>
+        <tbody>
+            @foreach (var (roomName, powerLevels) in RoomPowerLevels.OrderByDescending(x => x.Value.Users!.Values.Average())) {
+                <tr>
+                    <td>@roomName</td>
+                    @foreach (var eventType in OrderedUsers) {
+                        if (!powerLevels.Users!.ContainsKey(eventType.Key)) {
+                            <td style="background-color: #ff000044;">-</td>
+                            continue;
+                        }
+
+                        <td>@(powerLevels.Users![eventType.Key])</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    [Parameter, SupplyParameterFromQuery]
+    public string? SpaceId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery]
+    public bool AutoRecurseSpaces { get; set; }
+
+    private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
+    private List<AuthenticatedHomeserverGeneric> AllHomeservers { get; set; } = [];
+    private Dictionary<string, List<GenericRoom>> JoinedHomeserversByRoom { get; set; } = [];
+
+    private Dictionary<string, RoomPowerLevelEventContent> RoomPowerLevels { get; set; } = [];
+    private Dictionary<string, string> SpaceRooms { get; set; } = [];
+    private List<string> LoadedSpaceRooms { get; set; } = [];
+
+    private Dictionary<string, double> OrderedEventTypes { get; set; } = new();
+    private Dictionary<string, double> OrderedUsers { get; set; } = new();
+
+    protected override async Task OnInitializedAsync() {
+        if (await sessionStore.GetCurrentHomeserver(navigateOnFailure: true) is not AuthenticatedHomeserverGeneric hs) return;
+        Homeserver = hs;
+        await foreach (var server in sessionStore.TryGetAllHomeservers()) {
+            AllHomeservers.Add(server);
+            var joinedRooms = await server.GetJoinedRooms();
+            foreach (var room in joinedRooms) {
+                if (!JoinedHomeserversByRoom.ContainsKey(room.RoomId)) {
+                    JoinedHomeserversByRoom[room.RoomId] = [];
+                }
+
+                JoinedHomeserversByRoom[room.RoomId].Add(room);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(SpaceId)) {
+            await Execute();
+        }
+    }
+
+    private async Task Execute() {
+        RoomPowerLevels = [];
+        SpaceRooms = [];
+        await LoadSpaceAsync(SpaceId);
+    }
+
+    private async Task<GenericRoom> GetJoinedRoomAsync(string roomId) {
+        var room = Homeserver.GetRoom(roomId);
+        if (await room.IsJoinedAsync()) return room;
+
+        if (JoinedHomeserversByRoom.TryGetValue(roomId, out var rooms)) {
+            foreach (var r in rooms) {
+                if (await r.IsJoinedAsync()) return r;
+            }
+        }
+
+        foreach (var hs in AllHomeservers) {
+            if (hs == Homeserver) continue;
+            room = hs.GetRoom(roomId);
+            if (await room.IsJoinedAsync()) return room;
+        }
+
+        Console.WriteLine($"Not joined to room {roomId} on any known homeserver.");
+        return room; // not null, in case we can preview the room
+    }
+
+    private async Task LoadSpaceAsync(string spaceId) {
+        LoadedSpaceRooms.Add(spaceId);
+        SpaceRooms.Remove(spaceId);
+
+        var space = (await GetJoinedRoomAsync(spaceId)).AsSpace();
+        RoomPowerLevels[await space.GetNameOrFallbackAsync()] = AddFakeEvents(await space.GetPowerLevelsAsync());
+        var children = space.GetChildrenAsync();
+        await foreach (var childRoom in children) {
+            var child = await GetJoinedRoomAsync(childRoom.RoomId);
+            try {
+                var powerlevels = await child.GetPowerLevelsAsync();
+                RoomPowerLevels[await child.GetNameOrFallbackAsync()] = AddFakeEvents(powerlevels!);
+                if (await child.GetRoomType() == SpaceRoom.TypeName) {
+                    if (AutoRecurseSpaces)
+                        await LoadSpaceAsync(child.RoomId);
+                    else
+                        SpaceRooms.Add(child.RoomId, await child.GetNameOrFallbackAsync());
+                }
+
+                OrderedEventTypes = RoomPowerLevels
+                    .SelectMany(x => x.Value.Events!)
+                    .GroupBy(x => x.Key)
+                    .ToDictionary(x => x.Key, x => x.Average(y => y.Value))
+                    .OrderByDescending(x => x.Value)
+                    .ToDictionary(x => x.Key, x => x.Value);
+
+                OrderedUsers = RoomPowerLevels
+                    .SelectMany(x => x.Value.Users!)
+                    .GroupBy(x => x.Key)
+                    .ToDictionary(x => x.Key, x => x.Average(y => y.Value))
+                    .OrderByDescending(x => x.Value)
+                    .ToDictionary(x => x.Key, x => x.Value);
+                StateHasChanged();
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Failed to get power levels for room {child.RoomId}: {ex}");
+            }
+        }
+    }
+
+    private RoomPowerLevelEventContent AddFakeEvents(RoomPowerLevelEventContent powerlevels) {
+        powerlevels.Events ??= [];
+        powerlevels.Events["[user_default]"] = powerlevels.UsersDefault ?? 0;
+        powerlevels.Events["[event_default]"] = powerlevels.EventsDefault ?? 0;
+        powerlevels.Events["[state_default]"] = powerlevels.StateDefault ?? 100;
+        powerlevels.Events["[ban]"] = powerlevels.Ban ?? 100;
+        powerlevels.Events["[invite]"] = powerlevels.Invite ?? 100;
+        powerlevels.Events["[kick]"] = powerlevels.Kick ?? 100;
+        powerlevels.Events["[ping_room]"] = powerlevels.NotificationsPl?.Room ?? 100;
+        powerlevels.Events["[redact]"] = powerlevels.Redact ?? 100;
+        return powerlevels;
+    }
+
+}

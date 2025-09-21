@@ -105,6 +105,8 @@
     }
 
     public async Task DeleteRoom() {
+        var resp = await Homeserver.Admin.DeleteRoom(Context.RoomId, Context.DeleteRequest, false);
+        Context.DeleteId = resp.DeleteId;
         await TaskMap.SetValueAsync(Context.RoomId, Context);
     }
 

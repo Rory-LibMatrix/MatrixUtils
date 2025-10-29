@@ -1,0 +1,17 @@
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
+<span>
+    <InputCheckbox @bind-Value="@Filter.Enabled"/> @Label:
+    @if (Filter.Enabled) {
+        <InputCheckbox @bind-Value="@Filter.Value"/>
+    }
+</span>
+
+@code {
+
+    [Parameter]
+    public required BoolFilter Filter { get; set; }
+
+    [Parameter]
+    public required string Label { get; set; }
+
+}

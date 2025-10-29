@@ -1,0 +1,31 @@
+@using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Filters
+<span style="vertical-align: top;">
+    <InputCheckbox @bind-Value="@Filter.Enabled"/> @Label: 
+</span>
+@if (Filter.Enabled) {
+    <div style="display: inline-block;">
+        <InputCheckbox @bind-Value="@Filter.CheckValueContains"/>
+        Contains
+        <FancyTextBox @bind-Value="@Filter.ValueContains"></FancyTextBox>
+        <br/>
+        <InputCheckbox @bind-Value="@Filter.CheckValueEquals"/>
+        Equals
+        <FancyTextBox @bind-Value="@Filter.ValueEquals"></FancyTextBox>
+        <LinkButton OnClick="@SetEqualsNull" InlineText="true"> [Set null]</LinkButton>
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public required StringFilter Filter { get; set; }
+
+    [Parameter]
+    public required string Label { get; set; }
+
+    private void SetEqualsNull() {
+        Filter.ValueEquals = null;
+        StateHasChanged();
+    }
+
+}

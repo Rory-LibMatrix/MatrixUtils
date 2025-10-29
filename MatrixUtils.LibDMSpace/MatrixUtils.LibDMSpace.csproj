@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <LinkIncremental>true</LinkIncremental>
@@ -10,6 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj" />
+        <ProjectReference Include="..\LibMatrix\LibMatrix\LibMatrix.csproj"/>
     </ItemGroup>
 </Project>

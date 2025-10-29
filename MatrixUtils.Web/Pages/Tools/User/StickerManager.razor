@@ -70,7 +70,7 @@
                 return room.RoomId;
             })
             .ToList();
-        await foreach (var roomScanResult in roomScanTasks.ToAsyncEnumerable()) {
+        await foreach (var roomScanResult in roomScanTasks.ToAsyncResultEnumerable()) {
             _observableProgressState.Label.Value = roomScanResult;
         }
     }

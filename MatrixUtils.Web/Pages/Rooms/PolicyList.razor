@@ -381,7 +381,7 @@ else {
             .SelectMany(x => x.ActivePolicies.Values)
             .ToArray();
 
-        await foreach (var modifiedPolicyInfos in tasks.ToAsyncEnumerable()) {
+        await foreach (var modifiedPolicyInfos in tasks.ToAsyncResultEnumerable()) {
             if (modifiedPolicyInfos.Count == 0) continue;
             var applySw = Stopwatch.StartNew();
             // Console.WriteLine($"Main: got {modifiedPolicyInfos.Count} modified policies from worker, time: {scanSw.Elapsed}");

@@ -38,7 +38,9 @@ else {
 }
 @foreach (var (room, usersList) in duplicateDmRooms) {
     <ModalWindow Title="Duplicate room found" X="_offset += 30" Y="_offset">
-        <p>Found room assigned to multiple users: <RoomListItem RoomInfo="@room"></RoomListItem></p>
+        <p>Found room assigned to multiple users:
+            <RoomListItem RoomInfo="@room"></RoomListItem>
+        </p>
         <p>Users:</p>
         @foreach (var userProfileResponse in usersList) {
             <LinkButton OnClickAsync="@(() => SetRoomAssignment(room.Room.RoomId, userProfileResponse.Id))">
@@ -141,12 +143,12 @@ else {
             }
 
             var roomList = new List<RoomInfo>();
-            var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncEnumerable();
+            var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncResultEnumerable();
             await foreach (var result in tasks)
                 roomList.Add(result);
             return (userProfile, roomList);
             // StateHasChanged();
-        }).ToAsyncEnumerable();
+        }).ToAsyncResultEnumerable();
         await foreach (var res in results) {
             SetupData.DMRooms.Add(res.userProfile, res.roomList);
             // Status = $"Listed {dmRooms.Count} users";
@@ -181,8 +183,8 @@ else {
         await roomInfo.FetchAllStateAsync();
         roomMembers[roomInfo] = new();
         // roomInfo.CreationEventContent = await room.GetCreateEventAsync();
-        
-        if(roomInfo.RoomName == room.RoomId)
+
+        if (roomInfo.RoomName == room.RoomId)
             try {
                 roomInfo.RoomName = await room.GetNameOrFallbackAsync();
             }
@@ -192,7 +194,7 @@ else {
         await foreach (var member in membersEnum)
             if (member.TypedContent is RoomMemberEventContent memberEvent)
                 roomMembers[roomInfo].Add(new() { DisplayName = memberEvent.DisplayName, AvatarUrl = memberEvent.AvatarUrl, Id = member.StateKey });
-        
+
         try {
             string? roomIcon = (await room.GetAvatarUrlAsync())?.Url;
             if (room is not null)

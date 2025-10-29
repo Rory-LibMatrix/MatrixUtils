@@ -53,8 +53,8 @@
         var oldRoom = hs.GetRoom(roomId);
         var newRoom = hs.GetRoom(newRoomId);
         var members = await oldRoom.GetMembersListAsync();
-        var tasks = members.Select(x => ExecuteInvite(hs, newRoom, x.StateKey)).ToAsyncEnumerable();
-        // var tasks = hss.Select(ExecuteInvite).ToAsyncEnumerable();
+        var tasks = members.Select(x => ExecuteInvite(hs, newRoom, x.StateKey)).ToAsyncResultEnumerable();
+        // var tasks = hss.Select(ExecuteInvite).ToAsyncResultEnumerable();
         await foreach (var a in tasks) {
             if (!string.IsNullOrWhiteSpace(a)) {
                 log.Add(a);

@@ -12,9 +12,13 @@
     <div>
         <MxcAvatar Homeserver="@Homeserver" MxcUri="@NewProfile.AvatarUrl" Circular="true" Size="96"/>
         <div style="display: inline-block; vertical-align: middle;">
-            <span>Display name: </span><FancyTextBox @bind-Value="@NewProfile.DisplayName"></FancyTextBox><br/>
-            <span>Avatar URL: </span><FancyTextBox @bind-Value="@NewProfile.AvatarUrl"></FancyTextBox>
-            <InputFile OnChange="@AvatarChanged"></InputFile><br/>
+            <span>Display name: </span>
+            <FancyTextBox @bind-Value="@NewProfile.DisplayName"></FancyTextBox>
+            <br/>
+            <span>Avatar URL: </span>
+            <FancyTextBox @bind-Value="@NewProfile.AvatarUrl"></FancyTextBox>
+            <InputFile OnChange="@AvatarChanged"></InputFile>
+            <br/>
             <LinkButton OnClickAsync="@(() => UpdateProfile())">Update profile</LinkButton>
             <LinkButton OnClickAsync="@(() => UpdateProfile(true))">Update profile (restore room overrides)</LinkButton>
         </div>
@@ -26,7 +30,9 @@
     <br/>
 
     @* <details> *@
-    <h4>Room profiles<hr></h4>
+    <h4>Room profiles
+        <hr>
+    </h4>
 
     @foreach (var room in Rooms) {
         <details class="details-compact">
@@ -41,9 +47,15 @@
                 @* <img src="@Homeserver.ResolveMediaUri(room.OwnMembership.AvatarUrl)" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover;"/> *@
                 <MxcAvatar Homeserver="@Homeserver" MxcUri="@room.OwnMembership.AvatarUrl" Circular="true" Size="96"/>
                 <div style="display: inline-block; vertical-align: middle;">
-                    <span>Display name: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.DisplayName"></FancyTextBox><br/>
-                    <span>Avatar URL: </span><FancyTextBox BackgroundColor="@(room.OwnMembership.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")" @bind-Value="@room.OwnMembership.AvatarUrl"></FancyTextBox>
-                    <InputFile OnChange="@(ifcea => RoomAvatarChanged(ifcea, room.Room.RoomId))"></InputFile><br/>
+                    <span>Display name: </span>
+                    <FancyTextBox BackgroundColor="@(room.OwnMembership.DisplayName == OldProfile.DisplayName ? "" : "#ffff0033")"
+                                  @bind-Value="@room.OwnMembership.DisplayName"></FancyTextBox>
+                    <br/>
+                    <span>Avatar URL: </span>
+                    <FancyTextBox BackgroundColor="@(room.OwnMembership.AvatarUrl == OldProfile.AvatarUrl ? "" : "#ffff0033")"
+                                  @bind-Value="@room.OwnMembership.AvatarUrl"></FancyTextBox>
+                    <InputFile OnChange="@(ifcea => RoomAvatarChanged(ifcea, room.Room.RoomId))"></InputFile>
+                    <br/>
                     <LinkButton OnClickAsync="@(() => UpdateRoomProfile(room.Room.RoomId))">Update profile</LinkButton>
                 </div>
                 <br/>
@@ -117,7 +129,7 @@
             });
             roomInfoTasks.Add(task);
         }
-        
+
         await Task.WhenAll(roomInfoTasks);
 
         StateHasChanged();
@@ -126,7 +138,7 @@
         // var roomNameTasks = RoomProfiles.Keys.Select(x => Homeserver.GetRoom(x)).Select(async x => {
         // var name = await x.GetNameOrFallbackAsync();
         // return new KeyValuePair<string, string?>(x.RoomId, name);
-        // }).ToAsyncEnumerable();
+        // }).ToAsyncResultEnumerable();
 
         // await foreach (var (roomId, roomName) in roomNameTasks) {
         // Status = $"Got room name for {roomId}: {roomName}";

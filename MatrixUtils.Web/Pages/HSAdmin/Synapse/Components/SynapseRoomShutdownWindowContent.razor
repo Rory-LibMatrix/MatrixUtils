@@ -1,8 +1,12 @@
+@using System.Text.Json.Serialization
+@using ArcaneLibs.Extensions
+@using LibMatrix
+@using LibMatrix.EventTypes.Spec.State.RoomInfo
 @using LibMatrix.Homeservers.Extensions.NamedCaches
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Requests
 @using LibMatrix.Homeservers.ImplementationDetails.Synapse.Models.Responses
 
-@if (string.IsNullOrWhiteSpace(Context.DeleteId)) {
+@if (string.IsNullOrWhiteSpace(Context.DeleteId) || EditorOnly) {
     <span>Block room: </span>
     <InputCheckbox @bind-Value="@Context.DeleteRequest.Block"/>
     <br/>
@@ -34,6 +38,12 @@
         <br/>
         <span>Delete <b>ALL</b> local user media: </span>
         <InputCheckbox @bind-Value="@Context.ExtraOptions.DeleteLocalUserMedia"></InputCheckbox>
+        <br/>
+        <span>Follow tombstone (if any): </span>
+        <InputCheckbox @bind-Value="@Context.ExtraOptions.FollowTombstone"/>
+        @if (!EditorOnly) {
+            <LinkButton InlineText="true" OnClickAsync="@FollowTombstoneAsync">Exec</LinkButton>
+        }
     </details>
 
     <details>
@@ -50,7 +60,19 @@
         <br/>
     </details>
 
-    <LinkButton OnClickAsync="@DeleteRoom">Execute</LinkButton>
+    @if (!EditorOnly) {
+        <LinkButton OnClickAsync="@DeleteRoom">Execute</LinkButton>
+    }
+}
+else {
+    <pre>
+        @(_status?.ToJson() ?? "Loading status...")
+    </pre>
+    <br/>
+    <LinkButton InlineText="true" OnClickAsync="@OnComplete">[Stop tracking]</LinkButton>
+    if (_status?.Status == SynapseAdminRoomDeleteStatus.Failed) {
+        <LinkButton InlineText="true" OnClickAsync="@ForceDelete">[Force delete]</LinkButton>
+    }
 }
 
 @code {
@@ -61,14 +83,52 @@
     [Parameter]
     public required AuthenticatedHomeserverSynapse Homeserver { get; set; }
 
+    [Parameter]
+    public bool EditorOnly { get; set; }
+
     private NamedCache<RoomShutdownContext> TaskMap { get; set; } = null!;
+    private SynapseAdminRoomDeleteStatus? _status = null;
+    private bool _isTracking = false;
 
     protected override async Task OnInitializedAsync() {
+        if (EditorOnly) return;
         TaskMap = new NamedCache<RoomShutdownContext>(Homeserver, "gay.rory.matrixutils.synapse_room_shutdown_tasks");
+        var existing = await TaskMap.GetValueAsync(Context.RoomId);
+        if (existing is not null) {
+            Context = existing;
+        }
+
+        if (Context.ExecuteImmediately)
+            await DeleteRoom();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (EditorOnly) return;
+        if (!_isTracking) {
+            if (!string.IsNullOrWhiteSpace(Context.DeleteId)) {
+                _isTracking = true;
+                _ = Task.Run(async () => {
+                    do {
+                        _status = await Homeserver.Admin.GetRoomDeleteStatus(Context.DeleteId);
+                        StateHasChanged();
+                        if (_status.Status == SynapseAdminRoomDeleteStatus.Complete) {
+                            await OnComplete();
+                            break;
+                        }
+
+                        await Task.Delay(1000);
+                    } while (_status.Status != SynapseAdminRoomDeleteStatus.Failed && _status.Status != SynapseAdminRoomDeleteStatus.Complete);
+                });
+            }
+        }
     }
 
     public class RoomShutdownContext {
         public required string RoomId { get; set; }
+
+        [JsonIgnore] // do NOT persist - this triggers immediate purging
+        public bool ExecuteImmediately { get; set; }
+
         public string? DeleteId { get; set; }
         public ExtraDeleteOptions ExtraOptions { get; set; } = new();
 
@@ -81,10 +141,11 @@
         public SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom? RoomDetails { get; set; }
 
         public class ExtraDeleteOptions {
-            // room options
+            public bool FollowTombstone { get; set; }
+
+            // media options
             public bool QuarantineLocalMedia { get; set; }
             public bool QuarantineRemoteMedia { get; set; }
-
             public bool DeleteRemoteMedia { get; set; }
 
             // user options
@@ -95,9 +156,14 @@
     }
 
     public async Task OnComplete() {
+        if (EditorOnly) return;
+        Console.WriteLine($"Room shutdown task for {Context.RoomId} completed, removing from map.");
         await OnCompleteLock.WaitAsync();
         try {
-            await TaskMap.RemoveValueAsync(Context.DeleteId!);
+            await TaskMap.RemoveValueAsync(Context.RoomId!);
+        }
+        catch (Exception e) {
+            Console.WriteLine("Failed to remove completed room shutdown task from map: " + e);
         }
         finally {
             OnCompleteLock.Release();
@@ -105,11 +171,96 @@
     }
 
     public async Task DeleteRoom() {
+        if (EditorOnly) return;
+        if (Context.ExtraOptions.FollowTombstone) await FollowTombstoneAsync();
+
+        Console.WriteLine($"Deleting room {Context.RoomId} with options: " + Context.DeleteRequest.ToJson());
+
         var resp = await Homeserver.Admin.DeleteRoom(Context.RoomId, Context.DeleteRequest, false);
         Context.DeleteId = resp.DeleteId;
         await TaskMap.SetValueAsync(Context.RoomId, Context);
     }
 
     private static readonly SemaphoreSlim OnCompleteLock = new(1, 1);
+
+    private async Task FollowTombstoneAsync() {
+        if (EditorOnly) return;
+        var tomb = await TryGetTombstoneAsync();
+        var content = tomb?.ContentAs<RoomTombstoneEventContent>();
+        if (content != null && !string.IsNullOrWhiteSpace(content.ReplacementRoom)) {
+            Console.WriteLine("Tombstone: " + tomb.ToJson());
+            if (!content.ReplacementRoom.StartsWith('!')) {
+                Console.WriteLine($"Invalid replacement room ID in tombstone: {content.ReplacementRoom}, ignoring!");
+            }
+            else {
+                var oldMembers = await Homeserver.Admin.GetRoomMembersAsync(Context.RoomId, localOnly: true);
+                var isKnownRoom = await Homeserver.Admin.CheckRoomKnownAsync(content.ReplacementRoom);
+                var targetMembers = isKnownRoom
+                    ? await Homeserver.Admin.GetRoomMembersAsync(Context.RoomId, localOnly: true)
+                    : new() { Members = [] };
+
+                var members = oldMembers.Members.Except(targetMembers.Members).ToList();
+                Console.WriteLine("To migrate: " + members.ToJson());
+                foreach (var member in members) {
+                    var success = false;
+                    do {
+                        var sess = member == Homeserver.WhoAmI.UserId ? Homeserver : await Homeserver.Admin.GetHomeserverForUserAsync(member, TimeSpan.FromSeconds(15));
+                        var oldRoom = sess.GetRoom(Context.RoomId);
+                        var room = sess.GetRoom(content.ReplacementRoom);
+                        try {
+                            var servers = (await oldRoom.GetMembersByHomeserverAsync(joinedOnly: true))
+                                .Select(x => new KeyValuePair<string, int>(x.Key, x.Value.Count))
+                                .OrderByDescending(x => x.Key == "matrix.org" ? 0 : x.Value); // try anything else first, to reduce load on matrix.org
+
+                            await room.JoinAsync(servers.Take(10).Select(x => x.Key).ToArray(), reason: "Automatically following tombstone as old room is being purged.", checkIfAlreadyMember: isKnownRoom);
+                            Console.WriteLine($"Migrated {member} from {Context.RoomId} to {content.ReplacementRoom}");
+                            success = true;
+                        }
+                        catch (Exception e) {
+                            if (e is MatrixException { ErrorCode: "M_FORBIDDEN" }) {
+                                Console.WriteLine($"Cannot migrate {member} to {content.ReplacementRoom}: {(e as MatrixException)!.GetAsJson()}");
+                                success = true; // give up
+                                continue;
+                            }
+
+                            Console.WriteLine($"Failed to invite {member} to {content.ReplacementRoom}: {e}");
+                            success = false;
+                            await Task.Delay(1000);
+                        }
+                    } while (!success);
+                }
+            }
+        }
+    }
+
+    private async Task<StateEventResponse?> TryGetTombstoneAsync() {
+        if (EditorOnly) return null;
+        try {
+            return (await Homeserver.Admin.GetRoomStateAsync(Context.RoomId, RoomTombstoneEventContent.EventId)).Events.FirstOrDefault(x => x.StateKey == "");
+        }
+        catch {
+            return null;
+        }
+    }
+
+    private async Task ForceDelete() {
+        if (EditorOnly) return;
+        Console.WriteLine($"Forcing purge for {Context.RoomId}!");
+        await OnCompleteLock.WaitAsync();
+        try {
+            var resp = await Homeserver.Admin.DeleteRoom(Context.RoomId, new() {
+                ForcePurge = true
+            }, waitForCompletion: false);
+            Context.DeleteId = resp.DeleteId;
+            await TaskMap.SetValueAsync(Context.RoomId, Context);
+            StateHasChanged();
+        }
+        catch (Exception e) {
+            Console.WriteLine("Failed to remove completed room shutdown task from map: " + e);
+        }
+        finally {
+            OnCompleteLock.Release();
+        }
+    }
 
 }

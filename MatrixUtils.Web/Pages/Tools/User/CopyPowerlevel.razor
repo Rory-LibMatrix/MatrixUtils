@@ -42,7 +42,7 @@
     private async Task Execute() {
         foreach (var hs in hss) {
             var rooms = await hs.GetJoinedRooms();
-            var tasks = rooms.Select(x=>ApplyPowerlevelsInRoom(hs, x)).ToAsyncEnumerable();
+            var tasks = rooms.Select(x => ApplyPowerlevelsInRoom(hs, x)).ToAsyncResultEnumerable();
             await foreach (var a in tasks) {
                 if (!string.IsNullOrWhiteSpace(a)) {
                     log.Add(a);
@@ -62,12 +62,11 @@
                     log.Add("I am same PL in " + room.RoomId);
                     continue;
                 }
-                
+
                 pls.SetUserPowerLevel(ahs.WhoAmI.UserId, pls.GetUserPowerLevel(hs.WhoAmI.UserId));
                 await room.SendStateEventAsync(RoomPowerLevelEventContent.EventId, pls);
                 log.Add($"Updated powerlevel of {room.RoomId} to {pls.GetUserPowerLevel(ahs.WhoAmI.UserId)}");
             }
-
         }
         catch (MatrixException e) {
             return $"Failed to update PLs in {room.RoomId}: {e.Message}";
@@ -75,6 +74,7 @@
         catch (Exception e) {
             return $"Failed to update PLs in {room.RoomId}: {e.Message}";
         }
+
         StateHasChanged();
         return "";
     }

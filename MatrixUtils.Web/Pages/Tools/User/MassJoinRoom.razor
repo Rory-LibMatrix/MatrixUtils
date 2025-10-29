@@ -42,23 +42,24 @@
     }
 
     private async Task Execute() {
-    // foreach (var hs in hss) {
-    // var rooms = await hs.GetJoinedRooms();
-        var tasks = hss.Select(ExecuteInvite).ToAsyncEnumerable();
+        // foreach (var hs in hss) {
+        // var rooms = await hs.GetJoinedRooms();
+        var tasks = hss.Select(ExecuteInvite).ToAsyncResultEnumerable();
         await foreach (var a in tasks) {
             if (!string.IsNullOrWhiteSpace(a)) {
                 log.Add(a);
                 StateHasChanged();
             }
         }
-        tasks = hss.Select(ExecuteJoin).ToAsyncEnumerable();
+
+        tasks = hss.Select(ExecuteJoin).ToAsyncResultEnumerable();
         await foreach (var a in tasks) {
             if (!string.IsNullOrWhiteSpace(a)) {
                 log.Add(a);
                 StateHasChanged();
             }
         }
-    // }
+        // }
     }
 
     private async Task<string> ExecuteInvite(AuthenticatedHomeserverGeneric hs) {
@@ -69,6 +70,7 @@
                 if (joinRule.JoinRule == RoomJoinRulesEventContent.JoinRules.Public) return "Room is public, no invite needed";
             }
             catch { }
+
             var pls = await room.GetPowerLevelsAsync();
             if (pls.GetUserPowerLevel(hs.WhoAmI.UserId) < pls.Invite) return "I do not have permission to send invite in " + room.RoomId;
             await room.InviteUsersAsync(hss.Select(x => x.WhoAmI.UserId).ToList());
@@ -80,6 +82,7 @@
         catch (Exception e) {
             return $"Failed to invite in {room.RoomId}: {e.Message}";
         }
+
         StateHasChanged();
         return "";
     }
@@ -92,6 +95,7 @@
                 if (mse?.Membership == "join") return $"User {hs.WhoAmI.UserId} already in room";
             }
             catch { }
+
             await room.JoinAsync();
         }
         catch (MatrixException e) {
@@ -100,6 +104,7 @@
         catch (Exception e) {
             return $"Failed to join {hs.WhoAmI.UserId} to {room.RoomId}: {e.Message}";
         }
+
         StateHasChanged();
         return "";
     }

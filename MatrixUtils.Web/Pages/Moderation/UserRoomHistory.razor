@@ -19,6 +19,7 @@ else {
     else if (checkedRooms.Count > 1) {
         <p>Done!</p>
     }
+
     @foreach (var (state, rooms) in matchingStates) {
         <u>@state</u>
         <br/>
@@ -71,13 +72,14 @@ else {
             _semaphoreSlim.Release();
             return; //abort if changed
         }
+
         matchingStates.Clear();
         foreach (var homeserver in hss) {
             currentHs = homeserver;
             var rooms = await homeserver.GetJoinedRooms();
             rooms.RemoveAll(x => checkedRooms.Contains(x.RoomId));
             checkedRooms.AddRange(rooms.Select(x => x.RoomId));
-            var tasks = rooms.Select(x => GetMembershipAsync(x, mxid)).ToAsyncEnumerable();
+            var tasks = rooms.Select(x => GetMembershipAsync(x, mxid)).ToAsyncResultEnumerable();
             await foreach (var (room, state) in tasks) {
                 if (state is null) continue;
                 if (!matchingStates.ContainsKey(state.Membership))
@@ -97,8 +99,10 @@ else {
                     return; //abort if changed
                 }
             }
+
             StateHasChanged();
         }
+
         currentHs = null;
         StateHasChanged();
         _semaphoreSlim.Release();

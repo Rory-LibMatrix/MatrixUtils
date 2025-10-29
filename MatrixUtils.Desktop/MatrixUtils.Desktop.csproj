@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -10,31 +10,28 @@
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
-<!--        <PublishTrimmed>true</PublishTrimmed>-->
-<!--        <PublishReadyToRun>true</PublishReadyToRun>-->
-<!--        <PublishSingleFile>true</PublishSingleFile>-->
-<!--        <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>-->
-<!--        <PublishTrimmedShowLinkerSizeComparison>true</PublishTrimmedShowLinkerSizeComparison>-->
-<!--        <PublishTrimmedShowLinkerSizeComparisonWarnings>true</PublishTrimmedShowLinkerSizeComparisonWarnings>-->
+        <!--        <PublishTrimmed>true</PublishTrimmed>-->
+        <!--        <PublishReadyToRun>true</PublishReadyToRun>-->
+        <!--        <PublishSingleFile>true</PublishSingleFile>-->
+        <!--        <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>-->
+        <!--        <PublishTrimmedShowLinkerSizeComparison>true</PublishTrimmedShowLinkerSizeComparison>-->
+        <!--        <PublishTrimmedShowLinkerSizeComparisonWarnings>true</PublishTrimmedShowLinkerSizeComparisonWarnings>-->
     </PropertyGroup>
 
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.2.1" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
+        <PackageReference Include="Avalonia" Version="11.3.8"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.8"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8"/>
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.8"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.1" />
-        <PackageReference Include="Sentry" Version="4.13.0" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.1"/>
     </ItemGroup>
 
 
-
-
     <ItemGroup>
-        <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.2.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+        <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.3.0.6"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-rc.2.25502.107"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="appsettings*.json">
@@ -45,6 +42,6 @@
         </Content>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\MatrixUtils.Abstractions\MatrixUtils.Abstractions.csproj" />
+        <ProjectReference Include="..\MatrixUtils.Abstractions\MatrixUtils.Abstractions.csproj"/>
     </ItemGroup>
 </Project>

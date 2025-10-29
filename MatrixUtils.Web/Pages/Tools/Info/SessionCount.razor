@@ -11,7 +11,8 @@
 <p>Users: </p>
 <InputTextArea @bind-Value="@UserIdString"></InputTextArea>
 <br/>
-<InputText @bind-Value="@ImportFromRoomId"></InputText><LinkButton OnClickAsync="@DoImportFromRoomId">Import from room (ID)</LinkButton>
+<InputText @bind-Value="@ImportFromRoomId"></InputText>
+<LinkButton OnClickAsync="@DoImportFromRoomId">Import from room (ID)</LinkButton>
 
 <details>
     <summary>Rooms to be searched (@rooms.Count)</summary>
@@ -44,9 +45,7 @@
         @foreach (var (userId, events) in matches) {
             <p>
                 <span>@userId.PadRight(col1Width)</span>
-                @foreach (var @event in events) {
-    
-}
+                @foreach (var @event in events) { }
             </p>
         }
     </pre>
@@ -97,7 +96,7 @@
         rooms = new ObservableCollection<GenericRoom>(distinctRooms);
         rooms.CollectionChanged += (sender, args) => StateHasChanged();
 
-        var stateTasks = rooms.Select(async x => (x, await x.GetMembersListAsync())).ToAsyncEnumerable();
+        var stateTasks = rooms.Select(async x => (x, await x.GetMembersListAsync())).ToAsyncResultEnumerable();
 
         await foreach (var (room, state) in stateTasks) {
             roomMembers.Add(room, state);

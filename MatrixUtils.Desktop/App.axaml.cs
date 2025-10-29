@@ -15,7 +15,6 @@ public partial class App : Application {
     public override void OnFrameworkInitializationCompleted() {
         host = Host.CreateDefaultBuilder().ConfigureServices((ctx, services) => {
             services.AddSingleton<RMUDesktopConfiguration>();
-            services.AddSingleton<SentryService>();
             services.AddSingleton<TieredStorageService>(x =>
                 new TieredStorageService(
                     cacheStorageProvider: new FileStorageProvider(x.GetService<RMUDesktopConfiguration>()!.CacheStoragePath),
@@ -40,10 +39,10 @@ public partial class App : Application {
             var scope = scopeFac.CreateScope();
             desktop.MainWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
         }
-        
-        if(Environment.GetEnvironmentVariable("AVALONIA_THEME")?.Equals("dark", StringComparison.OrdinalIgnoreCase) ?? false)
+
+        if (Environment.GetEnvironmentVariable("AVALONIA_THEME")?.Equals("dark", StringComparison.OrdinalIgnoreCase) ?? false)
             RequestedThemeVariant = ThemeVariant.Dark;
-        
+
         base.OnFrameworkInitializationCompleted();
     }
 }

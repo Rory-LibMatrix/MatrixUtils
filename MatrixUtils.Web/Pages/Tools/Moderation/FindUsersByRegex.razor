@@ -161,7 +161,7 @@
             }
 
             return null;
-        }).ToAsyncEnumerable();
+        }).ToAsyncResultEnumerable();
         await foreach (var result in results) {
             if (result is not null) {
                 yield return result;

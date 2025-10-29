@@ -115,11 +115,11 @@ else {
         //         };
         //     }
         //     var roomList = new List<RoomInfo>();
-        //     var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncEnumerable();
+        //     var tasks = rooms.Select(x => GetRoomInfo(hs.GetRoom(x))).ToAsyncResultEnumerable();
         //     await foreach (var result in tasks)
         //         roomList.Add(result);
         //     return (userProfile, roomList);
-        // }).ToAsyncEnumerable();
+        // }).ToAsyncResultEnumerable();
         // await foreach (var res in results) {
         //     dmRooms.Add(new RoomInfo() {
         //         Room = dmSpaceRoom,

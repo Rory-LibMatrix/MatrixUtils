@@ -41,13 +41,13 @@
         var ss = new SemaphoreSlim(32, 32);
         var rooms = await hs.GetJoinedRooms();
         RoomCount = rooms.Count;
-        var fetchTasks = rooms.Select(roomId => workerService.TaskPool.Invoke(() => InternalGetMembersByHomeserver(hs.WellKnownUris.Client, hs.AccessToken, roomId.RoomId))).ToList().ToAsyncEnumerable();
+        var fetchTasks = rooms.Select(roomId => workerService.TaskPool.Invoke(() => InternalGetMembersByHomeserver(hs.WellKnownUris.Client, hs.AccessToken, roomId.RoomId))).ToList().ToAsyncResultEnumerable();
         // var fetchTasks = rooms.Select(async x => {
-            // await ss.WaitAsync();
-            // var res = await x.GetMembersByHomeserverAsync();
-            // ss.Release();
-            // return res;
-        // }).ToAsyncEnumerable();
+        // await ss.WaitAsync();
+        // var res = await x.GetMembersByHomeserverAsync();
+        // ss.Release();
+        // return res;
+        // }).ToAsyncResultEnumerable();
         await foreach (var result in fetchTasks) {
             foreach (var (resHomeserver, resMembers) in result) {
                 if (!homeservers.TryAdd(resHomeserver, resMembers)) {

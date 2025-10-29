@@ -12,9 +12,9 @@
 <h3>
     <span>Policy lists </span>
     <LinkButton OnClickAsync="@(() => {
-                             ShowPolicyListCreationWindow = true;
-                             return Task.CompletedTask;
-                         })">
+                                  ShowPolicyListCreationWindow = true;
+                                  return Task.CompletedTask;
+                              })">
         <span class="oi oi-plus" aria-hidden="true"> Create</span>
     </LinkButton>
 </h3>
@@ -137,7 +137,7 @@
                 if (policies.Count == 0) return null;
                 Status2 = $"Found legacy list {room.RoomId}...";
                 return await RoomInfo.FromRoom(room, state, true);
-            }).ToAsyncEnumerable();
+            }).ToAsyncResultEnumerable();
 
         await foreach (var room in rooms) {
             if (room is not null) {
@@ -145,7 +145,7 @@
                 StateHasChanged();
             }
         }
-        
+
         isLoading = false;
         Status = "";
         Status2 = "";

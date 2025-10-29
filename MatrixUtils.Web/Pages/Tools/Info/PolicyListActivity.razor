@@ -83,7 +83,7 @@ else
             foreach (var message in response.Chunk) {
                 if (!message.MappedType.IsAssignableTo(typeof(PolicyRuleEventContent))) continue;
                 //OriginServerTs to datetime
-                var dt = DateTimeOffset.FromUnixTimeMilliseconds((long)message.OriginServerTs!.Value).DateTime;
+                var dt = DateTimeOffset.FromUnixTimeMilliseconds(message.OriginServerTs!.Value).DateTime;
                 var date = new DateOnly(dt.Year, dt.Month, dt.Day);
                 if (!RoomData[roomName].ContainsKey(date.Year)) {
                     RoomData[roomName][date.Year] = new();
@@ -100,9 +100,8 @@ else
                 else rgb.B++;
                 RoomData[roomName][date.Year][date] = rgb;
             }
-
-            
         }
+
         var max = RoomData.SelectMany(x => x.Value.Values).Aggregate(new ActivityGraph.RGB(), (current, next) => new() {
             R = Math.Max(current.R, next.Average(x => x.Value.R)),
             G = Math.Max(current.G, next.Average(x => x.Value.G)),

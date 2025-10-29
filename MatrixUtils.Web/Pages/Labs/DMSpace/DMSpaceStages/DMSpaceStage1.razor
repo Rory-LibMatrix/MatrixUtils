@@ -26,7 +26,7 @@
             <InputCheckbox @bind-Value="SetupData.DmSpaceInfo.LayerByUser"></InputCheckbox>
             Create sub-spaces per user
         </p>
-        
+
         <br/>
         <LinkButton OnClickAsync="@Disband" Color="#FF0000">Disband</LinkButton>
         <LinkButton OnClickAsync="@Execute">Next</LinkButton>
@@ -78,7 +78,7 @@ else {
             userRooms.Add(room);
         }
 
-        var roomChecks = userRooms.Select(GetFeasibleSpaces).ToAsyncEnumerable();
+        var roomChecks = userRooms.Select(GetFeasibleSpaces).ToAsyncResultEnumerable();
         await foreach (var room in roomChecks)
             if (room.HasValue)
                 spaces.TryAdd(room.Value.id, room.Value.roomInfo);
@@ -109,8 +109,8 @@ else {
     public async Task<(string id, RoomInfo roomInfo)?> GetFeasibleSpaces(GenericRoom room) {
         try {
             var ri = new RoomInfo(room);
-            
-            await foreach(var evt in room.GetFullStateAsync())
+
+            await foreach (var evt in room.GetFullStateAsync())
                 ri.StateEvents.Add(evt);
 
             var powerLevels = (await ri.GetStateEvent(RoomPowerLevelEventContent.EventId)).TypedContent as RoomPowerLevelEventContent;
@@ -118,7 +118,7 @@ else {
                 Console.WriteLine($"No permission to send m.space.child in {room.RoomId}...");
                 return null;
             }
-            
+
             Status = $"Found viable space: {ri.RoomName}";
             if (!string.IsNullOrWhiteSpace(SetupData.DmSpaceConfiguration!.DMSpaceId)) {
                 if (await room.GetStateOrNullAsync<DMSpaceInfo>(DMSpaceInfo.EventId) is { } dsi) {

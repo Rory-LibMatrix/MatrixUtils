@@ -58,7 +58,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
             var (userId, dmRooms) = entry;
             DMSpaceChildLayer? layer = await GetStateOrNullAsync<DMSpaceChildLayer>(DMSpaceChildLayer.EventId, userId.UrlEncode()) ?? await CreateLayer(userId);
             return (entry, layer);
-        }).ToAsyncEnumerable();
+        }).ToAsyncResultEnumerable();
 
         await foreach (var ((userId, dmRooms), layer) in layerTasks) {
             var space = Homeserver.GetRoom(layer.SpaceId).AsSpace();
@@ -117,8 +117,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
             catch {
                 return (x, null);
             }
-
-        }).ToAsyncEnumerable();
+        }).ToAsyncResultEnumerable();
         await foreach (var (layer, profile) in getProfileTasks) {
             if (profile is null) continue;
             var layerContent = layer.TypedContent as DMSpaceChildLayer;

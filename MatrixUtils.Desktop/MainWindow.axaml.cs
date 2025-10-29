@@ -14,7 +14,7 @@ public partial class MainWindow : Window {
     private readonly RMUDesktopConfiguration _configuration;
     public static MainWindow Instance { get; private set; } = null!;
 
-    public MainWindow(ILogger<MainWindow> logger, IServiceScopeFactory scopeFactory, SentryService _) {
+    public MainWindow(ILogger<MainWindow> logger, IServiceScopeFactory scopeFactory) {
         Instance = this;
         _logger = logger;
         _scopeFactory = scopeFactory;

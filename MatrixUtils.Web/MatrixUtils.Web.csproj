@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <LinkIncremental>true</LinkIncremental>
@@ -13,38 +13,40 @@
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <BlazorCacheBootResources>false</BlazorCacheBootResources>
         <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+        <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+        <WasmEnableHotReload>false</WasmEnableHotReload>
     </PropertyGroup>
 
     <!-- Explicitly disable all the unused runtime things trimming would have removed anyways -->
     <!-- https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trimming-options -->
-<!--    <PropertyGroup>-->
-<!--        <AutoreleasePoolSupport>false</AutoreleasePoolSupport> &lt;!&ndash; Browser != MacOS &ndash;&gt;-->
-<!--        <MetadataUpdaterSupport>false</MetadataUpdaterSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
-<!--        <DebuggerSupport>false</DebuggerSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
-<!--        <InvariantGlobalization>true</InvariantGlobalization> &lt;!&ndash; invariant globalization is fine &ndash;&gt;-->
-<!--        &lt;!&ndash; unused features &ndash;&gt;-->
-<!--        <EventSourceSupport>false</EventSourceSupport>-->
-<!--        <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>-->
-<!--        <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>-->
-<!--        <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>-->
-<!--        <MetricsSupport>false</MetricsSupport>-->
-<!--        <UseNativeHttpHandler>false</UseNativeHttpHandler>-->
-<!--        <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
-<!--        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>-->
-<!--        <CustomResourceTypesSupport>false</CustomResourceTypesSupport>-->
-<!--        <EnableCppCLIHostActivation>false</EnableCppCLIHostActivation>-->
-<!--        <StartupHookSupport>false</StartupHookSupport>-->
-<!--    </PropertyGroup>-->
+    <!--    <PropertyGroup>-->
+    <!--        <AutoreleasePoolSupport>false</AutoreleasePoolSupport> &lt;!&ndash; Browser != MacOS &ndash;&gt;-->
+    <!--        <MetadataUpdaterSupport>false</MetadataUpdaterSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
+    <!--        <DebuggerSupport>false</DebuggerSupport> &lt;!&ndash; Unreliable &ndash;&gt;-->
+    <!--        <InvariantGlobalization>true</InvariantGlobalization> &lt;!&ndash; invariant globalization is fine &ndash;&gt;-->
+    <!--        &lt;!&ndash; unused features &ndash;&gt;-->
+    <!--        <EventSourceSupport>false</EventSourceSupport>-->
+    <!--        <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>-->
+    <!--        <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>-->
+    <!--        <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>-->
+    <!--        <MetricsSupport>false</MetricsSupport>-->
+    <!--        <UseNativeHttpHandler>false</UseNativeHttpHandler>-->
+    <!--        <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
+    <!--        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>-->
+    <!--        <CustomResourceTypesSupport>false</CustomResourceTypesSupport>-->
+    <!--        <EnableCppCLIHostActivation>false</EnableCppCLIHostActivation>-->
+    <!--        <StartupHookSupport>false</StartupHookSupport>-->
+    <!--    </PropertyGroup>-->
 
     <ItemGroup>
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0"/>
         <PackageReference Include="Blazored.SessionStorage" Version="2.4.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.9" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.9" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="9.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.9" />
-        <PackageReference Include="SpawnDev.BlazorJS" Version="2.29.0" />
-        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.19.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0-rc.2.25502.107"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.0-rc.2.25502.107" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.0-rc.2.25502.107"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.0-rc.2.25502.107"/>
+        <PackageReference Include="SpawnDev.BlazorJS" Version="2.38.0"/>
+        <PackageReference Include="SpawnDev.BlazorJS.WebWorkers" Version="2.21.0"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -53,8 +55,8 @@
     </ItemGroup>
 
     <ItemGroup>
-<!--        <PackageReference Include="ArcaneLibs.Blazor.Components" Version="1.0.0-preview.20241210-161342" Condition="'$(Configuration)' == 'Release'"/>-->
-<!--        <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" Condition="'$(Configuration)' == 'Debug'"/>-->
+        <!--        <PackageReference Include="ArcaneLibs.Blazor.Components" Version="1.0.0-preview.20241210-161342" Condition="'$(Configuration)' == 'Release'"/>-->
+        <!--        <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj" Condition="'$(Configuration)' == 'Debug'"/>-->
         <ProjectReference Include="..\LibMatrix\ArcaneLibs\ArcaneLibs.Blazor.Components\ArcaneLibs.Blazor.Components.csproj"/>
     </ItemGroup>
 

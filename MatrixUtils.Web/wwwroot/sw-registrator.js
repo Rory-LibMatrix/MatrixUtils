@@ -8,7 +8,7 @@ window.updateAvailable = new Promise((resolve, reject) => {
         return;
     }
 
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js', {updateViaCache: 'none'})
         .then(registration => {
             console.info(`Service worker registration successful (scope: ${registration.scope})`);
 

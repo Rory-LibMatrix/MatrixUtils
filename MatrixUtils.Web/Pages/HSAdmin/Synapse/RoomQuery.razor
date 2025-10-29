@@ -1,5 +1,7 @@
 @page "/HSAdmin/Synapse/RoomQuery"
 @using System.Diagnostics.CodeAnalysis
+@using System.Text.Json
+@using ArcaneLibs.Blazor.Components.Services
 @using Microsoft.AspNetCore.WebUtilities
 @using ArcaneLibs.Extensions
 @using LibMatrix
@@ -10,6 +12,7 @@
 @using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components
 @using MatrixUtils.Web.Pages.HSAdmin.Synapse.Components.RoomQuery
 @inject ILogger<RoomQuery> Logger
+@inject BlazorSaveFileService BlazorSaveFileService
 
 <h3>Homeserver Administration - Room Query</h3>
 
@@ -21,15 +24,42 @@
         <option value="@item.Key">@item.Value</option>
     }
 </select><br/>
-<label>Ascending: </label>
-<InputCheckbox @bind-Value="Ascending"/><br/>
+<InputCheckbox @bind-Value="Ascending"/>
+<label> Ascending</label><br/>
+<InputCheckbox @bind-Value="FetchV12PlusCreatorServer"/>
+<label> Fetch v12+ room creation homeserver</label>
+<LinkButton InlineText="true" OnClickAsync="FetchV12PlusCreatorServersAsync"> (Execute manually)</LinkButton><br/>
+<InputCheckbox @bind-Value="FetchTombstones"/>
+<label> Check for tombstone events</label>
+<LinkButton InlineText="true" OnClickAsync="FetchTombstoneEventsAsync"> (Execute manually)</LinkButton><br/>
+<InputCheckbox @bind-Value="SummarizeLocalMembers"/>
+<label> Fetch local member list for small rooms</label>
+<LinkButton InlineText="true" OnClickAsync="FetchLocalMemberEventsAsync"> (Execute manually)</LinkButton><br/>
+<InputCheckbox @bind-Value="ShowFullResultData"/>
+<label> Show full result data (JSON)</label><br/>
+<InputCheckbox @bind-Value="EnableMultiPurge"/>
+<label> Enable multi-purge mode</label>
+@if (EnableMultiPurge) {
+    <span> </span>
+    <LinkButton InlineText="true" OnClick="@MultiPurgeInvertSelection">[Invert selection]</LinkButton>
+    <span> </span>
+    <details style="display: inline-block;">
+        <summary>Edit purge options</summary>
+        <SynapseRoomShutdownWindowContent Context="@DefaultShutdownContext" Homeserver="Homeserver" EditorOnly="true"/>
+    </details>
+}
+else {
+    <br/>
+}
 <details>
-    <summary>
-        <span>Local filtering (slow)</span>
-    </summary>
+    <summary>Local filtering (slow)</summary>
     <SynapseRoomQueryFilter Filter="@Filter"/>
 </details>
-<button class="btn btn-primary" @onclick="Search">Search</button>
+<LinkButton OnClickAsync="@Search">Search</LinkButton>
+
+@if (EnableMultiPurge) {
+    <LinkButton Color="#FF8800" OnClick="@PurgeSelection">Purge selected rooms</LinkButton>
+}
 <br/>
 
 @if (Results.Count > 0) {
@@ -40,6 +70,10 @@
     <div class="room-list-item">
         @* <RoomListItem RoomName="@res.Name" RoomId="@res.RoomId"></RoomListItem> *@
         <p>
+            @if (EnableMultiPurge) {
+                <InputCheckbox @bind-Value="@room.MultiPurgeSelected"/>
+                <span> </span>
+            }
             @if (!string.IsNullOrWhiteSpace(room.CanonicalAlias)) {
                 <span>@room.CanonicalAlias - </span>
             }
@@ -57,6 +91,8 @@
         <p>
             <LinkButton OnClickAsync="@(() => DeleteRoom(room))">Delete room</LinkButton>
             <LinkButton target="_blank" href="@($"/HSAdmin/Synapse/ResyncState?roomId={room.RoomId}&via={room.OriginHomeserver}")">Resync state</LinkButton>
+            <LinkButton OnClickAsync="@(() => ExportState(room))">@(room.JoinedLocalMembers == 0 ? "Try to export state" : "Export state")</LinkButton>
+            <LinkButton OnClickAsync="@(() => ForceJoin(room))">Force Join</LinkButton>
         </p>
 
         @{
@@ -119,11 +155,23 @@
                 memberSummary += $": {string.Join(", ", room.LocalMembers)}";
             }
         }
-        <span>@memberSummary</span>
-        <details>
-            <summary>Full result data</summary>
-            <pre>@room.ToJson(ignoreNull: true)</pre>
-        </details>
+        <span>@memberSummary</span><br/>
+        @if (!string.IsNullOrWhiteSpace(room.TopicEvent?.ContentAs<RoomTopicEventContent>()?.Topic)) {
+            <details>
+                <summary>Room topic</summary>
+                <pre>@(room.TopicEvent?.ContentAs<RoomTopicEventContent>()?.Topic)</pre>
+            </details>
+        }
+        @foreach (var ex in room.Exceptions) {
+            <span style="color: red;">@ex</span>
+            <br/>
+        }
+        @if (ShowFullResultData) {
+            <details>
+                <summary>Full result data</summary>
+                <pre>@room.ToJson(ignoreNull: true)</pre>
+            </details>
+        }
     </div>
 }
 @* *@
@@ -148,10 +196,6 @@
     </ModalWindow>
 }
 
-<style>
-
-</style>
-
 @code {
 
     [Parameter]
@@ -166,6 +210,18 @@
     [SupplyParameterFromQuery(Name = "ascending")]
     public bool Ascending { get; set; } = true;
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "FetchV12PlusCreatorServer")]
+    public bool FetchV12PlusCreatorServer { get; set; } = true;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "SummarizeLocalMembers")]
+    public bool SummarizeLocalMembers { get; set; } = true;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "FetchTombstones")]
+    public bool FetchTombstones { get; set; } = true;
+
     private List<RoomInfo> Results { get; set; } = new();
 
     private AuthenticatedHomeserverSynapse Homeserver { get; set; } = null!;
@@ -177,6 +233,21 @@
     // private Dictionary<string, SynapseAdminRoomDeleteStatus> DeleteStatuses { get; set; } = new();
 
     private NamedCache<SynapseRoomShutdownWindowContent.RoomShutdownContext> TaskMap { get; set; } = null!;
+
+    private SynapseRoomShutdownWindowContent.RoomShutdownContext DefaultShutdownContext { get; set; } = new() {
+        RoomId = "",
+        DeleteRequest = new() { Block = true, Purge = true, ForcePurge = false }
+    };
+
+    public bool ShowFullResultData {
+        get;
+        set {
+            field = value;
+            StateHasChanged();
+        }
+    }
+
+    public bool EnableMultiPurge { get; set; }
 
     protected override async Task OnInitializedAsync() {
         var hs = await sessionStore.GetCurrentHomeserver(navigateOnFailure: true);
@@ -199,66 +270,94 @@
         foreach (var (key, value) in QueryHelpers.ParseQuery(new Uri(NavigationManager.Uri).Query)) {
             switch (key) {
                 case "RoomIdContains":
-                    Filter.RoomIdContains = value[0]!;
+                    Filter.RoomId.Enabled = Filter.RoomId.CheckValueContains = true;
+                    Filter.RoomId.ValueContains = value[0]!;
                     break;
                 case "NameContains":
-                    Filter.NameContains = value[0]!;
+                    Filter.Name.Enabled = Filter.Name.CheckValueContains = true;
+                    Filter.Name.ValueContains = value[0]!;
                     break;
                 case "CanonicalAliasContains":
-                    Filter.CanonicalAliasContains = value[0]!;
+                    Filter.CanonicalAlias.Enabled = Filter.CanonicalAlias.CheckValueContains = true;
+                    Filter.CanonicalAlias.ValueContains = value[0]!;
                     break;
                 case "VersionContains":
-                    Filter.VersionContains = value[0]!;
+                    Filter.Version.Enabled = Filter.Version.CheckValueContains = true;
+                    Filter.Version.ValueContains = value[0]!;
                     break;
                 case "CreatorContains":
-                    Filter.CreatorContains = value[0]!;
+                    Filter.Creator.Enabled = Filter.Creator.CheckValueContains = true;
+                    Filter.Creator.ValueContains = value[0]!;
                     break;
                 case "EncryptionContains":
-                    Filter.EncryptionContains = value[0]!;
+                    Filter.Encryption.Enabled = Filter.Encryption.CheckValueContains = true;
+                    Filter.Encryption.ValueContains = value[0]!;
                     break;
                 case "JoinRulesContains":
-                    Filter.JoinRulesContains = value[0]!;
+                    Filter.JoinRules.Enabled = Filter.JoinRules.CheckValueContains = true;
+                    Filter.JoinRules.ValueContains = value[0]!;
                     break;
                 case "GuestAccessContains":
-                    Filter.GuestAccessContains = value[0]!;
+                    Filter.GuestAccess.Enabled = Filter.GuestAccess.CheckValueContains = true;
+                    Filter.GuestAccess.ValueContains = value[0]!;
                     break;
                 case "HistoryVisibilityContains":
-                    Filter.HistoryVisibilityContains = value[0]!;
+                    Filter.HistoryVisibility.Enabled = Filter.HistoryVisibility.CheckValueContains = true;
+                    Filter.HistoryVisibility.ValueContains = value[0]!;
                     break;
                 case "Federatable":
-                    Filter.Federatable = bool.Parse(value[0]!);
-                    Filter.CheckFederation = true;
+                    Filter.Federation = new() {
+                        Enabled = true,
+                        Value = bool.Parse(value[0]!)
+                    };
                     break;
                 case "Public":
-                    Filter.Public = value[0] == "true";
-                    Filter.CheckPublic = true;
+                    Filter.Public = new() {
+                        Enabled = true,
+                        Value = bool.Parse(value[0]!)
+                    };
                     break;
                 case "JoinedMembersGreaterThan":
-                    Filter.JoinedMembersGreaterThan = int.Parse(value[0]!);
+                    Filter.JoinedMembers.Enabled = Filter.JoinedLocalMembers.CheckGreaterThan = true;
+                    Filter.JoinedMembers.GreaterThan = int.Parse(value[0]!);
                     break;
                 case "JoinedMembersLessThan":
-                    Filter.JoinedMembersLessThan = int.Parse(value[0]!);
+                    Filter.JoinedMembers.Enabled = Filter.JoinedLocalMembers.CheckLessThan = true;
+                    Filter.JoinedMembers.LessThan = int.Parse(value[0]!);
                     break;
                 case "JoinedLocalMembersGreaterThan":
-                    Filter.JoinedLocalMembersGreaterThan = int.Parse(value[0]!);
+                    Filter.JoinedLocalMembers.Enabled = Filter.JoinedLocalMembers.CheckGreaterThan = true;
+                    Filter.JoinedLocalMembers.GreaterThan = int.Parse(value[0]!);
                     break;
                 case "JoinedLocalMembersLessThan":
-                    Filter.JoinedLocalMembersLessThan = int.Parse(value[0]!);
+                    Filter.JoinedLocalMembers.Enabled = Filter.JoinedLocalMembers.CheckLessThan = true;
+                    Filter.JoinedLocalMembers.LessThan = int.Parse(value[0]!);
                     break;
                 case "StateEventsGreaterThan":
-                    Filter.StateEventsGreaterThan = int.Parse(value[0]!);
+                    Filter.StateEvents.Enabled = Filter.StateEvents.CheckGreaterThan = true;
+                    Filter.StateEvents.GreaterThan = int.Parse(value[0]!);
                     break;
                 case "StateEventsLessThan":
-                    Filter.StateEventsLessThan = int.Parse(value[0]!);
+                    Filter.StateEvents.Enabled = Filter.StateEvents.CheckLessThan = true;
+                    Filter.StateEvents.LessThan = int.Parse(value[0]!);
                     break;
                 case "Execute":
                     execute = true;
+                    break;
+                case "order_by":
+                case "name_search":
+                case "ascending":
+                case "FetchV12PlusCreatorServer":
+                case "SummarizeLocalMembers":
+                case "FetchTombstones":
                     break;
                 default:
                     Console.WriteLine($"Unknown query parameter: {key}");
                     break;
             }
         }
+
+        StateHasChanged();
 
         if (execute)
             _ = Search();
@@ -268,7 +367,26 @@
 
     private async Task Search() {
         Results.Clear();
-        var searchRooms = Homeserver.Admin.SearchRoomsAsync(orderBy: OrderBy!, dir: Ascending ? "f" : "b", searchTerm: SearchTerm, localFilter: Filter).GetAsyncEnumerator();
+        Console.WriteLine("Starting search... Parameters: " + new {
+            orderBy = OrderBy!,
+            dir = Ascending ? "f" : "b",
+            searchTerm = SearchTerm,
+            localFilter = Filter,
+            chunkLimit = 1000,
+            fetchTombstones = FetchTombstones,
+            fetchTopics = true,
+            fetchCreateEvents = true
+        }.ToJson());
+        var searchRooms = Homeserver.Admin.SearchRoomsAsync(
+            orderBy: OrderBy!,
+            dir: Ascending ? "f" : "b",
+            searchTerm: SearchTerm,
+            localFilter: Filter,
+            chunkLimit: 1000,
+            fetchTombstones: FetchTombstones,
+            fetchTopics: true,
+            fetchCreateEvents: true
+        ).GetAsyncEnumerator();
         var joinedRooms = await Homeserver.GetJoinedRooms();
         while (await searchRooms.MoveNextAsync()) {
             var room = searchRooms.Current;
@@ -288,15 +406,26 @@
                 StateEvents = room.StateEvents,
                 JoinedMembers = room.JoinedMembers,
                 JoinedLocalMembers = room.JoinedLocalMembers,
-                OriginHomeserver = joinedRooms.Any(x => x.RoomId == room.RoomId)
-                    ? await Homeserver.GetRoom(room.RoomId).GetOriginHomeserverAsync()
-                    : (await Homeserver.Admin.GetRoomStateAsync(room.RoomId, RoomCreateEventContent.EventId)).Events.FirstOrDefault()?.Sender?.Split(':', 2)[1] 
-                      ?? string.Empty
+                OriginHomeserver =
+                    Homeserver.GetRoom(room.RoomId).IsV12PlusRoomId
+                        ? room.RoomId.Split(':', 2).Skip(1).FirstOrDefault(string.Empty)
+                        : string.Empty
             };
+
+            if (string.IsNullOrWhiteSpace(roomInfo.OriginHomeserver) && FetchV12PlusCreatorServer) {
+                try {
+                    if (joinedRooms.Any(x => x.RoomId == room.RoomId))
+                        roomInfo.OriginHomeserver = await Homeserver.GetRoom(room.RoomId).GetOriginHomeserverAsync();
+                    else roomInfo.OriginHomeserver = (await Homeserver.Admin.GetRoomStateAsync(room.RoomId, RoomCreateEventContent.EventId)).Events.FirstOrDefault()?.Sender?.Split(':', 2)[1];
+                }
+                catch (MatrixException e) {
+                    roomInfo.Exceptions.Add($"While getting origin homeserver: {e.GetAsObject().ToJson(indent: false, ignoreNull: true)}");
+                }
+            }
 
             Results.Add(roomInfo);
 
-            if ((Results.Count <= 200 && Results.Count % 10 == 0) || Results.Count % 1000 == 0) {
+            if ((Results.Count <= 200 && Results.Count % 10 == 0 && FetchV12PlusCreatorServer) || Results.Count % 1000 == 0) {
                 StateHasChanged();
                 await Task.Yield();
                 await Task.Delay(1);
@@ -305,97 +434,29 @@
 
         StateHasChanged();
 
-        var getLocalMembersTasks = Results
-            .Where(x => x.JoinedLocalMembers is > 0 and < 100)
-            .Select(async r => {
-                    var members = (await Homeserver.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + Homeserver.ServerName)).ToList();
-                    r.LocalMembers = members;
-                }
-            );
-        await Task.WhenAll(getLocalMembersTasks);
-
-        var getTombstoneTasks = Results
-            .Select(async r => {
-                var state = await Homeserver.Admin.GetRoomStateAsync(r.RoomId, type: "m.room.tombstone");
-                var tombstone = state.Events.FirstOrDefault(x => x is { StateKey: "", Type: "m.room.tombstone" });
-                if (tombstone is { } tombstoneEvent) {
-                    r.TombstoneEvent = tombstoneEvent;
-                }
-            });
-        await Task.WhenAll(getTombstoneTasks);
+        if (FetchV12PlusCreatorServer) await FetchV12PlusCreatorServersAsync(false);
+        if (SummarizeLocalMembers) await FetchLocalMemberEventsAsync(false);
+        // if (CheckTombstone) await FetchTombstoneEventsAsync(false);
 
         StateHasChanged();
     }
 
-    Task DeleteRoom(RoomInfo room) {
-        DeleteRequests.TryAdd(room.RoomId, new() { RoomId = room.RoomId, RoomDetails = room, DeleteRequest = new() { Block = true, Purge = true, ForcePurge = false } });
+    private Task DeleteRoom(RoomInfo room, bool executeWithoutConfirmation = false) {
+        var dc = JsonSerializer.Deserialize<SynapseRoomShutdownWindowContent.RoomShutdownContext>(DefaultShutdownContext.ToJson())!;
+        dc.RoomId = room.RoomId;
+        dc.RoomDetails = room;
+        dc.ExecuteImmediately = executeWithoutConfirmation;
+        DeleteRequests.TryAdd(room.RoomId, dc);
         StateHasChanged();
 
         return Task.CompletedTask;
     }
 
-    //
-    // private async Task DeleteRoom() {
-    //     if (DeleteRequest is { } deleteRequest) {
-    //         var media = await Homeserver.Admin.GetRoomMediaAsync(deleteRequest.RoomId);
-    //         if (deleteRequest.DeleteRequest.QuarantineRemoteMedia) {
-    //             foreach (var remoteMedia in media.Remote) {
-    //                 await Homeserver.Admin.QuarantineMediaById(remoteMedia);
-    //             }
-    //         }
-    //
-    //         if (deleteRequest.DeleteRequest.DeleteRemoteMedia) {
-    //             foreach (var remoteMedia in media.Remote) {
-    //                 await Homeserver.Admin.DeleteMediaById(remoteMedia);
-    //             }
-    //         }
-    //         else if (deleteRequest.DeleteRequest.QuarantineLocalMedia) {
-    //             foreach (var localMedia in media.Local) {
-    //                 await Homeserver.Admin.QuarantineMediaById(localMedia);
-    //             }
-    //         }
-    //
-    //         var deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
-    //         DeleteRequest = null;
-    //         List<string> alreadyCleanedUsers = [];
-    //         while (true) {
-    //             var status = await Homeserver.Admin.GetRoomDeleteStatus(deleteId.DeleteId);
-    //             DeleteStatuses[deleteRequest.RoomId] = status;
-    //             StateHasChanged();
-    //             await Task.Delay(5000);
-    //             if (status.Status == "complete") {
-    //                 DeleteStatuses.Remove(deleteRequest.RoomId);
-    //                 StateHasChanged();
-    //                 break;
-    //             }
-    //
-    //             if (status.Status == "failed") {
-    //                 deleteId = await Homeserver.Admin.DeleteRoom(deleteRequest.RoomId, deleteRequest.DeleteRequest, waitForCompletion: false);
-    //             }
-    //
-    //             var newCleanedUsers = status.ShutdownRoom?.KickedUsers?.Except(alreadyCleanedUsers).ToList();
-    //             if (newCleanedUsers is not null) {
-    //                 alreadyCleanedUsers.AddRange(newCleanedUsers);
-    //                 foreach (var user in newCleanedUsers) {
-    //                     if (deleteRequest.DeleteRequest.SuspendLocalUsers) {
-    //                         // await Homeserver.Admin.(user);
-    //                     }
-    //
-    //                     if (deleteRequest.DeleteRequest.QuarantineLocalUserMedia) {
-    //                         await Homeserver.Admin.QuarantineMediaByUserId(user);
-    //                     }
-    //
-    //                     if (deleteRequest.DeleteRequest.DeleteLocalUserMedia) {
-    //                         var userMedia = Homeserver.Admin.GetUserMediaEnumerableAsync(user);
-    //                         await foreach (var mediaEntry in userMedia) {
-    //                             await Homeserver.Admin.DeleteMediaById(mediaEntry.MediaId);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    private void PurgeSelection() {
+        foreach (var room in Results.Where(x => x.MultiPurgeSelected)) {
+            DeleteRoom(room, true);
+        }
+    }
 
     private readonly Dictionary<string, string> validOrderBy = new() {
         { "name", "Room name" },
@@ -415,11 +476,143 @@
 
     private class RoomInfo : SynapseAdminRoomListResult.SynapseAdminRoomListResultRoom {
         public List<string>? LocalMembers { get; set; }
-        public StateEventResponse? TombstoneEvent { get; set; }
         public required string OriginHomeserver { get; set; }
 
         [field: AllowNull, MaybeNull]
         public string MemberSummary => field ??= $"{JoinedMembers} members, of which {JoinedLocalMembers} are on this server";
+
+        public List<string> Exceptions { get; set; } = [];
+        public bool MultiPurgeSelected { get; set; }
+    }
+
+    private async Task ExportState(RoomInfo room) {
+        try {
+            var state = await Homeserver.Admin.GetRoomStateAsync(room.RoomId);
+            var json = state.ToJson();
+            await BlazorSaveFileService.SaveFileAsync($"{room.RoomId.Replace(":", "_")}_state.json", System.Text.Encoding.UTF8.GetBytes(json), "application/json");
+        }
+        catch (Exception e) {
+            Logger.LogError(e, "Failed to export room state for {RoomId}", room.RoomId);
+        }
+    }
+
+    private async Task ForceJoin(RoomInfo room) {
+        try {
+            await Homeserver.GetRoom(room.RoomId).JoinAsync([Homeserver.ServerName]);
+        }
+        catch (Exception e) {
+            Logger.LogError(e, "Failed to force-join room {RoomId}", room.RoomId);
+            // await Homeserver.Admin.room
+        }
+    }
+
+    private SemaphoreSlim _concurrencyLimiter = new SemaphoreSlim(16, 16);
+
+    private async Task FetchV12PlusCreatorServersAsync() => await FetchV12PlusCreatorServersAsync(true);
+
+    private async Task FetchV12PlusCreatorServersAsync(bool rerender) {
+        var joinedRooms = await Homeserver.GetJoinedRooms();
+        var tasks = Results
+            .Where(x => string.IsNullOrWhiteSpace(x.OriginHomeserver))
+            .Select(async r => {
+                if (!string.IsNullOrWhiteSpace(r.Creator) && r.Creator.Contains(':')) {
+                    r.OriginHomeserver = r.Creator.Split(':', 2)[1];
+                    return;
+                }
+
+                if (r.CreateEvent != null && !string.IsNullOrWhiteSpace(r.CreateEvent.Sender) && r.CreateEvent.Sender.Contains(':')) {
+                    r.OriginHomeserver = r.CreateEvent.Sender.Split(':', 2)[1];
+                    return;
+                }
+
+                await _concurrencyLimiter.WaitAsync();
+                try {
+                    if (joinedRooms.Any(x => x.RoomId == r.RoomId))
+                        r.OriginHomeserver = await Homeserver.GetRoom(r.RoomId).GetOriginHomeserverAsync();
+                    else r.OriginHomeserver = (await Homeserver.Admin.GetRoomStateAsync(r.RoomId, RoomCreateEventContent.EventId)).Events.FirstOrDefault()?.Sender?.Split(':', 2)[1];
+                }
+                catch (MatrixException e) {
+                    r.Exceptions.Add($"While getting origin homeserver: {e.GetAsObject().ToJson(indent: false, ignoreNull: true)}");
+                }
+                catch (Exception e) {
+                    Console.WriteLine($"Failed to get origin homeserver for {r.RoomId}, unhandled exception: " + e);
+                }
+                finally {
+                    _concurrencyLimiter.Release();
+                }
+            });
+
+        await Task.WhenAll(tasks);
+
+        if (rerender)
+            StateHasChanged();
+    }
+
+    private async Task FetchTombstoneEventsAsync() => await FetchTombstoneEventsAsync(true);
+
+    private async Task FetchTombstoneEventsAsync(bool rerender) {
+        var getTombstoneTasks = Results
+            .Where(x => x.TombstoneEvent is null)
+            .Select(async r => {
+                await _concurrencyLimiter.WaitAsync();
+                try {
+                    var state = await Homeserver.Admin.GetRoomStateAsync(r.RoomId, type: "m.room.tombstone");
+                    var tombstone = state.Events.FirstOrDefault(x => x is { StateKey: "", Type: "m.room.tombstone" });
+                    if (tombstone is { } tombstoneEvent) {
+                        r.TombstoneEvent = tombstoneEvent;
+                    }
+                }
+                catch (MatrixException e) {
+                    r.Exceptions.Add($"While checking for tombstone: {e.GetAsObject().ToJson(indent: false, ignoreNull: true)}");
+                }
+                catch (Exception e) {
+                    Console.WriteLine($"Failed to check tombstone for {r.RoomId}, unhandled exception: " + e);
+                }
+                finally {
+                    _concurrencyLimiter.Release();
+                }
+            });
+
+        await Task.WhenAll(getTombstoneTasks);
+
+        if (rerender)
+            StateHasChanged();
+    }
+
+    private async Task FetchLocalMemberEventsAsync() => await FetchLocalMemberEventsAsync(true);
+
+    private async Task FetchLocalMemberEventsAsync(bool rerender) {
+        var getLocalMembersTasks = Results
+            .Where(x => x.LocalMembers is null && x.JoinedLocalMembers is > 0 and < 100)
+            .Select(async r => {
+                await _concurrencyLimiter.WaitAsync();
+                try {
+                    var members = (await Homeserver.Admin.GetRoomMembersAsync(r.RoomId)).Members.Where(x => x.EndsWith(":" + Homeserver.ServerName)).ToList();
+                    r.LocalMembers = members;
+                }
+                catch (MatrixException e) {
+                    r.Exceptions.Add($"While fetching local members: {e.GetAsObject().ToJson(ignoreNull: true, indent: false)}");
+                }
+                catch (Exception e) {
+                    Console.WriteLine($"Failed to fetch local members for {r.RoomId}, unhandled exception: " + e);
+                }
+                finally {
+                    _concurrencyLimiter.Release();
+                }
+            });
+
+        await Task.WhenAll(getLocalMembersTasks);
+
+        if (rerender)
+            StateHasChanged();
+    }
+
+    private void MultiPurgeInvertSelection() {
+        foreach (var room in Results) {
+            room.MultiPurgeSelected ^= true;
+        }
+
+        StateHasChanged();
     }
 
 }

@@ -89,7 +89,7 @@
         // var res2 = Homeserver.ClientHttpClient.GetAsync(url);
         // var tasks = Enumerable.Range(1, 128)
         // .Select(x => Homeserver.ClientHttpClient.GetStreamAsync(url+$"?width={x*128}&height={x*128}"))
-        // .ToAsyncEnumerable();
+        // .ToAsyncResultEnumerable();
         await foreach (var result in GetStreamsDelayed(url)) {
             Streams.Add(result);
             // await Task.Delay(100);
@@ -107,7 +107,7 @@
         for (int i = 0; i < 32; i++) {
             var tasks = Enumerable.Range(1, 4)
                 .Select(x => Homeserver.ClientHttpClient.GetStreamAsync(url + $"?width={x * 128}&height={x * 128}&r={Random.Shared.Next(100000)}"))
-                .ToAsyncEnumerable();
+                .ToAsyncResultEnumerable();
             await foreach (var result in tasks) {
                 yield return result;
             }

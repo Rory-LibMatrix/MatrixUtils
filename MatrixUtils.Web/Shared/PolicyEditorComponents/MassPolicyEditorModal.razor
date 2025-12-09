@@ -96,7 +96,7 @@
 
     private bool VerifyIntent { get; set; }
 
-    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+    private static FrozenSet<Type> KnownPolicyTypes = MatrixEvent.KnownEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
 
     private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
         .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
@@ -177,20 +177,20 @@
 
         // var tasks = entities.Select(x => ExecuteBan(Room, x)).ToList();
         // await Task.WhenAll(tasks);
-        
+
         var events = entities.Select(entity => {
             var content = Activator.CreateInstance(PolicyTypes[MappedType!]) as PolicyRuleEventContent ?? throw new InvalidOperationException("Failed to create event content");
             content.Recommendation = Recommendation;
             content.Reason = Reason;
             content.Entity = entity;
-            return new StateEvent() {
+            return new MatrixEvent() {
                 Type = MappedType,
                 TypedContent = content,
                 StateKey = content.GetDraupnir2StateKey()
             };
         });
-        
-        foreach(var chunk in events.Chunk(50))
+
+        foreach (var chunk in events.Chunk(50))
             await Room.BulkSendEventsAsync(chunk);
 
         OnSaved.Invoke();

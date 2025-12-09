@@ -39,7 +39,6 @@
 }
 
 @* stage 3 *@
-
 @if (Stage == 3) {
     <p>Rejoining room, please wait...</p>
     <p>Members left to restore: </p>
@@ -82,7 +81,7 @@
     private Exception? Error { get; set; }
 
     // Stage 1
-    private List<StateEventResponse>? Members { get; set; }
+    private List<MatrixEventResponse>? Members { get; set; }
 
     // Stage 2
     private SynapseAdminRoomDeleteStatus? DeleteStatus { get; set; }

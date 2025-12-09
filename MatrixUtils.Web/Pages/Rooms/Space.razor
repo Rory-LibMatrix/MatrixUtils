@@ -30,7 +30,7 @@
 
     private GenericRoom? Room { get; set; }
 
-    private StateEventResponse[] States { get; set; } = Array.Empty<StateEventResponse>();
+    private MatrixEventResponse[] States { get; set; } = Array.Empty<MatrixEventResponse>();
     private List<RoomInfo> Rooms { get; } = new();
     private List<string> ServersInSpace { get; } = new();
     private string? NewRoomId { get; set; }
@@ -61,6 +61,7 @@
                             }
                         });
                     }
+
                     break;
                 }
                 case "m.room.member": {
@@ -68,44 +69,46 @@
                     if (!ServersInSpace.Contains(serverName)) {
                         ServersInSpace.Add(serverName);
                     }
+
                     break;
                 }
             }
         }
+
         await base.OnInitializedAsync();
 
-    //     var state = await Room.GetStateAsync("");
-    //     if (state is not null) {
-    // // Console.WriteLine(state.Value.ToJson());
-    //         States = state.Value.Deserialize<StateEventResponse[]>()!;
-    //
-    //         foreach (var stateEvent in States) {
-    //             if (stateEvent.Type == "m.space.child") {
-    // // if (stateEvent.Content.ToJson().Length < 5) return;
-    //                 var roomId = stateEvent.StateKey;
-    //                 var room = hs.GetRoom(roomId);
-    //                 if (room is not null) {
-    //                     Rooms.Add(room);
-    //                 }
-    //             }
-    //             else if (stateEvent.Type == "m.room.member") {
-    //                 var serverName = stateEvent.StateKey.Split(':').Last();
-    //                 if (!ServersInSpace.Contains(serverName)) {
-    //                     ServersInSpace.Add(serverName);
-    //                 }
-    //             }
-    //         }
+        //     var state = await Room.GetStateAsync("");
+        //     if (state is not null) {
+        // // Console.WriteLine(state.Value.ToJson());
+        //         States = state.Value.Deserialize<MatrixEventResponse[]>()!;
+        //
+        //         foreach (var stateEvent in States) {
+        //             if (stateEvent.Type == "m.space.child") {
+        // // if (stateEvent.Content.ToJson().Length < 5) return;
+        //                 var roomId = stateEvent.StateKey;
+        //                 var room = hs.GetRoom(roomId);
+        //                 if (room is not null) {
+        //                     Rooms.Add(room);
+        //                 }
+        //             }
+        //             else if (stateEvent.Type == "m.room.member") {
+        //                 var serverName = stateEvent.StateKey.Split(':').Last();
+        //                 if (!ServersInSpace.Contains(serverName)) {
+        //                     ServersInSpace.Add(serverName);
+        //                 }
+        //             }
+        //         }
 
-    // if(state.Value.TryGetProperty("Type", out var Type))
-    // {
-    // }
-    // else
-    // {
-    //     //this is fine, apprently...
-    //     //Console.WriteLine($"Room {room.RoomId} has no Content.Type in m.room.create!");
-    // }
+        // if(state.Value.TryGetProperty("Type", out var Type))
+        // {
+        // }
+        // else
+        // {
+        //     //this is fine, apprently...
+        //     //Console.WriteLine($"Room {room.RoomId} has no Content.Type in m.room.create!");
+        // }
 
-    // await base.OnInitializedAsync();
+        // await base.OnInitializedAsync();
     }
 
     private async Task JoinAllRooms() {
@@ -124,13 +127,14 @@
             var joined = false;
             while (!joined) {
                 var ce = await room.GetCreateEventAsync();
-                if(ce is null) continue;
+                if (ce is null) continue;
                 if (ce.Type == "m.space") {
-                     var children = room.AsSpace().GetChildrenAsync(false);
-                     await foreach (var child in children) {
-                         JoinRecursive(child.RoomId);
-                     }
+                    var children = room.AsSpace().GetChildrenAsync(false);
+                    await foreach (var child in children) {
+                        JoinRecursive(child.RoomId);
+                    }
                 }
+
                 joined = true;
                 await Task.Delay(1000);
             }
@@ -138,7 +142,6 @@
         catch (Exception e) {
             Console.WriteLine(e);
         }
-
     }
 
     private async Task AddNewRoom() {

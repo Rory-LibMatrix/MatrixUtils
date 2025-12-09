@@ -15,7 +15,11 @@
 <h3>Policy list editor - Editing @RoomId</h3>
 <hr/>
 @* <InputCheckbox @bind-Value="EnableAvatars"></InputCheckbox><label>Enable avatars (WILL EXPOSE YOUR IP TO TARGET HOMESERVERS!)</label> *@
-<LinkButton OnClickAsync="@(() => { CurrentlyEditingEvent = new() { Type = "", RawContent = new() }; return Task.CompletedTask; })">Create new policy</LinkButton>
+<LinkButton OnClickAsync="@(() => {
+                              CurrentlyEditingEvent = new() { Type = "", RawContent = new() };
+                              return Task.CompletedTask;
+                          })">Create new policy
+</LinkButton>
 
 @if (Loading) {
     <p>Loading...</p>
@@ -71,14 +75,22 @@ else {
                         }
                         <div style="display: ruby;">
                             @if (PowerLevels.UserHasStatePermission(Homeserver.WhoAmI.UserId, policy.Type)) {
-                                <LinkButton OnClickAsync="@(() => { CurrentlyEditingEvent = policy; return Task.CompletedTask; })">Edit</LinkButton>
+                                <LinkButton OnClickAsync="@(() => {
+                                                              CurrentlyEditingEvent = policy;
+                                                              return Task.CompletedTask;
+                                                          })">Edit
+                                </LinkButton>
                                 <LinkButton OnClickAsync="@(() => RemovePolicyAsync(policy))">Remove</LinkButton>
                                 @if (policy.IsLegacyType) {
                                     <LinkButton OnClickAsync="@(() => RemovePolicyAsync(policy))">Update policy type</LinkButton>
                                 }
 
                                 @if (PolicyTypeIds[typeof(ServerPolicyRuleEventContent)].Contains(policy.EventId)) {
-                                    <LinkButton OnClickAsync="@(() => { ServerPolicyToMakePermanent = policy; return Task.CompletedTask; })">Make permanent (wildcard)</LinkButton>
+                                    <LinkButton OnClickAsync="@(() => {
+                                                                  ServerPolicyToMakePermanent = policy;
+                                                                  return Task.CompletedTask;
+                                                              })">Make permanent (wildcard)
+                                    </LinkButton>
                                     @if (CurrentUserIsDraupnir) {
                                         <LinkButton OnClickAsync="@(() => UpgradePolicyAsync(policy))">Kick matching users</LinkButton>
                                     }
@@ -144,12 +156,12 @@ else {
     public string RoomId { get; set; }
 
     private bool _enableAvatars;
-    private StateEventResponse? _currentlyEditingEvent;
-    private StateEventResponse? _serverPolicyToMakePermanent;
+    private MatrixEventResponse? _currentlyEditingEvent;
+    private MatrixEventResponse? _serverPolicyToMakePermanent;
 
-    private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
+    private Dictionary<Type, List<MatrixEventResponse>> PolicyEventsByType { get; set; } = new();
 
-    private StateEventResponse? CurrentlyEditingEvent {
+    private MatrixEventResponse? CurrentlyEditingEvent {
         get => _currentlyEditingEvent;
         set {
             _currentlyEditingEvent = value;
@@ -157,7 +169,7 @@ else {
         }
     }
 
-    private StateEventResponse? ServerPolicyToMakePermanent {
+    private MatrixEventResponse? ServerPolicyToMakePermanent {
         get => _serverPolicyToMakePermanent;
         set {
             _serverPolicyToMakePermanent = value;
@@ -197,12 +209,12 @@ else {
         StateHasChanged();
     }
 
-    private List<StateEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
+    private List<MatrixEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
 
-    private List<StateEventResponse> GetValidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+    private List<MatrixEventResponse> GetValidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
         .Where(x => !string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
 
-    private List<StateEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+    private List<MatrixEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
         .Where(x => string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
 
     private string? GetPolicyTypeNameOrNull(Type type) => type.GetFriendlyNamePluralOrNull()
@@ -211,24 +223,24 @@ else {
 
     private string GetPolicyTypeName(Type type) => GetPolicyTypeNameOrNull(type) ?? type.Name;
 
-    private async Task RemovePolicyAsync(StateEventResponse policyEvent) {
+    private async Task RemovePolicyAsync(MatrixEventResponse policyEvent) {
         await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey.UrlEncode(), new { });
         PolicyEventsByType[policyEvent.MappedType].Remove(policyEvent);
         await LoadStatesAsync();
     }
 
-    private async Task UpdatePolicyAsync(StateEventResponse policyEvent) {
+    private async Task UpdatePolicyAsync(MatrixEventResponse policyEvent) {
         await Room.SendStateEventAsync(policyEvent.Type, policyEvent.StateKey.UrlEncode(), policyEvent.RawContent);
         CurrentlyEditingEvent = null;
         await LoadStatesAsync();
     }
 
-    private async Task UpgradePolicyAsync(StateEventResponse policyEvent) {
+    private async Task UpgradePolicyAsync(MatrixEventResponse policyEvent) {
         policyEvent.RawContent["upgraded_from_type"] = policyEvent.Type;
         await LoadStatesAsync();
     }
 
-    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+    private static FrozenSet<Type> KnownPolicyTypes = MatrixEvent.KnownEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
 
     // event types, unnamed
     private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes

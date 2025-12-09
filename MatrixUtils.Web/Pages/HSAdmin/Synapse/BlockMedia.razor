@@ -96,7 +96,7 @@
         }
     }
 
-    private StateEventResponse? Event { get; set; }
+    private MatrixEventResponse? Event { get; set; }
 
     private string? EventJson {
         get;
@@ -140,7 +140,7 @@
     private async Task ExpandEventJson() {
         Console.WriteLine("Expanding event JSON...");
         if (!string.IsNullOrWhiteSpace(EventJson)) {
-            Event = JsonSerializer.Deserialize<StateEventResponse>(EventJson);
+            Event = JsonSerializer.Deserialize<MatrixEventResponse>(EventJson);
             MxcUrl = Event?.ContentAs<RoomMessageEventContent>()?.Url;
             Console.WriteLine($"MXC URL: {MxcUrl}");
 

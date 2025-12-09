@@ -13,9 +13,10 @@ public class ClientSyncWrapper(AuthenticatedHomeserverGeneric homeserver) : Noti
         MinimumDelay = TimeSpan.FromMilliseconds(2000),
         IsInitialSync = false
     };
+
     private string _status = "Loading...";
 
-    public ObservableCollection<StateEvent> AccountData { get; set; } = new();
+    public ObservableCollection<MatrixEvent> AccountData { get; set; } = new();
     public ObservableCollection<RoomInfo> Rooms { get; set; } = new();
 
     public string Status {
@@ -29,13 +30,12 @@ public class ClientSyncWrapper(AuthenticatedHomeserverGeneric homeserver) : Noti
         Status = $"[{DateTime.Now:s}] Syncing...";
         await foreach (var response in resp) {
             Task.Yield();
-            Status = $"[{DateTime.Now:s}] {response.Rooms?.Join?.Count ?? 0 + response.Rooms?.Invite?.Count ?? 0 + response.Rooms?.Leave?.Count ?? 0} rooms, {response.AccountData?.Events?.Count ?? 0} account data, {response.ToDevice?.Events?.Count ?? 0} to-device, {response.DeviceLists?.Changed?.Count ?? 0} device lists, {response.Presence?.Events?.Count ?? 0} presence updates";
+            Status =
+                $"[{DateTime.Now:s}] {response.Rooms?.Join?.Count ?? 0 + response.Rooms?.Invite?.Count ?? 0 + response.Rooms?.Leave?.Count ?? 0} rooms, {response.AccountData?.Events?.Count ?? 0} account data, {response.ToDevice?.Events?.Count ?? 0} to-device, {response.DeviceLists?.Changed?.Count ?? 0} device lists, {response.Presence?.Events?.Count ?? 0} presence updates";
             await HandleSyncResponse(response);
             await Task.Yield();
         }
     }
 
-    private async Task HandleSyncResponse(SyncResponse resp) {
-        
-    }
+    private async Task HandleSyncResponse(SyncResponse resp) { }
 }

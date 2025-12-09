@@ -55,7 +55,7 @@
                             <td>@sets.Item2[0].Room.RoomId</td>
                             <td>@((sets.Item2[i].Member.TypedContent as RoomMemberEventContent).Membership)</td>
                             <td>@(roomNames.ContainsKey(sets.Item2[i].Room) ? roomNames[sets.Item2[i].Room] : "")</td>
-                            <td>@(roomAliasses.ContainsKey(sets.Item2[i].Room) ? roomAliasses[sets.Item2[i].Room] : "")</td> 
+                            <td>@(roomAliasses.ContainsKey(sets.Item2[i].Room) ? roomAliasses[sets.Item2[i].Room] : "")</td>
                         }
                         else {
                             <td/>
@@ -88,7 +88,7 @@
     [Parameter, SupplyParameterFromQuery(Name = "b")]
     public string ImportSetBSpaceId { get; set; } = "";
 
-    Dictionary<string, Dictionary<GenericRoom, StateEventResponse>> roomMembers { get; set; } = new();
+    Dictionary<string, Dictionary<GenericRoom, MatrixEventResponse>> roomMembers { get; set; } = new();
 
     Dictionary<string, (List<Match>, List<Match>)> matches { get; set; } = new();
 
@@ -127,7 +127,7 @@
         var setBusers = new Dictionary<string, List<Match>>();
 
         await Task.WhenAll(GetMembers(RoomsA, setAusers), GetMembers(RoomsB, setBusers));
-        
+
         Log.Add($"Got {setAusers.Count} users in set A");
         Log.Add($"Got {setBusers.Count} users in set B");
         Log.Add("Calculating intersections...");
@@ -191,7 +191,7 @@
 
     public class Match {
         public GenericRoom Room { get; set; }
-        public StateEventResponse Member { get; set; }
+        public MatrixEventResponse Member { get; set; }
     }
 
 }

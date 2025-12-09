@@ -57,9 +57,11 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
                 await _logRoom?.SendMessageEventAsync(MessageFormatter.FormatWarning($"Control room has no m.room.power_levels?"));
                 continue;
             }
+
             pls.SetUserPowerLevel(configurationAdmin, pls.GetUserPowerLevel(hs.UserId));
             await _controlRoom.SendStateEventAsync(RoomPowerLevelEventContent.EventId, pls);
         }
+
         var syncHelper = new SyncHelper(hs);
 
         List<string> admins = new();
@@ -85,7 +87,8 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
                     x.Type == "m.room.member" && x.StateKey == hs.UserId);
             logger.LogInformation("Got invite to {RoomId} by {Sender} with reason: {Reason}", args.Key, inviteEvent!.Sender,
                 (inviteEvent.TypedContent as RoomMemberEventContent)!.Reason);
-            await _logRoom.SendMessageEventAsync(MessageFormatter.FormatSuccess($"Bot invited to {MessageFormatter.HtmlFormatMention(args.Key)} by {MessageFormatter.HtmlFormatMention(inviteEvent.Sender)}"));
+            await _logRoom.SendMessageEventAsync(
+                MessageFormatter.FormatSuccess($"Bot invited to {MessageFormatter.HtmlFormatMention(args.Key)} by {MessageFormatter.HtmlFormatMention(inviteEvent.Sender)}"));
             if (admins.Contains(inviteEvent.Sender)) {
                 try {
                     await _logRoom.SendMessageEventAsync(MessageFormatter.FormatSuccess($"Joining {MessageFormatter.HtmlFormatMention(args.Key)}..."));
@@ -117,7 +120,8 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
                 var rules = await engine.GetMatchingPolicies(@event);
                 foreach (var matchedRule in rules) {
                     await _logRoom.SendMessageEventAsync(MessageFormatter.FormatSuccessJson(
-                        $"{MessageFormatter.HtmlFormatMessageLink(eventId: @event.EventId, roomId: room.RoomId, displayName: "Event")} matched {MessageFormatter.HtmlFormatMessageLink(eventId: @matchedRule.OriginalEvent.EventId, roomId: matchedRule.PolicyList.Room.RoomId, displayName: "rule")}", @matchedRule.OriginalEvent.RawContent));
+                        $"{MessageFormatter.HtmlFormatMessageLink(eventId: @event.EventId, roomId: room.RoomId, displayName: "Event")} matched {MessageFormatter.HtmlFormatMessageLink(eventId: @matchedRule.OriginalEvent.EventId, roomId: matchedRule.PolicyList.Room.RoomId, displayName: "rule")}",
+                        @matchedRule.OriginalEvent.RawContent));
                 }
 
                 if (configuration.DemoMode) {
@@ -263,9 +267,10 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
         await syncHelper.RunSyncLoopAsync();
     }
 
-    private async Task LogPolicyChange(StateEventResponse changeEvent) {
+    private async Task LogPolicyChange(MatrixEventResponse changeEvent) {
         var room = hs.GetRoom(changeEvent.RoomId!);
-        var message = MessageFormatter.FormatWarning($"Policy change detected in {MessageFormatter.HtmlFormatMessageLink(changeEvent.RoomId, changeEvent.EventId, [hs.ServerName], await room.GetNameOrFallbackAsync())}!");
+        var message = MessageFormatter.FormatWarning(
+            $"Policy change detected in {MessageFormatter.HtmlFormatMessageLink(changeEvent.RoomId, changeEvent.EventId, [hs.ServerName], await room.GetNameOrFallbackAsync())}!");
         message = message.ConcatLine(new RoomMessageEventContent(body: $"Policy type: {changeEvent.Type} -> {changeEvent.MappedType.Name}") {
             FormattedBody = $"Policy type: {changeEvent.Type} -> {changeEvent.MappedType.Name}"
         });
@@ -281,11 +286,12 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
         // else {
         //     message = message.ConcatLine(MessageFormatter.FormatSuccess("New rule added!"));
         // }
-        message = message.ConcatLine(MessageFormatter.FormatSuccessJson($"{(isUpdated ? "Updated" : isRemoved ? "Removed" : "New")} rule: {changeEvent.StateKey}", changeEvent.RawContent!));
+        message = message.ConcatLine(MessageFormatter.FormatSuccessJson($"{(isUpdated ? "Updated" : isRemoved ? "Removed" : "New")} rule: {changeEvent.StateKey}",
+            changeEvent.RawContent!));
         if (isRemoved || isUpdated) {
             message = message.ConcatLine(MessageFormatter.FormatSuccessJson("Old content: ", changeEvent.Unsigned.PrevContent!));
         }
-        
+
         await _logRoom.SendMessageEventAsync(message);
     }
 
@@ -294,5 +300,4 @@ public class ModerationBot(AuthenticatedHomeserverGeneric hs, ILogger<Moderation
     public async Task StopAsync(CancellationToken cancellationToken) {
         logger.LogInformation("Shutting down bot!");
     }
-
 }

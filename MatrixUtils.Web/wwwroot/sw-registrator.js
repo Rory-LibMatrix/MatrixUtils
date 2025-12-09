@@ -15,7 +15,7 @@ window.updateAvailable = new Promise((resolve, reject) => {
             // detect updates every minute
             setInterval(() => {
                 registration.update();
-            }, 5 * 1000); // 60000ms -> check each minute
+            }, 30 * 1000); // 60000ms -> check each minute
 
             registration.onupdatefound = () => {
                 const installingServiceWorker = registration.installing;

@@ -233,7 +233,7 @@ else {
         }
     }
 
-    private async Task<StateEventResponse?> TryGetTombstoneAsync() {
+    private async Task<MatrixEventResponse?> TryGetTombstoneAsync() {
         if (EditorOnly) return null;
         try {
             return (await Homeserver.Admin.GetRoomStateAsync(Context.RoomId, RoomTombstoneEventContent.EventId)).Events.FirstOrDefault(x => x.StateKey == "");

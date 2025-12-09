@@ -172,9 +172,9 @@ else {
         }
     }
 
-    private Dictionary<Type, List<StateEventResponse>> PolicyEventsByType { get; set; } = new();
+    private Dictionary<Type, List<MatrixEventResponse>> PolicyEventsByType { get; set; } = new();
 
-    public StateEventResponse? ServerPolicyToMakePermanent {
+    public MatrixEventResponse? ServerPolicyToMakePermanent {
         get;
         set {
             field = value;
@@ -187,9 +187,9 @@ else {
     private RoomPowerLevelEventContent PowerLevels { get; set; } = null!;
     public bool CurrentUserIsDraupnir { get; set; }
 
-    public Dictionary<StateEventResponse, int> ActiveKicks { get; set; } = [];
+    public Dictionary<MatrixEventResponse, int> ActiveKicks { get; set; } = [];
 
-    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+    private static FrozenSet<Type> KnownPolicyTypes = MatrixEvent.KnownEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
 
     // event types, unnamed
     // private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
@@ -274,14 +274,14 @@ else {
             if (evt.RawContent is null or { Count: 0 } || string.IsNullOrWhiteSpace(evt.RawContent?["recommendation"]?.GetValue<string>())) {
                 collection.ActivePolicies.Remove(key);
                 if (!collection.RemovedPolicies.TryAdd(key, policyInfo)) {
-                    if (StateEvent.Equals(collection.RemovedPolicies[key].Policy, evt)) continue;
+                    if (MatrixEvent.Equals(collection.RemovedPolicies[key].Policy, evt)) continue;
                     collection.RemovedPolicies[key] = policyInfo;
                 }
             }
             else {
                 collection.RemovedPolicies.Remove(key);
                 if (!collection.ActivePolicies.TryAdd(key, policyInfo)) {
-                    if (StateEvent.Equals(collection.ActivePolicies[key].Policy, evt)) continue;
+                    if (MatrixEvent.Equals(collection.ActivePolicies[key].Policy, evt)) continue;
                     collection.ActivePolicies[key] = policyInfo;
                 }
             }
@@ -328,7 +328,7 @@ else {
         // foreach (var (policyInfo, policyContent) in allPolicies) {
         //     foreach (var (otherPolicyInfo, otherPolicyContent) in allPolicies) {
         //         if (policyInfo.Policy == otherPolicyInfo.Policy) continue; // same event
-        //         if (StateEvent.TypeKeyPairMatches(policyInfo.Policy, otherPolicyInfo.Policy)) {
+        //         if (MatrixEvent.TypeKeyPairMatches(policyInfo.Policy, otherPolicyInfo.Policy)) {
         //             logger.LogWarning("Sanity check failed: Found same type and state key for two different policies: {Policy1} and {Policy2}", policyInfo.Policy.RawContent.ToJson(), otherPolicyInfo.Policy.RawContent.ToJson());
         //             continue; // same type and state key
         //         }
@@ -343,7 +343,7 @@ else {
 
         int scanningPolicyCount = 0;
         var aggregatedPolicies = PolicyCollections.Values
-            .Aggregate(new List<StateEventResponse>(), (acc, val) => {
+            .Aggregate(new List<MatrixEventResponse>(), (acc, val) => {
                 acc.AddRange(val.ActivePolicies.Select(x => x.Value.Policy));
                 return acc;
             });
@@ -387,8 +387,8 @@ else {
             // Console.WriteLine($"Main: got {modifiedPolicyInfos.Count} modified policies from worker, time: {scanSw.Elapsed}");
             foreach (var modifiedPolicyInfo in modifiedPolicyInfos) {
                 var original = allPolicyInfos.First(p => p.Policy.EventId == modifiedPolicyInfo.Policy.EventId);
-                original.DuplicatedBy = aggregatedPolicies.Where(x => modifiedPolicyInfo.DuplicatedBy.Any(y => StateEvent.Equals(x, y))).ToList();
-                original.MadeRedundantBy = aggregatedPolicies.Where(x => modifiedPolicyInfo.MadeRedundantBy.Any(y => StateEvent.Equals(x, y))).ToList();
+                original.DuplicatedBy = aggregatedPolicies.Where(x => modifiedPolicyInfo.DuplicatedBy.Any(y => MatrixEvent.Equals(x, y))).ToList();
+                original.MadeRedundantBy = aggregatedPolicies.Where(x => modifiedPolicyInfo.MadeRedundantBy.Any(y => MatrixEvent.Equals(x, y))).ToList();
                 modifiedPolicyInfo.DuplicatedBy = modifiedPolicyInfo.MadeRedundantBy = []; // Early dereference
                 if (original.DuplicatedBy.Count > 0) {
                     if (!DuplicateBans.Value.ActivePolicies.ContainsKey((original.Policy.Type, original.Policy.StateKey!)))
@@ -476,24 +476,24 @@ else {
 
     [return: WorkerTransfer]
     private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(SpawnDev.BlazorJS.JSObjects.String policiesJson, int start, int end) {
-        var policies = JsonSerializer.Deserialize<List<StateEventResponse>>(policiesJson.ValueOf());
+        var policies = JsonSerializer.Deserialize<List<MatrixEventResponse>>(policiesJson.ValueOf());
         Console.WriteLine($"Got request to check duplicate policies in range {start} to {end} (length: {end - start}), {policiesJson.ValueOf().Length} bytes of JSON ({policies!.Count} policies)");
         return await CheckDuplicatePoliciesAsync(policies!, start .. end);
     }
 
     [return: WorkerTransfer]
     private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(string policiesJson, int start, int end) {
-        var policies = JsonSerializer.Deserialize<List<StateEventResponse>>(policiesJson);
+        var policies = JsonSerializer.Deserialize<List<MatrixEventResponse>>(policiesJson);
         Console.WriteLine($"Got request to check duplicate policies in range {start} to {end} (length: {end - start}), {policiesJson.Length} bytes of JSON ({policies!.Count} policies)");
         return await CheckDuplicatePoliciesAsync(policies!, start .. end);
     }
 
     [return: WorkerTransfer]
-    private static Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<StateEventResponse> policies, int start, int end)
+    private static Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<MatrixEventResponse> policies, int start, int end)
         => CheckDuplicatePoliciesAsync(policies, start .. end);
 
     [return: WorkerTransfer]
-    private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<StateEventResponse> policies, Range range) {
+    private static async Task<List<PolicyCollection.PolicyInfo>> CheckDuplicatePoliciesAsync(List<MatrixEventResponse> policies, Range range) {
         var sw = Stopwatch.StartNew();
         var jsConsole = App.Host.Services.GetService<JsConsoleService>()!;
         Console.WriteLine($"Processing policies in range {range} ({range.GetOffsetAndLength(policies.Count).Length}) with {policies.Count} total policies");
@@ -504,12 +504,12 @@ else {
         var modifiedPolicies = new List<PolicyCollection.PolicyInfo>();
 
         foreach (var (policyEvent, policyContent) in toCheck) {
-            List<StateEventResponse> duplicatedBy = [];
-            List<StateEventResponse> madeRedundantBy = [];
+            List<MatrixEventResponse> duplicatedBy = [];
+            List<MatrixEventResponse> madeRedundantBy = [];
 
             foreach (var (otherPolicyEvent, otherPolicyContent) in allPolicies) {
                 if (policyEvent == otherPolicyEvent) continue; // same event
-                if (StateEvent.TypeKeyPairMatches(policyEvent, otherPolicyEvent)) {
+                if (MatrixEvent.TypeKeyPairMatches(policyEvent, otherPolicyEvent)) {
                     // logger.LogWarning("Sanity check failed: Found same type and state key for two different policies: {Policy1} and {Policy2}", policyInfo.Policy.RawContent.ToJson(), otherPolicyInfo.Policy.RawContent.ToJson());
                     Console.WriteLine($"Sanity check failed: Found same type and state key for two different policies: {policyEvent.RawContent.ToJson()} and {otherPolicyEvent.RawContent.ToJson()}");
                     continue; // same type and state key
@@ -561,7 +561,7 @@ else {
         foreach (var type in KnownPolicyTypes) {
             if (!PolicyEventsByType.ContainsKey(type))
                 PolicyEventsByType.Add(type, new List
-                    <StateEventResponse>(16000));
+                    <MatrixEventResponse>(16000));
         }
 
         int count = 0;
@@ -573,9 +573,9 @@ else {
             e1 = _spsw.Elapsed;
             var targetPolicies = PolicyEventsByType[state.MappedType];
             e2 = _spsw.Elapsed;
-            if (!firstLoad && targetPolicies.FirstOrDefault(x => StateEvent.TypeKeyPairMatches(x, state)) is { } evt) {
+            if (!firstLoad && targetPolicies.FirstOrDefault(x => MatrixEvent.TypeKeyPairMatches(x, state)) is { } evt) {
                 e3 = _spsw.Elapsed;
-                if (StateEvent.Equals(evt, state)) {
+                if (MatrixEvent.Equals(evt, state)) {
                     if (count % 100 == 0) {
                         await Task.Delay(10);
                         await Task.Yield();
@@ -613,15 +613,15 @@ else {
         logger.LogInformation("LoadStatesAsync: yield finished in {SwElapsed}", sw.Elapsed);
     }
 
-    private List<StateEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
+    private List<MatrixEventResponse> GetPolicyEventsByType(Type type) => PolicyEventsByType.ContainsKey(type) ? PolicyEventsByType[type] : [];
 
-    // private List<StateEventResponse> GetValidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+    // private List<MatrixEventResponse> GetValidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
     //     .Where(x => !string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
     //
-    // private List<StateEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+    // private List<MatrixEventResponse> GetInvalidPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
     //     .Where(x => x.RawContent is { Count: > 0 } && string.IsNullOrWhiteSpace(x.RawContent?["recommendation"]?.GetValue<string>())).ToList();
     //
-    // private List<StateEventResponse> GetRemovedPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
+    // private List<MatrixEventResponse> GetRemovedPolicyEventsByType(Type type) => GetPolicyEventsByType(type)
     //     .Where(x => x.RawContent is null or { Count: 0 }).ToList();
 
     private string? GetPolicyTypeNameOrNull(Type type) => type.GetFriendlyNamePluralOrNull()
@@ -637,14 +637,14 @@ else {
 
         public required Dictionary<(string Type, string StateKey), PolicyInfo> ActivePolicies { get; set; }
 
-        // public Dictionary<(string Type, string StateKey), StateEventResponse> InvalidPolicies { get; set; }
+        // public Dictionary<(string Type, string StateKey), MatrixEventResponse> InvalidPolicies { get; set; }
         public required Dictionary<(string Type, string StateKey), PolicyInfo> RemovedPolicies { get; set; }
         public required FrozenDictionary<string, PropertyInfo> PropertiesToDisplay { get; set; }
 
         public class PolicyInfo {
-            public required StateEventResponse Policy { get; init; }
-            public required List<StateEventResponse> MadeRedundantBy { get; set; }
-            public required List<StateEventResponse> DuplicatedBy { get; set; }
+            public required MatrixEventResponse Policy { get; init; }
+            public required List<MatrixEventResponse> MadeRedundantBy { get; set; }
+            public required List<MatrixEventResponse> DuplicatedBy { get; set; }
         }
 
         public enum SpecialViewType {

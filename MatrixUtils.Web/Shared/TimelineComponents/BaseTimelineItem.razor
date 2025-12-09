@@ -6,19 +6,19 @@
 @code {
 
     [Parameter]
-    public StateEventResponse Event { get; set; }
+    public MatrixEventResponse Event { get; set; }
 
     [Parameter]
-    public List<StateEventResponse> Events { get; set; }
+    public List<MatrixEventResponse> Events { get; set; }
 
     [Parameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
-    public IEnumerable<StateEventResponse> EventsBefore => Events.TakeWhile(e => e.EventId != Event.EventId);
+    public IEnumerable<MatrixEventResponse> EventsBefore => Events.TakeWhile(e => e.EventId != Event.EventId);
 
-    public IEnumerable<StateEventResponse> MatchingEventsBefore => EventsBefore.Where(x => x.Type == Event.Type && x.StateKey == Event.StateKey);
+    public IEnumerable<MatrixEventResponse> MatchingEventsBefore => EventsBefore.Where(x => x.Type == Event.Type && x.StateKey == Event.StateKey);
 
-    public StateEventResponse? PreviousState => MatchingEventsBefore.LastOrDefault();
+    public MatrixEventResponse? PreviousState => MatchingEventsBefore.LastOrDefault();
 
     public RoomMemberEventContent? CurrentSenderMemberEventContent => EventsBefore.LastOrDefault(x => x.Type == "m.room.member" && x.StateKey == Event.Sender)?
         .TypedContent as RoomMemberEventContent;
@@ -26,7 +26,5 @@
     public UserProfileResponse CurrentSenderProfile => new() { DisplayName = CurrentSenderMemberEventContent?.DisplayName, AvatarUrl = CurrentSenderMemberEventContent?.AvatarUrl };
 
     public bool HasPreviousMessage => EventsBefore.Last() is { Type: "m.room.message" } response && response.Sender == Event.Sender;
-
-
 
 }

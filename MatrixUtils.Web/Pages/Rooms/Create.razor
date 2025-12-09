@@ -12,10 +12,10 @@
 
 @* <pre Contenteditable="true" @onkeypress="@JsonChanged" content="JsonString">@JsonString</pre> *@
 <style>
-     table.table-top-first-tr tr td:first-child {
-         vertical-align: top;
-     }
- </style>
+    table.table-top-first-tr tr td:first-child {
+        vertical-align: top;
+    }
+</style>
 <table class="table-top-first-tr">
     <tr style="padding-bottom: 16px;">
         <td>Preset:</td>
@@ -41,7 +41,10 @@
                 }
                 else {
                     <FancyTextBox @bind-Value="@creationEvent.Name"></FancyTextBox>
-                    <p>(#<FancyTextBox @bind-Value="@creationEvent.RoomAliasName"></FancyTextBox>:@Homeserver.WhoAmI.UserId.Split(':').Last())</p>
+                    <p>(#
+                        <FancyTextBox @bind-Value="@creationEvent.RoomAliasName"></FancyTextBox>
+                        :@Homeserver.WhoAmI.UserId.Split(':').Last())
+                    </p>
                 }
             </td>
         </tr>
@@ -89,7 +92,8 @@
             <td>
                 @* <img src="@Homeserver.ResolveMediaUri(roomAvatarEvent.Url)" style="width: 128px; height: 128px; border-radius: 50%;"/> *@
                 <div style="display: inline-block; vertical-align: middle;">
-                    <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox><br/>
+                    <FancyTextBox @bind-Value="@roomAvatarEvent.Url"></FancyTextBox>
+                    <br/>
                     <InputFile OnChange="RoomIconFilePicked"></InputFile>
                 </div>
             </td>
@@ -105,19 +109,27 @@
                             <FancyTextBox Formatter="@GetPermissionFriendlyName"
                                           Value="@_event"
                                           ValueChanged="val => { creationEvent.PowerLevelContentOverride.Events.ChangeKey(_event, val); }">
-                            </FancyTextBox>:
+                            </FancyTextBox>
+                            :
                         </td>
                         <td>
-                            <input type="number" value="@creationEvent.PowerLevelContentOverride.Events[_event]" @oninput="val => { creationEvent.PowerLevelContentOverride.Events[_event] = int.Parse(val.Value.ToString()); }" @onfocusout="() => { creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"/>
+                            <input type="number" value="@creationEvent.PowerLevelContentOverride.Events[_event]"
+                                   @oninput="val => { creationEvent.PowerLevelContentOverride.Events[_event] = int.Parse(val.Value.ToString()); }"
+                                   @onfocusout="() => { creationEvent.PowerLevelContentOverride.Events = creationEvent.PowerLevelContentOverride.Events.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"/>
                         </td>
                     </tr>
                 }
                 @foreach (var user in creationEvent.PowerLevelContentOverride.Users.Keys) {
                     var _user = user;
                     <tr>
-                        <td><FancyTextBox Value="@_user" ValueChanged="val => { creationEvent.PowerLevelContentOverride.Users.ChangeKey(_user, val); creationEvent.PowerLevelContentOverride.Users = creationEvent.PowerLevelContentOverride.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"></FancyTextBox>:</td>
                         <td>
-                            <input type="number" value="@creationEvent.PowerLevelContentOverride.Users[_user]" @oninput="val => { creationEvent.PowerLevelContentOverride.Users[_user] = int.Parse(val.Value.ToString()); }"/>
+                            <FancyTextBox Value="@_user"
+                                          ValueChanged="val => { creationEvent.PowerLevelContentOverride.Users.ChangeKey(_user, val); creationEvent.PowerLevelContentOverride.Users = creationEvent.PowerLevelContentOverride.Users.OrderByDescending(x => x.Value).ThenBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value); }"></FancyTextBox>
+                            :
+                        </td>
+                        <td>
+                            <input type="number" value="@creationEvent.PowerLevelContentOverride.Users[_user]"
+                                   @oninput="val => { creationEvent.PowerLevelContentOverride.Users[_user] = int.Parse(val.Value.ToString()); }"/>
                         </td>
                     </tr>
                 }
@@ -266,6 +278,7 @@
             var instance = (IRoomCreationTemplate)Activator.CreateInstance(x);
             Presets[instance.Name] = instance.CreateRoomRequest;
         }
+
         Presets = Presets.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
         if (!Presets.ContainsKey("Default")) {
@@ -299,7 +312,7 @@
 
     private void InviteMember(string mxid) {
         if (!creationEvent.InitialState.Any(x => x.Type == "m.room.member" && x.StateKey == mxid) && Homeserver.UserId != mxid)
-            creationEvent.InitialState.Add(new StateEvent {
+            creationEvent.InitialState.Add(new MatrixEvent {
                 Type = "m.room.member",
                 StateKey = mxid,
                 TypedContent = new RoomMemberEventContent {
@@ -316,7 +329,7 @@
         "m.room.server_acl" => "Server ACL",
         "m.room.avatar" => "Avatar",
         _ => key
-        };
+    };
 
     private string GetPermissionFriendlyName(string key) => key switch {
         "m.reaction" => "Send reaction",
@@ -331,6 +344,6 @@
         "m.room.pinned_events" => "Pin events",
         "m.room.server_acl" => "Change server ACLs",
         _ => key
-        };
+    };
 
 }

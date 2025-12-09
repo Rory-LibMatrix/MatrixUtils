@@ -12,7 +12,7 @@ public class DefaultRoomCreationTemplate : IRoomCreationTemplate {
         new() {
             Name = "My new room",
             RoomAliasName = "myroom",
-            InitialState = new List<StateEvent> {
+            InitialState = new List<MatrixEvent> {
                 new() {
                     Type = "m.room.history_visibility",
                     TypedContent = new RoomHistoryVisibilityEventContent() {

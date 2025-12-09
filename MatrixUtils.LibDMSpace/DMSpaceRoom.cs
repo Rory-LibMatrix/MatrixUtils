@@ -32,7 +32,7 @@ public class DMSpaceRoom(AuthenticatedHomeserverGeneric homeserver, string roomI
         else await ImportNativeDMsWithoutLayers();
     }
 
-    public async Task<List<StateEventResponse>> GetAllActiveLayersAsync() {
+    public async Task<List<MatrixEventResponse>> GetAllActiveLayersAsync() {
         var state = await GetFullStateAsListAsync();
         return state.Where(x => x.Type == DMSpaceChildLayer.EventId && x.RawContent.ContainsKey("space_id")).ToList();
     }

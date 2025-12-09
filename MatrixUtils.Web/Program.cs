@@ -29,7 +29,7 @@ builder.Services.AddWebWorkerService(webWorkerService => {
     webWorkerService.TaskPool.MaxPoolSize = -1;
     // Below is telling the WebWorkerService TaskPool to set the initial size to 2 if running in a Window scope and 0 otherwise
     // This starts up 2 WebWorkers to handle TaskPool tasks as needed
-    webWorkerService.TaskPool.PoolSize = webWorkerService.GlobalScope == GlobalScope.Window ? 0 : 0;
+    //    webWorkerService.TaskPool.PoolSize = webWorkerService.GlobalScope == GlobalScope.Window ? 0 : 0;
 });
 
 try {

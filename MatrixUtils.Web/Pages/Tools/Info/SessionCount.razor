@@ -60,7 +60,7 @@
     private ObservableCollection<string> log { get; set; } = new();
     List<AuthenticatedHomeserverGeneric> hss { get; set; } = new();
     ObservableCollection<GenericRoom> rooms { get; set; } = new();
-    Dictionary<GenericRoom, FrozenSet<StateEventResponse>> roomMembers { get; set; } = new();
+    Dictionary<GenericRoom, FrozenSet<MatrixEventResponse>> roomMembers { get; set; } = new();
     Dictionary<string, List<Matches>> matches = new();
 
     private string UserIdString {
@@ -147,7 +147,7 @@
     private class Matches {
         public GenericRoom Room;
 
-        public StateEventResponse Event;
+        public MatrixEventResponse Event;
         // public 
     }
 

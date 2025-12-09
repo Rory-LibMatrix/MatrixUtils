@@ -12,20 +12,20 @@
 
 <table class="table table-striped table-hover" style="width: fit-Content;">
     <thead>
-    <tr>
-        <th scope="col">Type</th>
-        <th scope="col">Content</th>
-    </tr>
+        <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Content</th>
+        </tr>
     </thead>
     <tbody>
-    @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey == "").OrderBy(x => x.OriginServerTs)) {
-        <tr>
-            <td>@stateEvent.Type</td>
-            <td style="max-width: fit-Content;">
-                <pre>@stateEvent.RawContent.ToJson()</pre>
-            </td>
-        </tr>
-    }
+        @foreach (var stateEvent in FilteredEvents.Where(x => x.StateKey == "").OrderBy(x => x.OriginServerTs)) {
+            <tr>
+                <td>@stateEvent.Type</td>
+                <td style="max-width: fit-Content;">
+                    <pre>@stateEvent.RawContent.ToJson()</pre>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
 
@@ -34,20 +34,20 @@
         <summary>@group.Key</summary>
         <table class="table table-striped table-hover" style="width: fit-Content;">
             <thead>
-            <tr>
-                <th scope="col">Type</th>
-                <th scope="col">Content</th>
-            </tr>
+                <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">Content</th>
+                </tr>
             </thead>
             <tbody>
-            @foreach (var stateEvent in group.OrderBy(x => x.OriginServerTs)) {
-                <tr>
-                    <td>@stateEvent.Type</td>
-                    <td style="max-width: fit-Content;">
-                        <pre>@stateEvent.RawContent.ToJson()</pre>
-                    </td>
-                </tr>
-            }
+                @foreach (var stateEvent in group.OrderBy(x => x.OriginServerTs)) {
+                    <tr>
+                        <td>@stateEvent.Type</td>
+                        <td style="max-width: fit-Content;">
+                            <pre>@stateEvent.RawContent.ToJson()</pre>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </details>
@@ -64,8 +64,8 @@
     [Parameter]
     public string? RoomId { get; set; }
 
-    public List<StateEventResponse> FilteredEvents { get; set; } = new();
-    public List<StateEventResponse> Events { get; set; } = new();
+    public List<MatrixEventResponse> FilteredEvents { get; set; } = new();
+    public List<MatrixEventResponse> Events { get; set; } = new();
     public string status = "";
 
     protected override async Task OnInitializedAsync() {
@@ -88,6 +88,7 @@
             if (string.IsNullOrEmpty(_ev.StateKey)) {
                 FilteredEvents.Add(_ev);
             }
+
             StateLoaded++;
 
             if (!((DateTime.Now - _lastUpdate).TotalMilliseconds > 100)) continue;

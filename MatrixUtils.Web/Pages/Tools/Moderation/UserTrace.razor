@@ -139,7 +139,7 @@
 
     private class Match {
         public GenericRoom Room;
-        public StateEventResponse Event;
+        public MatrixEventResponse Event;
         public string RoomName { get; set; }
     }
 
@@ -169,7 +169,7 @@
         }
     }
 
-    public string SummarizeMembership(StateEventResponse state) {
+    public string SummarizeMembership(MatrixEventResponse state) {
         var membership = state.ContentAs<RoomMemberEventContent>();
         var time = DateTimeOffset.FromUnixTimeMilliseconds(state.OriginServerTs!.Value);
         return membership switch {

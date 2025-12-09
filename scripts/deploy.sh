@@ -12,4 +12,5 @@ rm -rf **/bin/Release
 cd MatrixUtils.Web
 dotnet publish -c Release
 dotnet restore # restore debug deps
-rsync --delete -raP bin/Release/net9.0/publish/wwwroot/ rory.gay:/data/nginx/html_mru/
+cp bin/Release/net10.0/publish/wwwroot/_framework/dotnet.??????????.js bin/Release/net10.0/publish/wwwroot/_framework/dotnet.js
+rsync --delete -raP bin/Release/net10.0/publish/wwwroot/ rory.gay:/data/nginx/html_mru/

@@ -5,7 +5,7 @@
 <tr>
     <td style="vertical-align: top;">Initial room state:</td>
     <td>
-        @foreach (var (displayName, events) in new Dictionary<string, List<StateEvent>>() {
+        @foreach (var (displayName, events) in new Dictionary<string, List<MatrixEvent>>() {
                           { "Important room state (before final access rules)", roomBuilder.ImportantState },
                           { "Additional room state (after final access rules)", roomBuilder.InitialState },
                       }) {
@@ -47,10 +47,10 @@
                             @*                                 if (string.IsNullOrWhiteSpace(json)) *@
                             @*                                     events.Remove(initialState); *@
                             @*                                 else *@
-                            @*                                     events.Replace(initialState, JsonSerializer.Deserialize<StateEvent>(json)); *@
+                            @*                                     events.Replace(initialState, JsonSerializer.Deserialize<MatrixEvent>(json)); *@
                             @*                                 StateHasChanged(); *@
                             @*                             })"></FancyTextBox> *@
-                            <FancyTextBoxLazyJson T="StateEvent" Value="@initialState" ValueChanged="@(evt => { events.Replace(initialState, evt); })"></FancyTextBoxLazyJson>
+                            <FancyTextBoxLazyJson T="MatrixEvent" Value="@initialState" ValueChanged="@(evt => { events.Replace(initialState, evt); })"></FancyTextBoxLazyJson>
                             <br/>
                         </div>
                     }
@@ -71,7 +71,7 @@
     [Parameter]
     public AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
-    private RenderFragment GetRemoveButton(List<StateEvent> events, StateEvent initialState) {
+    private RenderFragment GetRemoveButton(List<MatrixEvent> events, MatrixEvent initialState) {
         return @<span>
             <LinkButton InlineText="true" OnClick="@(() => {
                                                        events.Remove(initialState);

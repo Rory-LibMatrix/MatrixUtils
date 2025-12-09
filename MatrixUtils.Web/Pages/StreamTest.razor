@@ -48,9 +48,9 @@
         var members = roomState.Where(x => x.Type == RoomMemberEventContent.EventId).ToList();
         Console.WriteLine($"Got {members.Count()} members");
         var ss = new SemaphoreSlim(1, 1);
-        foreach (var stateEventResponse in members) {
-            // Console.WriteLine(stateEventResponse.ToJson());
-            var mc = stateEventResponse.TypedContent as RoomMemberEventContent;
+        foreach (var MatrixEventResponse in members) {
+            // Console.WriteLine(MatrixEventResponse.ToJson());
+            var mc = MatrixEventResponse.TypedContent as RoomMemberEventContent;
             if (!string.IsNullOrWhiteSpace(mc?.AvatarUrl)) {
                 var uri = mc.AvatarUrl[6..].Split('/');
                 var url = $"/_matrix/media/v3/download/{uri[0]}/{uri[1]}";

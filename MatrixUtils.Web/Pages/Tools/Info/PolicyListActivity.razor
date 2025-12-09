@@ -74,7 +74,7 @@ else
         }
 
         //use timeline
-        var types = StateEventResponse.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent)));
+        var types = MatrixEvent.KnownEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent)));
         var filter = new SyncFilter.EventFilter(types: types.SelectMany(x => x.GetCustomAttributes<MatrixEventAttribute>().Select(y => y.EventName)).ToList());
         var timeline = room.GetManyMessagesAsync(limit: int.MaxValue, chunkSize: 2500, filter: filter.ToJson(indent: false, ignoreNull: true));
         await foreach (var response in timeline) {
@@ -119,10 +119,10 @@ else
     private readonly struct StateEventEntry {
         public required DateTime Timestamp { get; init; }
         public required StateEventTransition State { get; init; }
-        public required StateEventResponse Event { get; init; }
-        public required StateEventResponse? Previous { get; init; }
+        public required MatrixEventResponse Event { get; init; }
+        public required MatrixEventResponse? Previous { get; init; }
 
-        public void Deconstruct(out StateEventTransition transition, out StateEventResponse evt, out StateEventResponse? prev) {
+        public void Deconstruct(out StateEventTransition transition, out MatrixEventResponse evt, out MatrixEventResponse? prev) {
             transition = State;
             evt = Event;
             prev = Previous;

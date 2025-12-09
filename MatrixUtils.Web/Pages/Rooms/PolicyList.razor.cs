@@ -8,12 +8,11 @@ using SpawnDev.BlazorJS.WebWorkers;
 namespace MatrixUtils.Web.Pages.Rooms;
 
 public partial class PolicyList {
-    
 #region Draupnir interop
 
     private SemaphoreSlim ss = new(16, 16);
 
-    private async Task DraupnirKickMatching(StateEventResponse policy) {
+    private async Task DraupnirKickMatching(MatrixEventResponse policy) {
         try {
             var content = policy.TypedContent! as PolicyRuleEventContent;
             if (content is null) return;
@@ -94,7 +93,7 @@ public partial class PolicyList {
 #region Nasty, nasty internals, please ignore!
 
     private static class NastyInternalsPleaseIgnore {
-        public static async Task ExecuteKickWithWasmWorkers(WebWorkerService workerService, AuthenticatedHomeserverGeneric hs, StateEventResponse evt, List<string> roomIds) {
+        public static async Task ExecuteKickWithWasmWorkers(WebWorkerService workerService, AuthenticatedHomeserverGeneric hs, MatrixEventResponse evt, List<string> roomIds) {
             try {
                 // var tasks = roomIds.Select(roomId => workerService.TaskPool.Invoke(ExecuteKickInternal, hs.WellKnownUris.Client, hs.AccessToken, roomId, content.Entity)).ToList();
                 var tasks = roomIds.Select(roomId => workerService.TaskPool.Invoke(ExecuteKickInternal2, hs.WellKnownUris, hs.AccessToken, roomId, evt)).ToList();
@@ -131,7 +130,7 @@ public partial class PolicyList {
             }
         }
 
-        private async static Task ExecuteKickInternal2(HomeserverResolverService.WellKnownUris wellKnownUris, string accessToken, string roomId, StateEventResponse policy) {
+        private async static Task ExecuteKickInternal2(HomeserverResolverService.WellKnownUris wellKnownUris, string accessToken, string roomId, MatrixEventResponse policy) {
             Console.WriteLine($"Checking {roomId}...");
             Console.WriteLine(policy.EventId);
         }
@@ -140,5 +139,4 @@ public partial class PolicyList {
 #endregion
 
 #endregion
-
 }

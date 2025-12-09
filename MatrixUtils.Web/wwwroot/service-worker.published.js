@@ -9,7 +9,7 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const offlineAssetsInclude = [// Standard resources
-    /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /* Extra known-static paths */
+    /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/, /* Extra known-static paths */
     /\/_matrix\/media\/.{2}\/download\//, /api\.dicebear\.com\/6\.x\/identicon\/svg/];
 const offlineAssetsExclude = [/^service-worker\.js$/];
 
@@ -28,7 +28,7 @@ async function onInstall(event) {
     const assetsRequests = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        .map(asset => new Request(asset.url, {integrity: asset.hash, cache: 'no-cache'}));
+        .map(asset => new Request(asset.url, {cache: 'no-cache'})); /* integrity: asset.hash */
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
 }
 
@@ -48,12 +48,26 @@ async function onFetch(event) {
         // For all navigation requests, try to serve index.html from cache,
         // unless that request is for an offline resource.
         // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate' && !manifestUrlList.some(url => url === event.request.url);
+        const shouldServeIndexHtml = event.request.mode === 'navigate'
+            && !manifestUrlList.some(url => url === event.request.url);
 
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const shouldCache = offlineAssetsInclude.some(pattern => pattern.test(request.url));
 
         const cache = await caches.open(cacheName);
+
+        if (request !== 'index.html' && request.url.endsWith("_framework/dotnet.js")) {
+            // return `_framework/dotnet.<hash>.js` from cache to avoid integrity errors
+            const dotnetJsUrl = manifestUrlList.find(url => /_framework\/dotnet\.[a-z0-9]+\.js$/.test(url));
+            if (dotnetJsUrl) {
+                cachedResponse = await cache.match(dotnetJsUrl);
+                if (cachedResponse) {
+                    console.log("Service worker caching: serving dotnet.js from cache: ", dotnetJsUrl);
+                    return cachedResponse;
+                }
+            } else console.warn("Service worker caching: could not find dotnet.hash.js in manifest", {request, manifestUrlList});
+        }
+
         cachedResponse = await cache.match(request);
         let exception;
         let fetched;
@@ -72,7 +86,7 @@ async function onFetch(event) {
             fetched, shouldCache, request, exception, cachedResponse, url: request.url,
         }
         Object.keys(consoleLog).forEach(key => consoleLog[key] == null && delete consoleLog[key])
-        if(consoleLog.exception)
+        if (consoleLog.exception)
             console.log("Service worker caching: ", consoleLog)
     }
 

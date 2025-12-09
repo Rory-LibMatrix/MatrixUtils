@@ -188,7 +188,7 @@
             Server
         }
 
-        public static async Task<RoomInfo> FromRoom(GenericRoom room, List<StateEventResponse>? state = null, bool legacy = false) {
+        public static async Task<RoomInfo> FromRoom(GenericRoom room, List<MatrixEventResponse>? state = null, bool legacy = false) {
             state ??= await room.GetFullStateAsListAsync();
             return new RoomInfo() {
                 Room = room,

@@ -99,7 +99,7 @@
     [Parameter]
     public required Action PolicyCollectionStateHasChanged { get; set; }
 
-    private StateEventResponse Policy => PolicyInfo.Policy;
+    private MatrixEventResponse Policy => PolicyInfo.Policy;
 
     private bool IsEditing {
         get;
@@ -152,8 +152,8 @@
         if (PolicyInfo.DuplicatedBy.Count > 0) {
             foreach (var evt in PolicyInfo.DuplicatedBy) {
                 var matchingEntry = PolicyCollection.ActivePolicies
-                    .FirstOrDefault(x => StateEvent.Equals(x.Value.Policy, evt)).Value;
-                var removals = matchingEntry.DuplicatedBy.RemoveAll(x => StateEvent.Equals(x, Policy));
+                    .FirstOrDefault(x => MatrixEvent.Equals(x.Value.Policy, evt)).Value;
+                var removals = matchingEntry.DuplicatedBy.RemoveAll(x => MatrixEvent.Equals(x, Policy));
                 Console.WriteLine($"Removed {removals} duplicates from {evt.EventId}, matching entry: {matchingEntry.ToJson()}");
                 if (PolicyCollection.ViewType == PolicyList.PolicyCollection.SpecialViewType.Duplicates && matchingEntry.DuplicatedBy.Count == 0) {
                     PolicyCollection.ActivePolicies.Remove((matchingEntry.Policy.Type, matchingEntry.Policy.StateKey));
@@ -169,8 +169,8 @@
         if (PolicyInfo.MadeRedundantBy.Count > 0) {
             foreach (var evt in PolicyInfo.MadeRedundantBy) {
                 var matchingEntry = PolicyCollection.ActivePolicies
-                    .FirstOrDefault(x => StateEvent.Equals(x.Value.Policy, evt)).Value;
-                var removals = matchingEntry.MadeRedundantBy.RemoveAll(x => StateEvent.Equals(x, Policy));
+                    .FirstOrDefault(x => MatrixEvent.Equals(x.Value.Policy, evt)).Value;
+                var removals = matchingEntry.MadeRedundantBy.RemoveAll(x => MatrixEvent.Equals(x, Policy));
                 Console.WriteLine($"Removed {removals} redundants from {evt.EventId}, matching entry: {matchingEntry.ToJson()}");
             }
 
@@ -186,7 +186,7 @@
         // await LoadStatesAsync();
     }
 
-    private async Task UpdatePolicyAsync(StateEventResponse evt) {
+    private async Task UpdatePolicyAsync(MatrixEventResponse evt) {
         await Room.SendStateEventAsync(Policy.Type, Policy.StateKey, Policy.RawContent);
         // CurrentlyEditingEvent = null;
         // await LoadStatesAsync();

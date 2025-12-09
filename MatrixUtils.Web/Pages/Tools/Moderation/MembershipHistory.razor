@@ -31,23 +31,23 @@
 </p>
 <p>
     <LinkButton OnClickAsync="@(async () => {
-                             ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = false;
-                             StateHasChanged();
-                         })">Hide all
+                                  ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = false;
+                                  StateHasChanged();
+                              })">Hide all
     </LinkButton>
     <LinkButton OnClickAsync="@(async () => {
-                             ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = true;
-                             StateHasChanged();
-                         })">Show all
+                                  ShowJoins = ShowLeaves = ShowKnocks = ShowInvites = ShowBans = true;
+                                  StateHasChanged();
+                              })">Show all
     </LinkButton>
     <LinkButton OnClickAsync="@(async () => {
-                             ShowJoins ^= true;
-                             ShowLeaves ^= true;
-                             ShowKnocks ^= true;
-                             ShowInvites ^= true;
-                             ShowBans ^= true;
-                             StateHasChanged();
-                         })">Toggle all
+                                  ShowJoins ^= true;
+                                  ShowLeaves ^= true;
+                                  ShowKnocks ^= true;
+                                  ShowInvites ^= true;
+                                  ShowBans ^= true;
+                                  StateHasChanged();
+                              })">Toggle all
     </LinkButton>
 </p>
 <p>
@@ -56,25 +56,25 @@
         <span><InputCheckbox @bind-Value="DisambiguateKicks"/> kicks</span>
         <span><InputCheckbox @bind-Value="DisambiguateUnbans"/> unbans</span>
         <span><InputCheckbox @bind-Value="DisambiguateProfileUpdates"/> profile updates</span>
-        <details style="display: inline-block; vertical-align: top;">
-            <summary>
-                <InputCheckbox @bind-Value="DisambiguateInviteActions"/>
-                invite actions
-            </summary>
-            <span><InputCheckbox @bind-Value="DisambiguateInviteAccepted"/> accepted</span>
-            <span><InputCheckbox @bind-Value="DisambiguateInviteRejected"/> rejected</span>
-            <span><InputCheckbox @bind-Value="DisambiguateInviteRetracted"/> retracted</span>
-        </details>
-        <details style="display: inline-block; vertical-align: top;">
-            <summary>
-                <InputCheckbox @bind-Value="DisambiguateKnockActions"/>
-                knock actions
-            </summary>
-            <span><InputCheckbox @bind-Value="DisambiguateKnockAccepted"/> accepted</span>
-            <span><InputCheckbox @bind-Value="DisambiguateKnockRejected"/> rejected</span>
-            <span><InputCheckbox @bind-Value="DisambiguateKnockRetracted"/> retracted</span>
-        </details>
-    }
+    <details style="display: inline-block; vertical-align: top;">
+        <summary>
+            <InputCheckbox @bind-Value="DisambiguateInviteActions"/>
+            invite actions
+        </summary>
+        <span><InputCheckbox @bind-Value="DisambiguateInviteAccepted"/> accepted</span>
+        <span><InputCheckbox @bind-Value="DisambiguateInviteRejected"/> rejected</span>
+        <span><InputCheckbox @bind-Value="DisambiguateInviteRetracted"/> retracted</span>
+    </details>
+    <details style="display: inline-block; vertical-align: top;">
+        <summary>
+            <InputCheckbox @bind-Value="DisambiguateKnockActions"/>
+            knock actions
+        </summary>
+        <span><InputCheckbox @bind-Value="DisambiguateKnockAccepted"/> accepted</span>
+        <span><InputCheckbox @bind-Value="DisambiguateKnockRejected"/> rejected</span>
+        <span><InputCheckbox @bind-Value="DisambiguateKnockRetracted"/> retracted</span>
+    </details>
+}
 </p>
 @if (DoDisambiguate) {
     <p>
@@ -130,29 +130,29 @@
 
     <p>
         <LinkButton OnClickAsync="@(async () => {
-                                 DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = false;
-                                 StateHasChanged();
-                             })">Un-disambiguate all
+                                      DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = false;
+                                      StateHasChanged();
+                                  })">Un-disambiguate all
         </LinkButton>
         <LinkButton OnClickAsync="@(async () => {
-                                 DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = true;
-                                 StateHasChanged();
-                             })">Disambiguate all
+                                      DoDisambiguate = DisambiguateProfileUpdates = DisambiguateKicks = DisambiguateUnbans = DisambiguateInviteAccepted = DisambiguateInviteRejected = DisambiguateInviteRetracted = DisambiguateKnockAccepted = DisambiguateKnockRejected = DisambiguateKnockRetracted = DisambiguateKnockActions = DisambiguateInviteActions = true;
+                                      StateHasChanged();
+                                  })">Disambiguate all
         </LinkButton>
         <LinkButton OnClickAsync="@(async () => {
-                                 DisambiguateProfileUpdates ^= true;
-                                 DisambiguateKicks ^= true;
-                                 DisambiguateUnbans ^= true;
-                                 DisambiguateInviteAccepted ^= true;
-                                 DisambiguateInviteRejected ^= true;
-                                 DisambiguateInviteRetracted ^= true;
-                                 DisambiguateKnockAccepted ^= true;
-                                 DisambiguateKnockRejected ^= true;
-                                 DisambiguateKnockRetracted ^= true;
-                                 DisambiguateKnockActions ^= true;
-                                 DisambiguateInviteActions ^= true;
-                                 StateHasChanged();
-                             })">Toggle all
+                                      DisambiguateProfileUpdates ^= true;
+                                      DisambiguateKicks ^= true;
+                                      DisambiguateUnbans ^= true;
+                                      DisambiguateInviteAccepted ^= true;
+                                      DisambiguateInviteRejected ^= true;
+                                      DisambiguateInviteRetracted ^= true;
+                                      DisambiguateKnockAccepted ^= true;
+                                      DisambiguateKnockRejected ^= true;
+                                      DisambiguateKnockRetracted ^= true;
+                                      DisambiguateKnockActions ^= true;
+                                      DisambiguateInviteActions ^= true;
+                                      StateHasChanged();
+                                  })">Toggle all
         </LinkButton>
     </p>
 }
@@ -306,18 +306,61 @@
     private bool ShowBans { get; set; } = true;
 
     private bool DoDisambiguate { get; set; } = true;
-    private bool DisambiguateProfileUpdates { get => field && DoDisambiguate; set; } = true;
-    private bool DisambiguateKicks { get => field && DoDisambiguate; set; } = true;
-    private bool DisambiguateUnbans { get => field && DoDisambiguate; set; } = true;
-    private bool DisambiguateInviteAccepted { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
-    private bool DisambiguateInviteRejected { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
-    private bool DisambiguateInviteRetracted { get => field && DoDisambiguate && DisambiguateInviteActions; set; } = true;
-    private bool DisambiguateKnockAccepted { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
-    private bool DisambiguateKnockRejected { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
-    private bool DisambiguateKnockRetracted { get => field && DoDisambiguate && DisambiguateKnockActions; set; } = true;
-    
-    private bool DisambiguateKnockActions { get => field && DoDisambiguate; set; } = true;
-    private bool DisambiguateInviteActions { get => field && DoDisambiguate; set; } = true;
+
+    private bool DisambiguateProfileUpdates {
+        get => field && DoDisambiguate;
+        set;
+    } = true;
+
+    private bool DisambiguateKicks {
+        get => field && DoDisambiguate;
+        set;
+    } = true;
+
+    private bool DisambiguateUnbans {
+        get => field && DoDisambiguate;
+        set;
+    } = true;
+
+    private bool DisambiguateInviteAccepted {
+        get => field && DoDisambiguate && DisambiguateInviteActions;
+        set;
+    } = true;
+
+    private bool DisambiguateInviteRejected {
+        get => field && DoDisambiguate && DisambiguateInviteActions;
+        set;
+    } = true;
+
+    private bool DisambiguateInviteRetracted {
+        get => field && DoDisambiguate && DisambiguateInviteActions;
+        set;
+    } = true;
+
+    private bool DisambiguateKnockAccepted {
+        get => field && DoDisambiguate && DisambiguateKnockActions;
+        set;
+    } = true;
+
+    private bool DisambiguateKnockRejected {
+        get => field && DoDisambiguate && DisambiguateKnockActions;
+        set;
+    } = true;
+
+    private bool DisambiguateKnockRetracted {
+        get => field && DoDisambiguate && DisambiguateKnockActions;
+        set;
+    } = true;
+
+    private bool DisambiguateKnockActions {
+        get => field && DoDisambiguate;
+        set;
+    } = true;
+
+    private bool DisambiguateInviteActions {
+        get => field && DoDisambiguate;
+        set;
+    } = true;
 
     private bool ShowProfileUpdates {
         get => field && DisambiguateProfileUpdates;
@@ -399,7 +442,7 @@
 #endregion
 
     private ObservableCollection<string> Log { get; set; } = new();
-    private List<StateEventResponse> Memberships { get; set; } = [];
+    private List<MatrixEventResponse> Memberships { get; set; } = [];
     private AuthenticatedHomeserverGeneric Homeserver { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "room")]
@@ -444,10 +487,10 @@
 
     private readonly struct MembershipEntry {
         public required MembershipTransition State { get; init; }
-        public required StateEventResponse Event { get; init; }
-        public required StateEventResponse? Previous { get; init; }
+        public required MatrixEventResponse Event { get; init; }
+        public required MatrixEventResponse? Previous { get; init; }
 
-        public void Deconstruct(out MembershipTransition transition, out StateEventResponse evt, out StateEventResponse? prev) {
+        public void Deconstruct(out MembershipTransition transition, out MatrixEventResponse evt, out MatrixEventResponse? prev) {
             transition = State;
             evt = Event;
             prev = Previous;
@@ -474,7 +517,7 @@
         KnockRetracted
     }
 
-    private static IEnumerable<MembershipEntry> GetTransitions(List<StateEventResponse> evts) {
+    private static IEnumerable<MembershipEntry> GetTransitions(List<MatrixEventResponse> evts) {
         Dictionary<string, MembershipEntry> transitions = new();
         foreach (var evt in evts.OrderBy(x => x.OriginServerTs)) {
             var content = evt.TypedContent as RoomMemberEventContent ?? throw new InvalidOperationException("Event is not a RoomMemberEventContent!");
@@ -528,7 +571,7 @@
             { MembershipTransition.KnockRejected, MembershipTransition.Leave },
             { MembershipTransition.KnockRetracted, MembershipTransition.Leave }
         }.ToFrozenDictionary();
-        
+
         foreach (var entry in entries) {
             if (!DoDisambiguate) {
                 yield return entry;

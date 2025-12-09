@@ -22,7 +22,7 @@
     public string RoomId { get; set; }
 
     private List<TimelineEventItem> Events { get; } = new();
-    private List<StateEventResponse> RawEvents { get; } = new();
+    private List<MatrixEventResponse> RawEvents { get; } = new();
 
     private AuthenticatedHomeserverGeneric? Homeserver { get; set; }
 
@@ -44,9 +44,9 @@
         await base.OnInitializedAsync();
     }
 
-    // private StateEventResponse GetProfileEventBefore(StateEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == RoomMemberEventContent.EventId && e.StateKey == Event.Sender);
+    // private MatrixEventResponse GetProfileEventBefore(MatrixEventResponse Event) => Events.TakeWhile(x => x != Event).Last(e => e.Type == RoomMemberEventContent.EventId && e.StateKey == Event.Sender);
 
-    private Type ComponentType(StateEvent Event) => Event.Type switch {
+    private Type ComponentType(MatrixEvent Event) => Event.Type switch {
         RoomCanonicalAliasEventContent.EventId => typeof(TimelineCanonicalAliasItem),
         RoomHistoryVisibilityEventContent.EventId => typeof(TimelineHistoryVisibilityItem),
         RoomTopicEventContent.EventId => typeof(TimelineRoomTopicItem),
@@ -57,9 +57,9 @@
         // RoomMessageReactionEventContent.EventId => typeof(ComponentBase),
         _ => typeof(TimelineUnknownItem)
     };
-    
+
     private class TimelineEventItem : ComponentBase {
-        public StateEventResponse Event { get; set; }
+        public MatrixEventResponse Event { get; set; }
         public Type Type { get; set; }
     }
 

@@ -37,8 +37,8 @@
     [Parameter]
     public string? RoomId { get; set; }
 
-    public List<StateEventResponse> FilteredEvents { get; set; } = new();
-    public List<StateEventResponse> Events { get; set; } = new();
+    public List<MatrixEventResponse> FilteredEvents { get; set; } = new();
+    public List<MatrixEventResponse> Events { get; set; } = new();
     public string status = "";
 
     protected override async Task OnInitializedAsync() {
@@ -58,7 +58,7 @@
         var StateLoaded = 0;
         var response = (hs.GetRoom(RoomId)).GetFullStateAsync();
         await foreach (var _ev in response) {
-            // var e = new StateEventResponse {
+            // var e = new MatrixEventResponse {
             //     Type = _ev.Type,
             //     StateKey = _ev.StateKey,
             //     OriginServerTs = _ev.OriginServerTs,
@@ -68,6 +68,7 @@
             if (string.IsNullOrEmpty(_ev.StateKey)) {
                 FilteredEvents.Add(_ev);
             }
+
             StateLoaded++;
 
             if (!((DateTime.Now - _lastUpdate).TotalMilliseconds > 100)) continue;
@@ -103,11 +104,12 @@
         public string content { get; set; }
         public long origin_server_ts { get; set; }
         public string state_key { get; set; }
+
         public string type { get; set; }
-    // public string Sender { get; set; }
-    // public string EventId { get; set; }
-    // public string UserId { get; set; }
-    // public string ReplacesState { get; set; }
+        // public string Sender { get; set; }
+        // public string EventId { get; set; }
+        // public string UserId { get; set; }
+        // public string ReplacesState { get; set; }
     }
 
     public bool ShowMembershipEvents {

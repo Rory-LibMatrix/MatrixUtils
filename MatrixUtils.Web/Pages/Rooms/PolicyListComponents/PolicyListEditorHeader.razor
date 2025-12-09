@@ -55,7 +55,7 @@
     private string? RoomAlias { get; set; }
     private string? DraupnirShortcode { get; set; }
 
-    private StateEventResponse? CurrentlyEditingEvent {
+    private MatrixEventResponse? CurrentlyEditingEvent {
         get;
         set {
             field = value;
@@ -81,7 +81,7 @@
         StateHasChanged();
     }
 
-    private async Task UpdatePolicyAsync(StateEventResponse evt) {
+    private async Task UpdatePolicyAsync(MatrixEventResponse evt) {
         Console.WriteLine("UpdatePolicyAsync in PolicyListEditorHeader not yet implemented!");
     }
 

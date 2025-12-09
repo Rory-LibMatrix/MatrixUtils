@@ -16,22 +16,22 @@ public class RoomInfo : NotifyPropertyChanged {
         RegisterEventListener();
     }
 
-    public RoomInfo(GenericRoom room, List<StateEventResponse>? stateEvents) {
+    public RoomInfo(GenericRoom room, List<MatrixEventResponse>? stateEvents) {
         Room = room;
         // _fallbackIcon = identiconGenerator.GenerateAsDataUri(room.RoomId);
         if (stateEvents is { Count: > 0 }) StateEvents = new(stateEvents!);
         RegisterEventListener();
         ProcessNewItems(stateEvents!);
     }
-    
+
     public readonly GenericRoom Room;
-    public ObservableCollection<StateEventResponse?> StateEvents { get; private set; } = new();
-    public ObservableCollection<StateEventResponse?> Timeline { get; private set; } = new();
+    public ObservableCollection<MatrixEventResponse?> StateEvents { get; private set; } = new();
+    public ObservableCollection<MatrixEventResponse?> Timeline { get; private set; } = new();
 
     private static ConcurrentBag<AuthenticatedHomeserverGeneric> homeserversWithoutEventFormatSupport = new();
     // private static SvgIdenticonGenerator identiconGenerator = new();
 
-    public async Task<StateEventResponse?> GetStateEvent(string type, string stateKey = "") {
+    public async Task<MatrixEventResponse?> GetStateEvent(string type, string stateKey = "") {
         if (homeserversWithoutEventFormatSupport.Contains(Room.Homeserver)) return await GetStateEventForged(type, stateKey);
         var @event = StateEvents.FirstOrDefault(x => x?.Type == type && x.StateKey == stateKey);
         if (@event is not null) return @event;
@@ -54,8 +54,8 @@ public class RoomInfo : NotifyPropertyChanged {
         return @event;
     }
 
-    private async Task<StateEventResponse?> GetStateEventForged(string type, string stateKey = "") {
-        var @event = new StateEventResponse {
+    private async Task<MatrixEventResponse?> GetStateEventForged(string type, string stateKey = "") {
+        var @event = new MatrixEventResponse {
             RoomId = Room.RoomId,
             Type = type,
             StateKey = stateKey,
@@ -148,16 +148,16 @@ public class RoomInfo : NotifyPropertyChanged {
     private void RegisterEventListener() {
         StateEvents.CollectionChanged += (_, args) => {
             if (args.NewItems is { Count: > 0 })
-                ProcessNewItems(args.NewItems.OfType<StateEventResponse>());
+                ProcessNewItems(args.NewItems.OfType<MatrixEventResponse>());
         };
     }
 
-    private void ProcessNewItems(IEnumerable<StateEventResponse?> newItems) {
-        foreach (StateEventResponse? newState in newItems) {
+    private void ProcessNewItems(IEnumerable<MatrixEventResponse?> newItems) {
+        foreach (MatrixEventResponse? newState in newItems) {
             if (newState is null) continue;
             // TODO: Benchmark switch statement
-            
-            if(newState.StateKey != "") continue;
+
+            if (newState.StateKey != "") continue;
             if (newState.Type == RoomNameEventContent.EventId && newState.TypedContent is RoomNameEventContent roomNameContent)
                 RoomName = roomNameContent.Name;
             else if (newState is { Type: RoomAvatarEventContent.EventId, TypedContent: RoomAvatarEventContent roomAvatarContent })

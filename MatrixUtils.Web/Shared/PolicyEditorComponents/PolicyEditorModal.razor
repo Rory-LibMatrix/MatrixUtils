@@ -113,7 +113,7 @@
 @code {
 
     [Parameter]
-    public StateEventResponse? PolicyEvent {
+    public MatrixEventResponse? PolicyEvent {
         get => _policyEvent;
         set {
             if (value is not null && value != _policyEvent)
@@ -139,10 +139,10 @@
     }
 
     [Parameter]
-    public Action<StateEventResponse>? OnSave { get; set; }
+    public Action<MatrixEventResponse>? OnSave { get; set; }
 
     [Parameter]
-    public Func<StateEventResponse, Task>? OnSaveAsync { get; set; }
+    public Func<MatrixEventResponse, Task>? OnSaveAsync { get; set; }
 
     private async Task InvokeOnSave() {
         if (OnSave is not null)
@@ -154,12 +154,12 @@
 
     public PolicyRuleEventContent? PolicyData { get; set; }
 
-    private static FrozenSet<Type> KnownPolicyTypes = StateEvent.KnownStateEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
+    private static FrozenSet<Type> KnownPolicyTypes = MatrixEvent.KnownEventTypes.Where(x => x.IsAssignableTo(typeof(PolicyRuleEventContent))).ToFrozenSet();
 
     private static Dictionary<string, Type> PolicyTypes = KnownPolicyTypes
         .ToDictionary(x => x.GetCustomAttributes<MatrixEventAttribute>().First(y => !string.IsNullOrWhiteSpace(y.EventName)).EventName, x => x);
 
-    private StateEventResponse? _policyEvent;
+    private MatrixEventResponse? _policyEvent;
 
     private string? MappedType {
         get => _policyEvent?.Type;

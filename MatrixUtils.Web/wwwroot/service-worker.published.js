@@ -22,7 +22,7 @@ async function onInstall(event) {
     console.info('Service worker: Install');
 
     // Activate the new service worker as soon as the old one is retired.
-    self.skipWaiting();
+    await self.skipWaiting();
 
     // Fetch and cache all matching items from the assets manifest
     const assetsRequests = self.assetsManifest.assets
@@ -55,19 +55,6 @@ async function onFetch(event) {
         const shouldCache = offlineAssetsInclude.some(pattern => pattern.test(request.url));
 
         const cache = await caches.open(cacheName);
-
-        if (request !== 'index.html' && request.url.endsWith("_framework/dotnet.js")) {
-            // return `_framework/dotnet.<hash>.js` from cache to avoid integrity errors
-            const dotnetJsUrl = manifestUrlList.find(url => /_framework\/dotnet\.[a-z0-9]+\.js$/.test(url));
-            if (dotnetJsUrl) {
-                cachedResponse = await cache.match(dotnetJsUrl);
-                if (cachedResponse) {
-                    console.log("Service worker caching: serving dotnet.js from cache: ", dotnetJsUrl);
-                    return cachedResponse;
-                }
-            } else console.warn("Service worker caching: could not find dotnet.hash.js in manifest", {request, manifestUrlList});
-        }
-
         cachedResponse = await cache.match(request);
         let exception;
         let fetched;

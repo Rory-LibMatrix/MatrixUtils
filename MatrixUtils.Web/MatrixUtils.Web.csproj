@@ -10,6 +10,7 @@
 
         <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
         <BlazorEnableCompression>false</BlazorEnableCompression>
+        <CompressionEnabled>false</CompressionEnabled>
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <BlazorCacheBootResources>false</BlazorCacheBootResources>
         <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>

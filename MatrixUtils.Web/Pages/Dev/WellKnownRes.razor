@@ -72,6 +72,7 @@
         public bool HasClientWellKnown => WellKnownResolutionResult?.ClientWellKnown is { Content.Homeserver.BaseUrl: { Length: > 0 } };
         public bool HasServerWellKnown => WellKnownResolutionResult?.ServerWellKnown is { Content.Homeserver.Length: > 0 };
         public bool HasSupportWellKnown => WellKnownResolutionResult?.SupportWellKnown?.Content is not null and not { SupportPage: null, Contacts: null or { Count: 0 } };
+        public bool HasPolicyServerWellKnown => WellKnownResolutionResult?.PolicyServerWellKnown?.Content is not null and not { PublicKey: null or "" };
     }
 
     private async Task Execute() {

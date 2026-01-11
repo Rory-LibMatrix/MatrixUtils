@@ -4,7 +4,7 @@ using LibMatrix.Utilities.Bot;
 using MatrixUtils.RoomUpgradeCLI;
 using MatrixUtils.RoomUpgradeCLI.Commands;
 
-foreach (var group in args.Split(";")) {
+foreach (var group in args.AsEnumerable().Split(";")) {
     var argGroup = group.ToArray();
     var builder = Host.CreateApplicationBuilder(args);
     builder.Services.AddRoryLibMatrixServices();

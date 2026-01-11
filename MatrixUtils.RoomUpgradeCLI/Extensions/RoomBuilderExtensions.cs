@@ -121,6 +121,28 @@ public static class RoomBuilderExtensions {
 
                     break;
                 // upgrade options
+                case "--restrict-old-room":
+                    if (rb is not RoomUpgradeBuilder upgradeBuilderRestrict) {
+                        throw new InvalidOperationException("Restrict old room can only be used with room upgrades");
+                    }
+
+                    var oldRoom = hs.GetRoom(upgradeBuilderRestrict.OldRoomId);
+                    var createEvt = await oldRoom.GetCreateEventAsync();
+                    if (createEvt == null) {
+                        throw new InvalidOperationException("Could not get create event for old room " + upgradeBuilderRestrict.OldRoomId);
+                    }
+
+                    if (!int.TryParse(createEvt.RoomVersion ?? "1", out int numericVersion)) {
+                        Console.WriteLine("Warning: Could not parse old room version '" + createEvt.RoomVersion + "' as a number! Setting restricted join rule may not work.");
+                    }
+                    else if (numericVersion < 8) {
+                        throw new InvalidOperationException(
+                            "Cannot set restrict old room on rooms with version lower than 8!\nhttps://spec.matrix.org/v1.17/rooms/#feature-matrix"
+                        );
+                    }
+
+                    upgradeBuilderRestrict.UpgradeOptions.RestrictOldRoom = GetBoolArg(args, ref i, true);
+                    break;
                 case "--invite-members":
                     if (rb is not RoomUpgradeBuilder upgradeBuilder) {
                         throw new InvalidOperationException("Invite members can only be used with room upgrades");

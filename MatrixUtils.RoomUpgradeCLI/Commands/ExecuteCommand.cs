@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ArcaneLibs.Extensions;
 using LibMatrix.Helpers;
 using LibMatrix.Homeservers;
 
@@ -11,6 +12,7 @@ public class ExecuteCommand(ILogger<ExecuteCommand> logger, IHost host, RuntimeC
             await PrintHelp();
             return;
         }
+
         var filename = ctx.Args[1];
         if (filename.StartsWith("--")) {
             Console.WriteLine("Filename cannot start with --, please provide a valid filename.");
@@ -37,14 +39,21 @@ public class ExecuteCommand(ILogger<ExecuteCommand> logger, IHost host, RuntimeC
             ? rbj.Deserialize<RoomUpgradeBuilder>()
             : rbj.Deserialize<RoomBuilder>();
         Console.WriteLine($"Executing room builder file of type {rb.GetType().Name}...");
+        if (rb is RoomUpgradeBuilder { CanUpgrade: false } rub) {
+            Console.WriteLine("Warning: Import state has determined that you cannot upgrade this room.");
+            Console.WriteLine(rub.ToJson());
+            return;
+        }
+
         await rb!.Create(hs);
     }
-    
+
     public async Task ExecuteDirectory(string dirName) {
         if (!Directory.Exists(dirName)) {
             Console.WriteLine($"Directory {dirName} does not exist.");
             return;
         }
+
         var files = Directory.GetFiles(dirName, "*.json");
         foreach (var file in files) {
             Console.WriteLine($"Executing file: {file}");

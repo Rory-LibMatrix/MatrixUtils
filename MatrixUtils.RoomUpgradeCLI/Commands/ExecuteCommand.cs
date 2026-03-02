@@ -39,7 +39,7 @@ public class ExecuteCommand(ILogger<ExecuteCommand> logger, IHost host, RuntimeC
             ? rbj.Deserialize<RoomUpgradeBuilder>()
             : rbj.Deserialize<RoomBuilder>();
         Console.WriteLine($"Executing room builder file of type {rb.GetType().Name}...");
-        if (rb is RoomUpgradeBuilder { CanUpgrade: false } rub) {
+        if (rb is RoomUpgradeBuilder { CanUpgrade: false } rub && !(rub.UpgradeOptions.ForceUpgrade || rub.UpgradeOptions.NoopUpgrade)) {
             Console.WriteLine("Warning: Import state has determined that you cannot upgrade this room.");
             Console.WriteLine(rub.ToJson());
             return;
